@@ -231,27 +231,31 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
     scarce positions (TE, RB) are worth keeping; everyone else is likely available
     in the draft at their positional tier.
 
-    If league_rosters provided, also shows whether teams are "forced" to keep a player
-    (limited eligible roster options) vs. "chosen" (good selection available).
+    If per_team includes alternates, also shows whether teams are "forced" to keep a player
+    (limited eligible keeper options) vs. "chosen" (good selection available).
     """
     import re
-
-    # Build roster eligibility map if provided
-    roster_eligibility = {}
-    if league_rosters:
-        for team_roster in league_rosters:
-            team_name = str(team_roster.get('teamName', '')).split(' - ')[-1]
-            positions = {}
-            for player in team_roster.get('players', []):
-                pos = player.get('position', 'UNK').upper()
-                positions.setdefault(pos, []).append(player.get('playerName', ''))
-            roster_eligibility[team_name] = positions
 
     forecasts = []
     for team_entry in per_team:
         team_name = team_entry['team']
         chosen = team_entry.get('chosen', [])
-        roster_positions = roster_eligibility.get(team_name, {}) if league_rosters else {}
+        alternates = team_entry.get('alternates', [])
+
+        # Group eligible keepers by position (chosen + alternates)
+        eligible_by_position = {}
+        for player in chosen + alternates:
+            pos = player.get('position', 'UNK').upper()
+            if pos not in eligible_by_position:
+                eligible_by_position[pos] = []
+            eligible_by_position[pos].append({
+                'name': player.get('playerName'),
+                'rank': player.get('ranking') or 999,
+            })
+
+        # Sort by rank within each position to find best/worst options
+        for pos in eligible_by_position:
+            eligible_by_position[pos].sort(key=lambda x: x['rank'])
 
         forecast_keepers = []
         for keeper in chosen:
@@ -266,32 +270,57 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
                 if match:
                     pos_rank_num = int(match.group(1))
 
-            # Keeper decision based ONLY on position scarcity tiers
-            # Not on ADP or rank - just: "Is this player elite at a scarce position?"
+            # Keeper decision: elite tier OR best available at position for this team
             confidence = 'low'
             reasoning = 'Will be available in draft at this tier'
 
+            # Check if elite at position
+            is_elite = False
             if position == 'TE' and pos_rank_num and pos_rank_num <= 5:
                 confidence = 'high'
                 reasoning = f'Elite TE{pos_rank_num} - top 5 scarce, keep'
+                is_elite = True
             elif position == 'RB' and pos_rank_num and pos_rank_num <= 16:
                 confidence = 'high'
                 reasoning = f'Elite RB{pos_rank_num} - top 16, premium keeper'
+                is_elite = True
             elif position == 'WR' and pos_rank_num and pos_rank_num <= 20:
                 confidence = 'high'
                 reasoning = f'Elite WR{pos_rank_num} - top 20, keep for value'
+                is_elite = True
             elif position == 'QB' and pos_rank_num and pos_rank_num <= 15:
                 confidence = 'high'
                 reasoning = f'QB{pos_rank_num} - top 15, reasonable keeper'
+                is_elite = True
 
-            # Add roster constraint note if limited options
-            constraint_note = ''
-            if league_rosters and position in roster_positions:
-                position_count = len(roster_positions[position])
-                if position_count <= 2:
-                    constraint_note = ' (forced - limited roster options)'
-                elif position_count <= 3:
-                    constraint_note = ' (limited options)'
+            # If not elite, check if best available at position for this team
+            if not is_elite and position in eligible_by_position:
+                eligible_at_pos = eligible_by_position[position]
+                is_best_at_pos = eligible_at_pos and eligible_at_pos[0]['name'].lower().strip() == keeper.get('playerName', '').lower().strip()
+
+                if is_best_at_pos:
+                    next_best_rank = eligible_at_pos[1]['rank'] if len(eligible_at_pos) > 1 else None
+                    drop_off = (next_best_rank or 999) - (rank or 999) if next_best_rank and rank else 0
+
+                    if len(eligible_at_pos) <= 2:
+                        # Only 1-2 eligible = forced keeper
+                        confidence = 'high'
+                        if drop_off > 20:
+                            reasoning = f'{position}{pos_rank_num or "?"} - forced keeper (huge drop-off)'
+                        else:
+                            reasoning = f'{position}{pos_rank_num or "?"} - forced keeper (only {len(eligible_at_pos)} eligible)'
+                    elif drop_off > 25:
+                        # Big drop-off (25+ ranks) to next option = forced even with more alternatives
+                        confidence = 'high'
+                        reasoning = f'{position}{pos_rank_num or "?"} - forced keeper (major gap to next option)'
+                    elif drop_off > 10:
+                        # Moderate gap = likely to keep
+                        confidence = 'medium'
+                        reasoning = f'{position}{pos_rank_num or "?"} - likely keeper (clear best option)'
+                    else:
+                        # Small gap or tied
+                        confidence = 'medium'
+                        reasoning = f'{position}{pos_rank_num or "?"} - best eligible at position'
 
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
@@ -299,7 +328,7 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
                 'rank': rank,
                 'posRank': pos_rank,
                 'confidence': confidence,
-                'reasoning': reasoning + constraint_note,
+                'reasoning': reasoning,
             })
 
         forecasts.append({
