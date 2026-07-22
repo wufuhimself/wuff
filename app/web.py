@@ -183,6 +183,8 @@ def forecast_keeper_decisions(per_team, adp_map):
     """Forecast which keepers each team will likely keep based on ADP value.
 
     Teams are more likely to keep players who are undervalued (positive delta).
+    Accounts for positional scarcity: elite TEs/RBs are keeper-worthy even if
+    they appear overvalued by rank vs ADP, due to lack of depth at the position.
     Returns forecasts with confidence levels.
     """
     from .adp_manager import normalize_player_name
@@ -197,11 +199,35 @@ def forecast_keeper_decisions(per_team, adp_map):
             player_name = normalize_player_name(keeper.get('playerName', ''))
             adp = adp_map.get(player_name)
             rank = keeper.get('ranking')
+            position = keeper.get('position', '').upper()
+            pos_rank = keeper.get('positionRank', '')
+
+            # Extract positional rank (e.g., "TE2" -> 2)
+            pos_rank_num = None
+            if pos_rank:
+                import re
+                match = re.search(r'(\d+)', str(pos_rank))
+                if match:
+                    pos_rank_num = int(match.group(1))
 
             # Calculate value and confidence
+            confidence = 'medium'
+            reasoning = 'Fair value'
+            delta = None
+
             if rank and adp:
                 delta = adp - rank
-                if delta > 20:
+
+                # Positional scarcity exception: top-tier TEs/RBs are keeper-worthy
+                # even if overvalued by delta, due to position depth crisis
+                is_elite_te = position == 'TE' and pos_rank_num and pos_rank_num <= 4
+                is_elite_rb = position == 'RB' and pos_rank_num and pos_rank_num <= 3
+
+                if is_elite_te or is_elite_rb:
+                    confidence = 'high'
+                    position_name = 'TE' if is_elite_te else 'RB'
+                    reasoning = f'Elite {position_name} - scarcity lock (top tier)'
+                elif delta > 20:
                     confidence = 'high'
                     reasoning = 'Great value - big undervalued gem'
                 elif delta > 5:
@@ -214,13 +240,12 @@ def forecast_keeper_decisions(per_team, adp_map):
                     confidence = 'low'
                     reasoning = 'Overvalued - better to grab in draft'
             else:
-                confidence = 'medium'
                 delta = None
                 reasoning = 'No ADP data'
 
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
-                'position': keeper.get('position'),
+                'position': position,
                 'rank': rank,
                 'adp': adp,
                 'delta': delta,
