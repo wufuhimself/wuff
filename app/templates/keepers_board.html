@@ -3,7 +3,7 @@
 {% block content %}
       {% if per_team %}
       <section class="card">
-        <h2>Best 2 keepers per team + value analysis</h2>
+        <h2>Best 2 keepers per team + forecast</h2>
 
         <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
           <p style="margin-top: 0; font-size: 0.9rem; color: #666; font-weight: 600;">Legend:</p>
@@ -12,32 +12,48 @@
             <div><span class="pill pos-rb">RB</span> Running Back</div>
             <div><span class="pill pos-wr">WR</span> Wide Receiver</div>
             <div><span class="pill pos-te">TE</span> Tight End</div>
-            <div><span class="positive" style="padding: 0 0.5rem;">+ Delta</span> = Undervalued (falls in draft)</div>
-            <div><span class="negative" style="padding: 0 0.5rem;">- Delta</span> = Overvalued (reaches in draft)</div>
+            <div><span class="positive" style="padding: 0 0.5rem; font-weight: 600;">🟢 HIGH</span> = Likely to keep</div>
+            <div><span class="pill" style="background: #fef3c7; color: #92400e; padding: 0 0.5rem; font-weight: 600;">🟡 MED</span> = Reasonable</div>
+            <div><span class="negative" style="padding: 0 0.5rem; font-weight: 600;">🔴 LOW</span> = Might skip</div>
           </div>
         </div>
 
-        <table class="table compact">
-          <thead><tr><th>Team</th><th>Keeper 1</th><th>Rank</th><th>ADP</th><th>Δ</th><th>Keeper 2</th><th>Rank</th><th>ADP</th><th>Δ</th></tr></thead>
+        {% set forecast_by_team = {} %}
+        {% for forecast in keeper_forecasts %}
+          {% set _ = forecast_by_team.update({forecast.team: forecast.keepers}) %}
+        {% endfor %}
+
+        <table class="table compact" style="font-size: 0.8rem;">
+          <thead><tr><th>Team</th><th>Keeper 1</th><th>Rank</th><th>ADP</th><th>Conf</th><th>Keeper 2</th><th>Rank</th><th>ADP</th><th>Conf</th><th>Note</th></tr></thead>
           <tbody>
             {% for entry in per_team %}
+            {% set forecast_keepers = forecast_by_team.get(entry.team, []) %}
             <tr>
               <td style="font-weight: 600;">{{ entry.team }}</td>
               {% for c in entry.chosen %}
-              <td class="wrap">
-                {{ c.playerName }}<br>
-                <span class="pill pos-{{ c.position.lower() }}">{{ c.posRank or c.position }}</span>
-                {% if c.keeperYearsRemaining is not none %}<span class="pill">{{ c.keeperYearsRemaining }}yr</span>{% endif %}
-              </td>
-              <td class="number">{{ c.ranking or '-' }}</td>
-              <td class="number">{% if c.adp %}{{ "%.0f"|format(c.adp) }}{% else %}-{% endif %}</td>
-              <td class="number">
-                {% if c.ranking and c.adp %}
-                  {% set delta = c.adp - c.ranking %}
-                  <span class="{% if delta > 15 %}positive{% elif delta < -15 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
-                {% else %}-{% endif %}
-              </td>
+                {% set forecast = forecast_keepers[loop.index0] if loop.index0 < forecast_keepers|length else None %}
+                <td class="wrap">
+                  {{ c.playerName }}<br>
+                  <span class="pill pos-{{ c.position.lower() }}">{{ c.posRank or c.position }}</span>
+                  {% if c.keeperYearsRemaining is not none %}<span class="pill">{{ c.keeperYearsRemaining }}yr</span>{% endif %}
+                </td>
+                <td class="number">{{ c.ranking or '-' }}</td>
+                <td class="number">{% if c.adp %}{{ "%.0f"|format(c.adp) }}{% else %}-{% endif %}</td>
+                <td>
+                  {% if forecast %}
+                    <span class="pill" style="background: {% if forecast.confidence == 'high' %}#dcfce7; color: #15803d{% elif forecast.confidence == 'medium' %}#fef3c7; color: #92400e{% else %}#fed7aa; color: #9a3412{% endif %}; font-weight: 600; font-size: 0.75rem;">
+                      {{ forecast.confidence | upper | slice(0,1) }}
+                    </span>
+                  {% endif %}
+                </td>
               {% endfor %}
+              <td style="font-size: 0.75rem; color: #667085; max-width: 200px;">
+                {% if forecast_keepers %}
+                  {% for forecast in forecast_keepers %}
+                    <div>{{ forecast.reasoning }}</div>
+                  {% endfor %}
+                {% endif %}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
