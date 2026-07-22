@@ -32,9 +32,6 @@
         <section class="card">
           <h2>Token status</h2>
           <p class="status">{{ 'Saved' if has_token else 'Not available' }}</p>
-          {% if not has_token %}
-          <p>Run <code>python3 -m python_app.cli auth-server</code> and then <code>python3 -m python_app.cli token &lt;code&gt;</code>.</p>
-          {% endif %}
         </section>
       </div>
 
@@ -63,29 +60,58 @@
 
       <div class="grid">
         <section class="card">
-          <h2>Likely opponent keepers</h2>
-          <p class="status">Real per-team eligibility applied (round 1/2 excluded, consecutive-season cap enforced) — this is not just "top ranked players not on my roster".</p>
-          {% if likely_keepers %}
-          <ol>
-            {% for player in likely_keepers %}
-            <li>{{ player.playerName }} ({{ player.posRank or player.position }}) — rank {{ player.ranking }} — kept by {{ player.team }}</li>
-            {% endfor %}
-          </ol>
+          <h2>Undervalued (Rank > ADP)</h2>
+          <p class="status">Experts like them, market undervalues them. Best value picks.</p>
+          {% if adp_analysis %}
+            {% set undervalued = adp_analysis | selectattr('delta', '>', 5) | list %}
+            {% if undervalued %}
+            <table class="table compact">
+              <thead><tr><th>Player</th><th>Pos</th><th>Rank</th><th>ADP</th><th>+Value</th></tr></thead>
+              <tbody>
+              {% for player in undervalued[:15] %}
+                <tr>
+                  <td>{{ player.playerName }}</td>
+                  <td>{{ player.position }}</td>
+                  <td class="number">{{ player.rank }}</td>
+                  <td class="number">{{ "%.1f"|format(player.adp) }}</td>
+                  <td class="number positive">+{{ "%.1f"|format(player.delta) }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <p class="status">No undervalued players found.</p>
+            {% endif %}
           {% else %}
-          <p class="status">No forecast data available. Need a saved league roster snapshot (<code>scrape-league-rosters</code>) and saved rankings.</p>
+          <p class="status">Run <code>import-adp</code> then <code>adp-value-analysis</code> to populate.</p>
           {% endif %}
         </section>
 
         <section class="card">
-          <h2>Top available players</h2>
-          {% if top_available %}
-          <ol>
-            {% for player in top_available[:10] %}
-            <li>{{ player.playerName }} ({{ player.posRank or player.position }}) — ranking {{ player.ranking }}</li>
-            {% endfor %}
-          </ol>
+          <h2>Overvalued (ADP > Rank)</h2>
+          <p class="status">Market overvalues them, avoid the hype. Watch out for reaches.</p>
+          {% if adp_analysis %}
+            {% set overvalued = adp_analysis | selectattr('delta', '<', -5) | list %}
+            {% if overvalued %}
+            <table class="table compact">
+              <thead><tr><th>Player</th><th>Pos</th><th>Rank</th><th>ADP</th><th>-Value</th></tr></thead>
+              <tbody>
+              {% for player in overvalued | reverse | list | first(15) %}
+                <tr>
+                  <td>{{ player.playerName }}</td>
+                  <td>{{ player.position }}</td>
+                  <td class="number">{{ player.rank }}</td>
+                  <td class="number">{{ "%.1f"|format(player.adp) }}</td>
+                  <td class="number negative">{{ "%.1f"|format(player.delta) }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <p class="status">No overvalued players found.</p>
+            {% endif %}
           {% else %}
-          <p class="status">No available ranking data available.</p>
+          <p class="status">Run <code>import-adp</code> then <code>adp-value-analysis</code> to populate.</p>
           {% endif %}
         </section>
       </div>

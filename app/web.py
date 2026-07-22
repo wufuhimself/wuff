@@ -1,6 +1,8 @@
+import csv
 import io
 import json
 from io import BytesIO
+from pathlib import Path
 from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
@@ -8,7 +10,7 @@ from flask import Flask, redirect, render_template, request, url_for
 from .draft_history import keeper_slot_picks, live_draft_picks, load_draft_years
 from .draft_picks import load_draft_pick_origins, load_draft_picks
 from .league_context import load_league_format
-from .paths import CONFIG_DIR, RAW_STANDINGS_DIR, YAHOO_LEAGUE_ROSTERS_JSON
+from .paths import CONFIG_DIR, RAW_STANDINGS_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
 from .roster_store import load_roster, save_roster as persist_roster
@@ -29,29 +31,40 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 LEAGUE_RULES_FILE = CONFIG_DIR / 'league_rules.json'
 
 
+def load_adp_value_analysis():
+    """Load ADP value analysis from CSV."""
+    adp_csv = PROCESSED_DIR / 'adp_value_analysis.csv'
+    if not adp_csv.exists():
+        return []
+
+    analysis = []
+    with open(adp_csv, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            analysis.append({
+                'playerName': row['playerName'],
+                'position': row['position'],
+                'rank': int(row['rank']),
+                'adp': float(row['adp']),
+                'delta': float(row['delta']),
+                'value': row['value'],
+            })
+    return analysis
+
+
 def load_dashboard_state():
     roster = load_roster()
     rankings = load_yahoo_rankings()
     league_format = load_league_format()
     keeper_insight = roster_keeper_insight(roster, rankings, league_format=league_format) if roster and rankings else []
 
-    likely_keepers, top_available = [], []
-    if rankings:
-        try:
-            league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
-        except FileNotFoundError:
-            league_rosters = None
-        if league_rosters:
-            likely_keepers, top_available = forecast_opponent_keepers(
-                league_rosters, rankings, league_format, your_roster_players=roster,
-            )
+    adp_analysis = load_adp_value_analysis()
 
     return {
         'roster': roster,
         'rankings_count': len(rankings),
         'keeper_insight': keeper_insight,
-        'likely_keepers': likely_keepers,
-        'top_available': top_available,
+        'adp_analysis': adp_analysis,
         'has_token': get_valid_token() is not None,
     }
 

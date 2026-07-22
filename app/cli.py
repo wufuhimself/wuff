@@ -25,6 +25,15 @@ from .rankings_pdf import load_rankings_pdf
 from .rankings_aggregator import aggregate_rankings, fetch_rankings_from_site
 from .rankings_manager import combine_and_save_all as combine_rankings_all
 from .feature_table import build_and_save_feature_table
+from .fantasypros_manager import (
+    fetch_and_save_rankings as fantasypros_fetch_rankings,
+    fetch_and_save_projections as fantasypros_fetch_projections,
+)
+from .adp_manager import (
+    import_and_save_adp,
+    load_adp_json,
+    rank_vs_adp_analysis,
+)
 from .strategy import (
     forecast_opponent_keepers,
     league_keeper_board,
@@ -212,9 +221,26 @@ def parse_args() -> argparse.Namespace:
     combine_rankings_parser = subparsers.add_parser('combine-rankings', help='Merge all ranking sources (CSV/JSON) into a single normalized file')
     combine_rankings_parser.add_argument('--output', default=None, help='Output file path (default: data/raw/rankings/rankings_combined.json)')
 
+    fantasypros_rankings_parser = subparsers.add_parser('fantasypros-rankings', help='Fetch consensus rankings from FantasyPros API (requires FANTASYPROS_API_KEY env var)')
+    fantasypros_rankings_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
+    fantasypros_rankings_parser.add_argument('--sport', default='NFL', help='Sport (NFL, MLB, NBA, NHL, PGA, NCAAF; default: NFL)')
+    fantasypros_rankings_parser.add_argument('--week', type=int, default=0, help='Week number (0 for preseason; default: 0)')
+
+    fantasypros_projections_parser = subparsers.add_parser('fantasypros-projections', help='Fetch player projections from FantasyPros API (requires FANTASYPROS_API_KEY env var)')
+    fantasypros_projections_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
+    fantasypros_projections_parser.add_argument('--sport', default='NFL', help='Sport (NFL only for now; default: NFL)')
+    fantasypros_projections_parser.add_argument('--positions', default='QB,RB,WR,TE,K,DEF', help='Colon-delimited positions to fetch (default: QB,RB,WR,TE,K,DEF)')
+    fantasypros_projections_parser.add_argument('--week', type=int, default=None, help='Week number (None for preseason)')
+
     build_features_parser = subparsers.add_parser('build-features', help='Build ML feature table joining draft history, stats, and rankings')
     build_features_parser.add_argument('--seasons', nargs='+', type=int, default=[2022, 2023, 2024, 2025], help='Seasons to include (default: 2022-2025)')
     build_features_parser.add_argument('--output', default=None, help='Output CSV path (default: data/processed/feature_table.csv)')
+
+    import_adp_parser = subparsers.add_parser('import-adp', help='Import ADP (Average Draft Position) from CSV file')
+    import_adp_parser.add_argument('csv_path', help='Path to ADP CSV file')
+
+    adp_analysis_parser = subparsers.add_parser('adp-value-analysis', help='Analyze rank vs ADP to find overvalued and undervalued players')
+    adp_analysis_parser.add_argument('--export', default=None, help='Export results to CSV file')
 
     parse_rosters_parser = subparsers.add_parser('parse-rosters', help='Interactively parse Yahoo Fantasy rosters from pasted text')
 
@@ -1070,6 +1096,36 @@ def main() -> None:
             sys.exit(1)
         return
 
+    if args.command == 'fantasypros-rankings':
+        try:
+            fantasypros_fetch_rankings(sport=args.sport, season=args.season, week=args.week)
+            print('Rankings saved to data/raw/rankings/fantasypros_*.json')
+            print('Run combine-rankings to merge with other sources.')
+        except ValueError as e:
+            print(f'Error: {e}', file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f'Error fetching FantasyPros rankings: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'fantasypros-projections':
+        try:
+            positions = args.positions.split(',')
+            fantasypros_fetch_projections(sport=args.sport, season=args.season, positions=positions, week=args.week)
+            print('Projections saved to data/raw/rankings/fantasypros_*_projections*.json')
+        except ValueError as e:
+            print(f'Error: {e}', file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f'Error fetching FantasyPros projections: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
     if args.command == 'build-features':
         try:
             seasons = args.seasons or [2022, 2023, 2024, 2025]
@@ -1122,6 +1178,77 @@ def main() -> None:
             print(f'Saved {len(rosters_data)} team rosters to {output_path}')
         else:
             print('Rosters not saved.')
+        return
+
+    if args.command == 'import-adp':
+        try:
+            csv_path = Path(args.csv_path)
+            import_and_save_adp(csv_path)
+            print('ADP saved to data/raw/adp/adp_combined.json')
+            print('Run adp-value-analysis to compare rankings vs ADP.')
+        except FileNotFoundError:
+            print(f'File not found: {args.csv_path}', file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f'Error importing ADP: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'adp-value-analysis':
+        # Load rankings
+        if not RANKINGS_COMBINED_FILE.exists():
+            print('No combined rankings found. Run combine-rankings first.', file=sys.stderr)
+            sys.exit(1)
+        rankings = json.loads(RANKINGS_COMBINED_FILE.read_text())
+
+        # Load ADP
+        adp_data = load_adp_json()
+        if not adp_data:
+            print('No ADP data found. Run import-adp first.', file=sys.stderr)
+            sys.exit(1)
+
+        # Analyze
+        analysis = rank_vs_adp_analysis(rankings, adp_data)
+        print(f'Matched {len(analysis)} players (experts vs market)')
+        print()
+
+        # Show undervalued
+        undervalued = [e for e in analysis if e['delta'] > 3]
+        print(f'UNDERVALUED (ranked higher than ADP, δ > +3): {len(undervalued)} players')
+        print('-' * 105)
+        for entry in undervalued[:20]:
+            print(
+                f"  {entry['rank']:3d}. rank vs {entry['adp']:6.1f} ADP  │  "
+                f"{entry['playerName']:25} {entry['position']:4}  │  +{entry['delta']:5.1f}"
+            )
+
+        print()
+
+        # Show overvalued
+        overvalued = [e for e in analysis if e['delta'] < -3]
+        print(f'OVERVALUED (ranked lower than ADP, δ < -3): {len(overvalued)} players')
+        print('-' * 105)
+        for entry in sorted(overvalued, key=lambda x: x['delta'])[:20]:
+            print(
+                f"  {entry['rank']:3d}. rank vs {entry['adp']:6.1f} ADP  │  "
+                f"{entry['playerName']:25} {entry['position']:4}  │  {entry['delta']:5.1f}"
+            )
+
+        # Export if requested
+        if args.export:
+            output_path = Path(args.export)
+            ensure_parent_dir(output_path)
+            with open(output_path, 'w', newline='') as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=['playerName', 'position', 'team', 'rank', 'adp', 'delta', 'value', 'sources']
+                )
+                writer.writeheader()
+                writer.writerows(analysis)
+            print()
+            print(f'Exported full analysis to {output_path}')
         return
 
     if args.command == 'keepers-board-export':

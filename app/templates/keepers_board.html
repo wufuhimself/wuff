@@ -3,15 +3,30 @@
 {% block content %}
       {% if per_team %}
       <section class="card">
-        <h2>Best 2 keepers per team</h2>
+        <h2>Best 2 keepers per team + alternates</h2>
+
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+          <p style="margin-top: 0; font-size: 0.9rem; color: #666; font-weight: 600;">Position Legend:</p>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem;">
+            <span><span class="pill pos-qb">QB</span> Quarterback</span>
+            <span><span class="pill pos-rb">RB</span> Running Back</span>
+            <span><span class="pill pos-wr">WR</span> Wide Receiver</span>
+            <span><span class="pill pos-te">TE</span> Tight End</span>
+            <span><span class="pill pos-def">DEF</span> Defense</span>
+          </div>
+        </div>
+
         <table class="table">
-          <thead><tr><th>Team</th><th>Keeper 1</th><th>Keeper 2</th></tr></thead>
+          <thead><tr><th>Team</th><th>Keeper 1</th><th>Keeper 2</th><th>Alt 1</th><th>Alt 2</th></tr></thead>
           <tbody>
             {% for entry in per_team %}
             <tr>
               <td>{{ entry.team }}</td>
               {% for c in entry.chosen %}
-              <td class="wrap">{{ c.playerName }} <span class="pill">{{ c.posRank or c.position }}</span> <span class="pill">rank {{ c.ranking }}</span>{% if c.keeperYearsRemaining is not none %} <span class="pill">{{ c.keeperYearsRemaining }} yr left</span>{% endif %}</td>
+              <td class="wrap">{{ c.playerName }}<br><span class="pill pos-{{ c.position.lower() }}">{{ c.posRank or c.position }}</span>{% if c.keeperYearsRemaining is not none %} <span class="pill">{{ c.keeperYearsRemaining }}yr</span>{% endif %}</td>
+              {% endfor %}
+              {% for a in entry.alternates[:2] %}
+              <td class="wrap">{{ a.playerName }}<br><span class="pill pos-{{ a.position.lower() }}">{{ a.posRank or a.position }}</span>{% if a.keeperYearsRemaining is not none %} <span class="pill">{{ a.keeperYearsRemaining }}yr</span>{% endif %}</td>
               {% endfor %}
             </tr>
             {% endfor %}
@@ -20,8 +35,7 @@
       </section>
 
       <section class="card">
-        <h2>Post-keepers draft board (top 100)</h2>
-        <p class="status">Full board written to <code>data/processed/rankings_post_keepers.csv</code> by this same computation (run <code>python3 -m python_app.cli keepers-board</code> to regenerate the file).</p>
+        <h2>Post-keepers draft board</h2>
         <form method="get" style="margin-bottom: 1rem;">
           <label for="team">Highlight picks owned by:</label>
           <select name="team" id="team" onchange="this.form.submit()">

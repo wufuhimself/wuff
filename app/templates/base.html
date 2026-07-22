@@ -31,19 +31,32 @@
       .table th, .table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; vertical-align: top; }
       .table th { position: sticky; top: 0; background: #fafbfc; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
       .table tbody tr:hover { background: #fafbfc; }
-      .table td.wrap { white-space: normal; }
+      .table td.wrap { white-space: normal; min-width: 160px; }
       .table td.note-col { white-space: normal; min-width: 220px; max-width: 360px; color: var(--muted); font-size: 0.92rem; }
+      .table.compact th, .table.compact td { padding: 0.5rem 0.7rem; font-size: 0.9rem; }
+      .table td.number { text-align: right; font-variant-numeric: tabular-nums; }
+      .table td.positive { color: #15803d; font-weight: 500; }
+      .table td.negative { color: #991b1b; font-weight: 500; }
       .table tr.my-pick { background: #fff8e6; }
       .table tr.my-pick td { font-weight: 600; }
       .table tr.my-pick:hover { background: #fff2cc; }
       .table tr.round-divider td { background: #eef1f7; font-weight: 700; color: #333; padding: 0.45rem 0.9rem; white-space: nowrap; }
+      .table tbody tr:nth-child(odd) { background: #fafbfc; }
+      .table tbody tr:nth-child(even) { background: white; }
+      .table tbody tr:hover { background: #eff3ff; }
+      .pill.pos-qb { background: #dbeafe; color: #1e40af; }
+      .pill.pos-rb { background: #dcfce7; color: #15803d; }
+      .pill.pos-wr { background: #f3e8ff; color: #6b21a8; }
+      .pill.pos-te { background: #fed7aa; color: #9a3412; }
+      .pill.pos-k { background: #fef3c7; color: #92400e; }
+      .pill.pos-def { background: #fecaca; color: #991b1b; }
       .button { background: var(--blue); border: none; color: white; padding: 0.65rem 1.1rem; border-radius: 10px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; font-size: 0.92rem; transition: background .15s; }
       .button:hover:not(:disabled) { background: #0052cc; }
       .button:disabled { opacity: 0.45; cursor: not-allowed; }
       .status { color: var(--muted); margin-top: 0.5rem; font-size: 0.92rem; }
       .message { background: #e7f3ff; color: #0b3d91; border-left: 4px solid var(--blue); padding: 1rem; margin-bottom: 1rem; border-radius: 10px; }
       .error { background: #fdeceb; color: #8a1f11; border-left: 4px solid #d64541; padding: 1rem; margin-bottom: 1rem; border-radius: 10px; }
-      .pill { display: inline-block; background: #eef1f7; color: #444; border-radius: 999px; padding: 0.18rem 0.65rem; font-size: 0.78rem; margin-right: 0.35rem; font-weight: 600; }
+      .pill { display: inline-block; background: #eef1f7; color: #444; border-radius: 999px; padding: 0.18rem 0.65rem; font-size: 0.78rem; margin-right: 0.35rem; font-weight: 600; white-space: nowrap; }
       .team-list { list-style: none; padding: 0; margin: 0; }
       .team-list li { padding: 0.5rem 0; border-bottom: 1px solid #eee; }
       .team-list li:last-child { border-bottom: none; }

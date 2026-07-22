@@ -517,6 +517,18 @@ def league_keeper_board(
     )
 
     position_ranks = _build_position_ranks(rankings)
+
+    # Add posRank to per_team chosen and alternates
+    for entry in per_team:
+        for player_list in [entry['chosen'], entry['alternates']]:
+            for player in player_list:
+                player_name = str(player.get('playerName', ''))
+                position = _normalize_position(str(player.get('position', 'UNK')))
+                position_rank_info = position_ranks.get(_normalize_name(player_name), {})
+                position_rank = position_rank_info.get('positionRank')
+                if position_rank:
+                    player['posRank'] = f'{position}{position_rank}'
+
     remaining_board = []
     for i, r in enumerate(remaining, start=1):
         row = dict(r)
