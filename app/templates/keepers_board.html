@@ -23,41 +23,90 @@
           {% set _ = forecast_by_team.update({forecast.team: forecast.keepers}) %}
         {% endfor %}
 
-        <table class="table compact" style="font-size: 0.8rem;">
-          <thead><tr><th>Team</th><th>Keeper 1</th><th>Rank</th><th>ADP</th><th>Conf</th><th>Keeper 2</th><th>Rank</th><th>ADP</th><th>Conf</th><th>Note</th></tr></thead>
-          <tbody>
-            {% for entry in per_team %}
-            {% set forecast_keepers = forecast_by_team.get(entry.team, []) %}
-            <tr>
-              <td style="font-weight: 600;">{{ entry.team }}</td>
-              {% for c in entry.chosen %}
-                {% set forecast = forecast_keepers[loop.index0] if loop.index0 < forecast_keepers|length else None %}
+        <div style="overflow-x: auto;">
+          <table class="table compact" style="font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th colspan="4" style="text-align: center;">Keeper 1 + Alt 1</th>
+                <th colspan="4" style="text-align: center;">Keeper 2 + Alt 2</th>
+              </tr>
+              <tr style="border-bottom: 2px solid #e6e8ee;">
+                <th>—</th>
+                <th>Player</th><th>Rk</th><th>ADP</th><th>✓</th>
+                <th>Player</th><th>Rk</th><th>ADP</th><th>✓</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in per_team %}
+              {% set forecast_keepers = forecast_by_team.get(entry.team, []) %}
+              <tr style="border-bottom: 1px solid #e6e8ee;">
+                <td style="font-weight: 600; background: #fafbfc;">{{ entry.team }}</td>
+
+                <!-- Keeper 1 -->
+                {% set k1 = entry.chosen[0] if entry.chosen|length > 0 else None %}
+                {% set f1 = forecast_keepers[0] if forecast_keepers|length > 0 else None %}
+                {% set a1 = entry.alternates[0] if entry.alternates|length > 0 else None %}
+
                 <td class="wrap">
-                  {{ c.playerName }}<br>
-                  <span class="pill pos-{{ c.position.lower() }}">{{ c.posRank or c.position }}</span>
-                  {% if c.keeperYearsRemaining is not none %}<span class="pill">{{ c.keeperYearsRemaining }}yr</span>{% endif %}
+                  {% if k1 %}
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ k1.playerName }}</div>
+                    <div style="font-size: 0.7rem;">
+                      <span class="pill pos-{{ k1.position.lower() }}">{{ k1.posRank or k1.position }}</span>
+                      {% if k1.keeperYearsRemaining is not none %}<span class="pill">{{ k1.keeperYearsRemaining }}yr</span>{% endif %}
+                    </div>
+                    {% if a1 %}
+                      <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e6e8ee; font-size: 0.75rem; color: #667085;">
+                        Alt: {{ a1.playerName }}<br>
+                        <span class="pill pos-{{ a1.position.lower() }}">{{ a1.posRank or a1.position }}</span>
+                      </div>
+                    {% endif %}
+                  {% endif %}
                 </td>
-                <td class="number">{{ c.ranking or '-' }}</td>
-                <td class="number">{% if c.adp %}{{ "%.0f"|format(c.adp) }}{% else %}-{% endif %}</td>
-                <td>
-                  {% if forecast %}
-                    <span class="pill" style="background: {% if forecast.confidence == 'high' %}#dcfce7; color: #15803d{% elif forecast.confidence == 'medium' %}#fef3c7; color: #92400e{% else %}#fed7aa; color: #9a3412{% endif %}; font-weight: 600; font-size: 0.75rem;">
-                      {{ forecast.confidence | upper | slice(0,1) }}
+                <td class="number" style="font-size: 0.75rem;">{{ k1.ranking or '-' if k1 else '-' }}</td>
+                <td class="number" style="font-size: 0.75rem;">{% if k1 and k1.adp %}{{ "%.0f"|format(k1.adp) }}{% else %}-{% endif %}</td>
+                <td style="text-align: center;">
+                  {% if f1 %}
+                    <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 50%; background: {% if f1.confidence == 'high' %}#dcfce7{% elif f1.confidence == 'medium' %}#fef3c7{% else %}#fed7aa{% endif %}; color: {% if f1.confidence == 'high' %}#15803d{% elif f1.confidence == 'medium' %}#92400e{% else %}#9a3412{% endif %}; font-weight: 700; font-size: 0.9rem;">
+                      {% if f1.confidence == 'high' %}H{% elif f1.confidence == 'medium' %}M{% else %}L{% endif %}
                     </span>
                   {% endif %}
                 </td>
+
+                <!-- Keeper 2 -->
+                {% set k2 = entry.chosen[1] if entry.chosen|length > 1 else None %}
+                {% set f2 = forecast_keepers[1] if forecast_keepers|length > 1 else None %}
+                {% set a2 = entry.alternates[1] if entry.alternates|length > 1 else None %}
+
+                <td class="wrap">
+                  {% if k2 %}
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ k2.playerName }}</div>
+                    <div style="font-size: 0.7rem;">
+                      <span class="pill pos-{{ k2.position.lower() }}">{{ k2.posRank or k2.position }}</span>
+                      {% if k2.keeperYearsRemaining is not none %}<span class="pill">{{ k2.keeperYearsRemaining }}yr</span>{% endif %}
+                    </div>
+                    {% if a2 %}
+                      <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e6e8ee; font-size: 0.75rem; color: #667085;">
+                        Alt: {{ a2.playerName }}<br>
+                        <span class="pill pos-{{ a2.position.lower() }}">{{ a2.posRank or a2.position }}</span>
+                      </div>
+                    {% endif %}
+                  {% endif %}
+                </td>
+                <td class="number" style="font-size: 0.75rem;">{{ k2.ranking or '-' if k2 else '-' }}</td>
+                <td class="number" style="font-size: 0.75rem;">{% if k2 and k2.adp %}{{ "%.0f"|format(k2.adp) }}{% else %}-{% endif %}</td>
+                <td style="text-align: center;">
+                  {% if f2 %}
+                    <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; border-radius: 50%; background: {% if f2.confidence == 'high' %}#dcfce7{% elif f2.confidence == 'medium' %}#fef3c7{% else %}#fed7aa{% endif %}; color: {% if f2.confidence == 'high' %}#15803d{% elif f2.confidence == 'medium' %}#92400e{% else %}#9a3412{% endif %}; font-weight: 700; font-size: 0.9rem;">
+                      {% if f2.confidence == 'high' %}H{% elif f2.confidence == 'medium' %}M{% else %}L{% endif %}
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
               {% endfor %}
-              <td style="font-size: 0.75rem; color: #667085; max-width: 200px;">
-                {% if forecast_keepers %}
-                  {% for forecast in forecast_keepers %}
-                    <div>{{ forecast.reasoning }}</div>
-                  {% endfor %}
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section class="card">
