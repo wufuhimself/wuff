@@ -3,6 +3,31 @@
 {% block content %}
       {% if per_team %}
       <section class="card">
+        <h2>Keeper impact by position</h2>
+        <span class="status">How many elite players will be locked up as keepers (top 12 teams × 2 keepers each).</span>
+
+        {% if keeper_impact %}
+        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 1rem;">
+          {% for impact in keeper_impact %}
+          <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1.5rem; background: #fafbfc; text-align: center;">
+            <div style="font-size: 2rem; font-weight: 700; color: #0a2f5c; margin-bottom: 0.5rem;">
+              <span class="pill pos-{{ impact.position.lower() }}" style="font-size: 1.2rem; padding: 0.4rem 0.8rem;">{{ impact.position }}</span>
+            </div>
+            <div style="font-size: 1.3rem; margin-bottom: 0.5rem;">
+              <span style="color: #15803d; font-weight: 600;">{{ impact.kept }}</span>
+              <span style="color: #667085;">of {{ impact.total }}</span>
+              <span style="color: #991b1b; font-weight: 600;">{{ impact.available }}</span> available
+            </div>
+            <div style="font-size: 0.85rem; color: #667085;">
+              {{ impact.pct_kept }}% locked via keepers
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="card">
         <h2>Keeper forecast by team (position scarcity)</h2>
         <span class="status">Based on position tier scarcity, not ADP. 🟢 HIGH = Elite at scarce position (keep). 🔴 LOW = Available later in draft (skip keeper).</span>
 

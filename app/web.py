@@ -179,6 +179,76 @@ def enrich_with_adp(player_list, adp_map):
         player['adp'] = adp_map.get(player_name)
 
 
+def calculate_keeper_impact(keeper_forecasts, rankings):
+    """Calculate how many elite players at each position are locked up as keepers.
+
+    Shows impact on draft board: "8 elite TEs kept, 40 available in draft"
+    """
+    import re
+
+    # Define elite tiers (top positions that matter for keeper value)
+    elite_tiers = {
+        'TE': 12,   # Top 12 TEs available overall, mostly kept by 12 teams
+        'RB': 15,   # Top 15 RBs
+        'WR': 20,   # Top 20 WRs
+        'QB': 12,   # Top 12 QBs
+    }
+
+    # Count how many at each position are HIGH confidence keepers
+    keeper_counts = {pos: 0 for pos in elite_tiers}
+    total_counts = {pos: 0 for pos in elite_tiers}
+
+    for forecast in keeper_forecasts:
+        for keeper in forecast['keepers']:
+            position = keeper['position']
+            if position in elite_tiers:
+                total_counts[position] += 1
+                if keeper['confidence'] == 'high':
+                    keeper_counts[position] += 1
+
+    # Count elite players in rankings by position
+    elite_by_position = {pos: 0 for pos in elite_tiers}
+    for r in rankings:
+        pos = r.get('position', '').upper()
+        if pos not in elite_tiers:
+            continue
+
+        # Extract position rank (TE1, RB2, etc)
+        pos_rank_str = None
+        for entry in rankings:
+            if entry.get('playerName') == r.get('playerName'):
+                # Look for posRank if available
+                break
+
+        # Simple heuristic: count ranked players in top positions
+        if r.get('ranking', 999) <= 80:  # Top ~80 ranked players
+            elite_by_position[pos] += 1
+
+    # Build impact summary
+    impact = []
+    for position in ['TE', 'RB', 'WR', 'QB']:
+        if position not in elite_tiers:
+            continue
+
+        kept = keeper_counts[position]
+        total = total_counts[position]
+        elite_count = elite_by_position[position]
+
+        if total > 0:
+            available = total - kept
+            pct_kept = round((kept / total) * 100, 1) if total > 0 else 0
+
+            impact.append({
+                'position': position,
+                'kept': kept,
+                'total': total,
+                'available': available,
+                'pct_kept': pct_kept,
+            })
+
+    return sorted(impact, key=lambda x: x['pct_kept'], reverse=True)
+
+
 def forecast_keeper_decisions(per_team, adp_map):
     """Forecast which keepers each team will likely keep based on position scarcity.
 
@@ -324,12 +394,15 @@ def keepers_board_view():
     board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
     board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
 
-    # Forecast opponent keeper decisions based on ADP value
+    # Forecast opponent keeper decisions based on position scarcity
     keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
+
+    # Calculate keeper impact by position
+    keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
 
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
-        keeper_forecasts=keeper_forecasts,
+        keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
         board_by_rank=board_by_rank, board_by_adp=board_by_adp,
         my_team=my_team, team_names=team_names, error=None,
     )
