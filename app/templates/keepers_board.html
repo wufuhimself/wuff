@@ -36,31 +36,48 @@
       </section>
 
       <section class="card">
-        <h2>Post-keepers draft board</h2>
-        <form method="get" style="margin-bottom: 1rem;">
-          <label for="team">Highlight picks owned by:</label>
-          <select name="team" id="team" onchange="this.form.submit()">
-            {% for t in team_names %}
-            <option value="{{ t }}" {% if t == my_team %}selected{% endif %}>{{ t }}</option>
-            {% endfor %}
-          </select>
-          <span class="status">Real picks (accounts for saved trades) at that team's actual draft slot.</span>
-        </form>
-        <table class="table">
-          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Rank</th><th>ADP</th></tr></thead>
+        <h2>Post-keepers draft board (by expert rank)</h2>
+        <span class="status">Sorted by expert consensus ranking. Experts think these are the best available.</span>
+        <table class="table compact">
+          <thead><tr><th>Rank</th><th>Player</th><th>Pos</th><th>ADP</th><th>Delta</th></tr></thead>
           <tbody>
-            {% for round_number, rows in remaining_board|groupby('round') %}
-            <tr class="round-divider"><td colspan="6">Round {{ round_number }}</td></tr>
-            {% for row in rows %}
+            {% for row in board_by_rank %}
             <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
-              <td>{{ row.draftOrder }}{% if row.isMyPick %} <span class="pill">your pick</span>{% endif %}</td>
+              <td class="number">{{ row.ranking or '-' }}</td>
               <td>{{ row.playerName }}</td>
               <td>{{ row.posRank or row.position }}</td>
-              <td>{{ row.team }}</td>
-              <td class="number">{{ row.ranking or '-' }}</td>
               <td class="number">{% if row.adp %}{{ "%.1f"|format(row.adp) }}{% else %}-{% endif %}</td>
+              <td class="number">
+                {% if row.ranking and row.adp %}
+                  {% set delta = row.adp - row.ranking %}
+                  <span class="{% if delta > 10 %}positive{% elif delta < -10 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
+                {% else %}-{% endif %}
+              </td>
             </tr>
             {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Post-keepers draft board (by market ADP)</h2>
+        <span class="status">Sorted by Average Draft Position. Market tells you where players went in real drafts.</span>
+        <table class="table compact">
+          <thead><tr><th>ADP</th><th>Player</th><th>Pos</th><th>Rank</th><th>Delta</th></tr></thead>
+          <tbody>
+            {% for row in board_by_adp %}
+            <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
+              <td class="number">{% if row.adp %}{{ "%.1f"|format(row.adp) }}{% else %}-{% endif %}</td>
+              <td>{{ row.playerName }}</td>
+              <td>{{ row.posRank or row.position }}</td>
+              <td class="number">{{ row.ranking or '-' }}</td>
+              <td class="number">
+                {% if row.ranking and row.adp %}
+                  {% set delta = row.adp - row.ranking %}
+                  <span class="{% if delta > 10 %}positive{% elif delta < -10 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
+                {% else %}-{% endif %}
+              </td>
+            </tr>
             {% endfor %}
           </tbody>
         </table>

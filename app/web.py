@@ -247,8 +247,13 @@ def keepers_board_view():
         row['isMyPick'] = row.get('draftOrder') in my_picks
         row['round'] = ((row.get('draftOrder', 1) - 1) // teams) + 1
 
+    # Create two sorted views of the draft board
+    board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
+    board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
+
     return render_template(
-        'keepers_board.html', active='keepers-board', per_team=per_team, remaining_board=remaining_board,
+        'keepers_board.html', active='keepers-board', per_team=per_team,
+        board_by_rank=board_by_rank, board_by_adp=board_by_adp,
         my_team=my_team, team_names=team_names, error=None,
     )
 
