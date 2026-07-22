@@ -35,6 +35,18 @@
         </table>
       </section>
 
+      <section class="card">
+        <form method="get" style="margin-bottom: 1rem;">
+          <label for="team">Highlight picks owned by:</label>
+          <select name="team" id="team" onchange="this.form.submit()">
+            {% for t in team_names %}
+            <option value="{{ t }}" {% if t == my_team %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+          <span class="status">Real picks (accounts for saved trades) at that team's actual draft slot.</span>
+        </form>
+      </section>
+
       <div class="grid-two">
         <section class="card">
           <h2>By Expert Rank</h2>
