@@ -27,16 +27,19 @@
       .card h2 { margin-top: 0; font-size: 1.1rem; }
       .card h2:first-child, .card h3:first-child { margin-top: 0; }
       .grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+      .grid-two { display: grid; gap: 1.5rem; grid-template-columns: repeat(2, 1fr); }
       .table { width: 100%; border-collapse: collapse; }
       .table th, .table td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; vertical-align: top; }
       .table th { position: sticky; top: 0; background: #fafbfc; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
       .table tbody tr:hover { background: #fafbfc; }
       .table td.wrap { white-space: normal; min-width: 160px; }
       .table td.note-col { white-space: normal; min-width: 220px; max-width: 360px; color: var(--muted); font-size: 0.92rem; }
-      .table.compact th, .table.compact td { padding: 0.5rem 0.7rem; font-size: 0.9rem; }
+      .table.compact th, .table.compact td { padding: 0.4rem 0.5rem; font-size: 0.85rem; }
+      .table.compact thead { position: sticky; top: 0; background: #fafbfc; }
       .table td.number { text-align: right; font-variant-numeric: tabular-nums; }
-      .table td.positive { color: #15803d; font-weight: 500; }
-      .table td.negative { color: #991b1b; font-weight: 500; }
+      .table td.playerName { white-space: normal; max-width: 120px; }
+      .table td.positive { color: #15803d; font-weight: 600; }
+      .table td.negative { color: #991b1b; font-weight: 600; }
       .table tr.my-pick { background: #fff8e6; }
       .table tr.my-pick td { font-weight: 600; }
       .table tr.my-pick:hover { background: #fff2cc; }
