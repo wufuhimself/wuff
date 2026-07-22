@@ -180,14 +180,13 @@ def enrich_with_adp(player_list, adp_map):
 
 
 def forecast_keeper_decisions(per_team, adp_map):
-    """Forecast which keepers each team will likely keep based on ADP value.
+    """Forecast which keepers each team will likely keep based on position scarcity.
 
-    Teams are more likely to keep players who are undervalued (positive delta).
-    Accounts for positional scarcity: elite TEs/RBs are keeper-worthy even if
-    they appear overvalued by rank vs ADP, due to lack of depth at the position.
-    Returns forecasts with confidence levels.
+    Position scarcity is the key driver of keeper value - elite players at
+    scarce positions (TE, RB) are worth keeping; everyone else is likely available
+    in the draft at their positional tier.
     """
-    from .adp_manager import normalize_player_name
+    import re
 
     forecasts = []
     for team_entry in per_team:
@@ -196,8 +195,6 @@ def forecast_keeper_decisions(per_team, adp_map):
 
         forecast_keepers = []
         for keeper in chosen:
-            player_name = normalize_player_name(keeper.get('playerName', ''))
-            adp = adp_map.get(player_name)
             rank = keeper.get('ranking')
             position = keeper.get('position', '').upper()
             pos_rank = keeper.get('positionRank', '')
@@ -205,56 +202,33 @@ def forecast_keeper_decisions(per_team, adp_map):
             # Extract positional rank (e.g., "TE2" -> 2)
             pos_rank_num = None
             if pos_rank:
-                import re
                 match = re.search(r'(\d+)', str(pos_rank))
                 if match:
                     pos_rank_num = int(match.group(1))
 
-            # Calculate keeper-specific confidence (different from draft value!)
-            # For keepers: negative delta is GOOD (expert ranks high, market goes later)
-            # For keepers: positive delta is BAD (expert ranks lower, market goes earlier)
-            confidence = 'medium'
-            reasoning = 'Likely available in draft'
-            delta = None
+            # Keeper decision based ONLY on position scarcity tiers
+            # Not on ADP or rank - just: "Is this player elite at a scarce position?"
+            confidence = 'low'
+            reasoning = 'Will be available in draft at this tier'
 
-            if rank and adp:
-                delta = adp - rank
-
-                # Positional scarcity exception: top-tier TEs/RBs are keeper-worthy
-                # even if delta suggests they'll fall, due to position depth crisis
-                is_elite_te = position == 'TE' and pos_rank_num and pos_rank_num <= 4
-                is_elite_rb = position == 'RB' and pos_rank_num and pos_rank_num <= 3
-
-                if is_elite_te or is_elite_rb:
-                    confidence = 'high'
-                    position_name = 'TE' if is_elite_te else 'RB'
-                    reasoning = f'Elite {position_name} - scarcity lock'
-                elif delta < -10:
-                    # Negative delta = expert ranks high but market goes later = KEEPER VALUE
-                    confidence = 'high'
-                    reasoning = 'Keeper lock - will go earlier than ADP'
-                elif delta < 0:
-                    # Small negative = slight keeper value
-                    confidence = 'medium'
-                    reasoning = 'Decent keeper - slight edge vs draft'
-                elif delta < 10:
-                    # Small positive = will fall slightly, borderline
-                    confidence = 'medium'
-                    reasoning = 'Available later - skip and draft'
-                else:
-                    # Large positive = will fall significantly, skip keeper
-                    confidence = 'low'
-                    reasoning = 'Will fall in draft - skip keeper'
-            else:
-                delta = None
-                reasoning = 'No ADP data'
+            if position == 'TE' and pos_rank_num and pos_rank_num <= 4:
+                confidence = 'high'
+                reasoning = f'Elite TE{pos_rank_num} - top 4 scarce, keep'
+            elif position == 'RB' and pos_rank_num and pos_rank_num <= 3:
+                confidence = 'high'
+                reasoning = f'Elite RB{pos_rank_num} - top 3 scarce, keep'
+            elif position == 'WR' and pos_rank_num and pos_rank_num <= 5:
+                confidence = 'medium'
+                reasoning = f'WR{pos_rank_num} - decent, depends on league depth'
+            elif position == 'QB' and pos_rank_num and pos_rank_num <= 2:
+                confidence = 'medium'
+                reasoning = f'QB{pos_rank_num} - elite but replaceable in draft'
 
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
                 'position': position,
                 'rank': rank,
-                'adp': adp,
-                'delta': delta,
+                'posRank': pos_rank,
                 'confidence': confidence,
                 'reasoning': reasoning,
             })
