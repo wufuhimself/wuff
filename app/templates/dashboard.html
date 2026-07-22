@@ -91,12 +91,12 @@
           <h2>Overvalued (ADP > Rank)</h2>
           <p class="status">Market overvalues them, avoid the hype. Watch out for reaches.</p>
           {% if adp_analysis %}
-            {% set overvalued = adp_analysis | selectattr('delta', '<', -5) | list %}
+            {% set overvalued = adp_analysis | selectattr('delta', '<', -5) | list | reverse | list %}
             {% if overvalued %}
             <table class="table compact">
               <thead><tr><th>Player</th><th>Pos</th><th>Rank</th><th>ADP</th><th>-Value</th></tr></thead>
               <tbody>
-              {% for player in overvalued | reverse | list | first(15) %}
+              {% for player in overvalued[:15] %}
                 <tr>
                   <td>{{ player.playerName }}</td>
                   <td>{{ player.position }}</td>
