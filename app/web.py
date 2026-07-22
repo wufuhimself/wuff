@@ -422,12 +422,6 @@ def keepers_board_view():
     board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
     board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
 
-    # Add gap-free sequential rank to each view (easier to visualize available picks)
-    for i, row in enumerate(board_by_rank, start=1):
-        row['draftPositionRank'] = i
-    for i, row in enumerate(board_by_adp, start=1):
-        row['draftPositionRank'] = i
-
     # Forecast opponent keeper decisions based on position scarcity
     keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
 

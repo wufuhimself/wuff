@@ -79,7 +79,7 @@
             <tbody>
               {% for row in board_by_rank %}
               <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
-                <td class="number">{{ row.draftPositionRank }}</td>
+                <td class="number">{{ loop.index }}</td>
                 <td class="number">{{ row.ranking or '-' }}</td>
                 <td class="playerName">{{ row.playerName }}</td>
                 <td>{{ row.posRank or row.position }}</td>
@@ -104,7 +104,7 @@
             <tbody>
               {% for row in board_by_adp %}
               <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
-                <td class="number">{{ row.draftPositionRank }}</td>
+                <td class="number">{{ loop.index }}</td>
                 <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
                 <td class="playerName">{{ row.playerName }}</td>
                 <td>{{ row.posRank or row.position }}</td>
