@@ -189,9 +189,9 @@ def calculate_keeper_impact(keeper_forecasts, rankings):
     # Define elite tier sizes (how many top players per position matter for strategy)
     elite_tiers = {
         'TE': 5,    # Top 5 elite TEs (scarce)
-        'RB': 8,    # Top 8 elite RBs
-        'WR': 10,   # Top 10 elite WRs
-        'QB': 2,    # Top 2 elite QBs
+        'RB': 16,   # Top 16 elite RBs
+        'WR': 20,   # Top 20 elite WRs
+        'QB': 15,   # Top 15 elite QBs
     }
 
     # Count HIGH confidence keepers by position
@@ -259,15 +259,15 @@ def forecast_keeper_decisions(per_team, adp_map):
             if position == 'TE' and pos_rank_num and pos_rank_num <= 5:
                 confidence = 'high'
                 reasoning = f'Elite TE{pos_rank_num} - top 5 scarce, keep'
-            elif position == 'RB' and pos_rank_num and pos_rank_num <= 8:
+            elif position == 'RB' and pos_rank_num and pos_rank_num <= 16:
                 confidence = 'high'
-                reasoning = f'Elite RB{pos_rank_num} - top 8 scarce, keep'
-            elif position == 'WR' and pos_rank_num and pos_rank_num <= 10:
+                reasoning = f'Elite RB{pos_rank_num} - top 16, premium keeper'
+            elif position == 'WR' and pos_rank_num and pos_rank_num <= 20:
                 confidence = 'high'
-                reasoning = f'Elite WR{pos_rank_num} - top 10, premium keeper'
-            elif position == 'QB' and pos_rank_num and pos_rank_num <= 2:
+                reasoning = f'Elite WR{pos_rank_num} - top 20, keep for value'
+            elif position == 'QB' and pos_rank_num and pos_rank_num <= 15:
                 confidence = 'medium'
-                reasoning = f'QB{pos_rank_num} - elite but deep in draft'
+                reasoning = f'QB{pos_rank_num} - keep if strong, otherwise draft later'
 
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
