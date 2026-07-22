@@ -210,35 +210,41 @@ def forecast_keeper_decisions(per_team, adp_map):
                 if match:
                     pos_rank_num = int(match.group(1))
 
-            # Calculate value and confidence
+            # Calculate keeper-specific confidence (different from draft value!)
+            # For keepers: negative delta is GOOD (expert ranks high, market goes later)
+            # For keepers: positive delta is BAD (expert ranks lower, market goes earlier)
             confidence = 'medium'
-            reasoning = 'Fair value'
+            reasoning = 'Likely available in draft'
             delta = None
 
             if rank and adp:
                 delta = adp - rank
 
                 # Positional scarcity exception: top-tier TEs/RBs are keeper-worthy
-                # even if overvalued by delta, due to position depth crisis
+                # even if delta suggests they'll fall, due to position depth crisis
                 is_elite_te = position == 'TE' and pos_rank_num and pos_rank_num <= 4
                 is_elite_rb = position == 'RB' and pos_rank_num and pos_rank_num <= 3
 
                 if is_elite_te or is_elite_rb:
                     confidence = 'high'
                     position_name = 'TE' if is_elite_te else 'RB'
-                    reasoning = f'Elite {position_name} - scarcity lock (top tier)'
-                elif delta > 20:
+                    reasoning = f'Elite {position_name} - scarcity lock'
+                elif delta < -10:
+                    # Negative delta = expert ranks high but market goes later = KEEPER VALUE
                     confidence = 'high'
-                    reasoning = 'Great value - big undervalued gem'
-                elif delta > 5:
-                    confidence = 'high'
-                    reasoning = 'Good value - will fall in draft'
-                elif delta > -10:
+                    reasoning = 'Keeper lock - will go earlier than ADP'
+                elif delta < 0:
+                    # Small negative = slight keeper value
                     confidence = 'medium'
-                    reasoning = 'Fair value - slight discount or premium'
+                    reasoning = 'Decent keeper - slight edge vs draft'
+                elif delta < 10:
+                    # Small positive = will fall slightly, borderline
+                    confidence = 'medium'
+                    reasoning = 'Available later - skip and draft'
                 else:
+                    # Large positive = will fall significantly, skip keeper
                     confidence = 'low'
-                    reasoning = 'Overvalued - better to grab in draft'
+                    reasoning = 'Will fall in draft - skip keeper'
             else:
                 delta = None
                 reasoning = 'No ADP data'
