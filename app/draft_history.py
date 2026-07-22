@@ -1,3 +1,10 @@
+"""Draft history loader.
+
+One JSON per season in data/raw/draft_history/{year}.json (2020-present).
+Filters live-draft picks from keeper-slot picks (last 2 rounds).
+Walks backward through seasons to enforce the 2-consecutive-season keeper cap.
+Shape: {"year": N, "picks": [{"round", "pick", "playerName", "team"}, ...]}
+"""
 import json
 from pathlib import Path
 from typing import Dict, List, Optional

@@ -1,3 +1,9 @@
+"""Multi-source rankings combiner.
+
+Loads all JSON/CSV/PDF files from data/raw/rankings/, normalizes, averages ranks.
+Outputs data/raw/rankings/rankings_combined.json.
+Run via: python -m app combine-rankings
+"""
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional

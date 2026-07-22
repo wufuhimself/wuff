@@ -1,3 +1,7 @@
+"""Ranking aggregation: fetches Yahoo rankings and merges with keeper list.
+
+For multi-source combining (Yahoo + CSV + PDF) see rankings_manager.py.
+"""
 import json
 from typing import Any, Dict, List
 

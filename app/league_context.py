@@ -1,3 +1,8 @@
+"""LeagueFormat dataclass: teams, starter counts, keeper rules.
+
+Persisted to data/config/league_settings.json.
+Used by keeper scoring for positional scarcity (superflex, WR count, etc.).
+"""
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path

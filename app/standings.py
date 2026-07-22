@@ -1,3 +1,8 @@
+"""Standings loader and snake draft order derivation.
+
+Reads data/raw/standings/{year}.json.
+Next season's draft order = inverse of final standings (worst picks first), snake each round.
+"""
 import json
 import re
 from pathlib import Path

@@ -1,3 +1,7 @@
+"""Load/save your own roster JSON (data/raw/rosters/yahoo_roster.json).
+
+For full league rosters see roster_parser.py + yahoo_league_rosters.json.
+"""
 import json
 from pathlib import Path
 from typing import Any, Dict, List

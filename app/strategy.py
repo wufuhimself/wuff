@@ -1,3 +1,10 @@
+"""Keeper eligibility and selection logic.
+
+Rules: round 1/2 ineligible, 2-consecutive-season cap.
+Scoring: rank first, VOR + keeper years remaining as tiebreaks.
+Entry points: roster_keeper_insight(), select_best_keepers(), league_keeper_board().
+Read data/config/league_rules.json before modifying.
+"""
 import json
 import math
 import re

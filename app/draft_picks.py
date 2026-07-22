@@ -1,3 +1,8 @@
+"""Pick ownership loader.
+
+Reads data/raw/draft_picks/{year}.json — who owns which round pick (accounts for trades).
+Shape: {"year": N, "picks": [{"round", "team"}, ...]}
+"""
 import json
 from pathlib import Path
 from typing import Dict, Optional
