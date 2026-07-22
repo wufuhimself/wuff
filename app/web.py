@@ -322,6 +322,11 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
                         confidence = 'medium'
                         reasoning = f'{position}{pos_rank_num or "?"} - best eligible at position'
 
+            # Look up ADP for this keeper
+            from .adp_manager import normalize_player_name
+            normalized_name = normalize_player_name(keeper.get('playerName', ''))
+            adp = adp_map.get(normalized_name) if adp_map else None
+
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
                 'position': position,
@@ -329,6 +334,7 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
                 'posRank': pos_rank,
                 'confidence': confidence,
                 'reasoning': reasoning,
+                'adp': adp,
             })
 
         forecasts.append({

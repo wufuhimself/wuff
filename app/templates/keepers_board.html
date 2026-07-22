@@ -32,7 +32,7 @@
 
       <section class="card">
         <h2>Keeper forecast by team (position scarcity)</h2>
-        <span class="status">Based on position tier scarcity, not ADP. 🟢 HIGH = Elite at scarce position (keep). 🔴 LOW = Available later in draft (skip keeper).</span>
+        <span class="status">Based on position tier scarcity. Cards colored by position.</span>
 
         {% if keeper_forecasts %}
         <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 1rem;">
@@ -40,13 +40,12 @@
           <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc;">
             <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem;">{{ forecast.team }}</h3>
             {% for keeper in forecast.keepers %}
-            <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: white; border-radius: 6px; border-left: 3px solid {% if keeper.confidence == 'high' %}#15803d{% elif keeper.confidence == 'medium' %}#b45309{% else %}#991b1b{% endif %};">
-              <div style="font-weight: 600; margin-bottom: 0.25rem;">{{ keeper.playerName }} <span class="pill pos-{{ keeper.position.lower() }}">{{ keeper.position }}{{ keeper.posRank }}</span></div>
-              <div style="font-size: 0.8rem; color: #667085; margin-top: 0.35rem;">
-                <span class="pill" style="background: {% if keeper.confidence == 'high' %}#dcfce7{% elif keeper.confidence == 'medium' %}#fef3c7{% else %}#fed7aa{% endif %}; color: {% if keeper.confidence == 'high' %}#15803d{% elif keeper.confidence == 'medium' %}#92400e{% else %}#9a3412{% endif %}; font-weight: 600;">
-                  {{ keeper.confidence | upper }}
-                </span>
-                {{ keeper.reasoning }}
+            {% set pos_bg = {'QB': '#dbeafe', 'RB': '#dcfce7', 'WR': '#f3e8ff', 'TE': '#fed7aa', 'K': '#fef3c7', 'DEF': '#fecaca'} %}
+            {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
+            <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: {{ pos_bg.get(keeper.position, '#f0f0f0') }}; border-radius: 6px;">
+              <div style="font-weight: 600; margin-bottom: 0.25rem; color: {{ pos_color.get(keeper.position, '#333') }};">{{ keeper.playerName }} <span class="pill pos-{{ keeper.position.lower() }}">{{ keeper.position }}{{ keeper.posRank }}</span></div>
+              <div style="font-size: 0.8rem; color: {{ pos_color.get(keeper.position, '#333') }}; margin-top: 0.35rem;">
+                {% if keeper.adp %}ADP {{ "%.0f"|format(keeper.adp) }}{% else %}No ADP{% endif %} · {{ keeper.reasoning }}
               </div>
             </div>
             {% endfor %}
