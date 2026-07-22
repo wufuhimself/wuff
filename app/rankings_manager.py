@@ -109,6 +109,7 @@ def combine_rankings(rankings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         ranks = list(player_data['sourceRanks'].values())
         avg_rank = sum(ranks) / len(ranks) if ranks else 0
         player_data['averageRank'] = round(avg_rank, 2)
+        player_data['ranking'] = round(avg_rank)
         player_data['sourceCount'] = len(ranks)
         combined.append(player_data)
 

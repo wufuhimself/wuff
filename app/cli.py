@@ -592,9 +592,13 @@ def main() -> None:
         roster_players, used_saved = load_saved_or_api_roster(None)
         if used_saved:
             print(f'Loaded {len(roster_players)} roster players from data/raw/rosters/yahoo_roster.json')
-        rankings = load_yahoo_rankings()
+        rankings = None
+        if RANKINGS_COMBINED_FILE.exists():
+            rankings = json.loads(RANKINGS_COMBINED_FILE.read_text())
         if not rankings:
-            print('No saved Yahoo rankings found. Run refresh-yahoo-rankings first.', file=sys.stderr)
+            rankings = load_yahoo_rankings()
+        if not rankings:
+            print('No saved rankings found. Run combine-rankings or refresh-yahoo-rankings first.', file=sys.stderr)
             sys.exit(1)
         league_format = load_league_format()
         if args.teams != league_format.teams:
@@ -610,9 +614,13 @@ def main() -> None:
         roster_players, used_saved = load_saved_or_api_roster(None)
         if used_saved:
             print(f'Loaded {len(roster_players)} roster players from data/raw/rosters/yahoo_roster.json')
-        rankings = load_yahoo_rankings()
+        rankings = None
+        if RANKINGS_COMBINED_FILE.exists():
+            rankings = json.loads(RANKINGS_COMBINED_FILE.read_text())
         if not rankings:
-            print('No saved Yahoo rankings found. Run refresh-yahoo-rankings first.', file=sys.stderr)
+            rankings = load_yahoo_rankings()
+        if not rankings:
+            print('No saved rankings found. Run combine-rankings or refresh-yahoo-rankings first.', file=sys.stderr)
             sys.exit(1)
         league_format = load_league_format()
         if args.teams != league_format.teams:
@@ -631,9 +639,13 @@ def main() -> None:
         except FileNotFoundError:
             print(f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. Run scrape-league-rosters first.', file=sys.stderr)
             sys.exit(1)
-        rankings = load_yahoo_rankings()
+        rankings = None
+        if RANKINGS_COMBINED_FILE.exists():
+            rankings = json.loads(RANKINGS_COMBINED_FILE.read_text())
         if not rankings:
-            print('No saved Yahoo rankings found. Run refresh-yahoo-rankings first.', file=sys.stderr)
+            rankings = load_yahoo_rankings()
+        if not rankings:
+            print('No saved rankings found. Run combine-rankings or refresh-yahoo-rankings first.', file=sys.stderr)
             sys.exit(1)
         roster_players, _used_saved = load_saved_or_api_roster(None)
         league_format = load_league_format()

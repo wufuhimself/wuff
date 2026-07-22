@@ -295,9 +295,13 @@ def roster_keeper_insight(
     league_format = league_format or LeagueFormat(teams=teams)
     position_ranks = _build_position_ranks(rankings)
     draft_years = load_draft_years()
+    rankings_by_name = {_normalize_name(r.get('playerName', '')): r for r in rankings}
     insight = []
     for player in roster_players:
         ranking = _find_ranking_for_player(player.playerId, player.playerName, rankings)
+        player_team = player.team
+        if player_team == 'UNK' and _normalize_name(player.playerName) in rankings_by_name:
+            player_team = rankings_by_name[_normalize_name(player.playerName)].get('team', 'UNK')
         expected_round = _expected_draft_round(ranking, teams) if ranking is not None else None
         keeper_round = player.draftRound if player.draftRound is not None else _draft_history_round(player.playerName, draft_years)
         keeper_eligible, keeper_status = _resolve_keeper_status(player, league_format, draft_years)
@@ -332,7 +336,7 @@ def roster_keeper_insight(
                 'playerId': player.playerId,
                 'playerName': player.playerName,
                 'position': player.position,
-                'team': player.team,
+                'team': player_team,
                 'ranking': ranking,
                 'keeperRound': keeper_round,
                 'expectedRound': expected_round,

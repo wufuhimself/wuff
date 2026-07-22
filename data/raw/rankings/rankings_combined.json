@@ -10,6 +10,7 @@
     },
     "posRank": "QB1",
     "averageRank": 1.0,
+    "ranking": 1,
     "sourceCount": 2
   },
   {
@@ -23,6 +24,7 @@
     },
     "posRank": "QB2",
     "averageRank": 2.0,
+    "ranking": 2,
     "sourceCount": 2
   },
   {
@@ -36,6 +38,7 @@
     },
     "posRank": "QB3",
     "averageRank": 3.0,
+    "ranking": 3,
     "sourceCount": 2
   },
   {
@@ -49,6 +52,7 @@
     },
     "posRank": "RB1",
     "averageRank": 4.0,
+    "ranking": 4,
     "sourceCount": 2
   },
   {
@@ -62,6 +66,7 @@
     },
     "posRank": "RB2",
     "averageRank": 5.0,
+    "ranking": 5,
     "sourceCount": 2
   },
   {
@@ -75,6 +80,7 @@
     },
     "posRank": "WR1",
     "averageRank": 6.0,
+    "ranking": 6,
     "sourceCount": 2
   },
   {
@@ -88,6 +94,7 @@
     },
     "posRank": "WR2",
     "averageRank": 7.0,
+    "ranking": 7,
     "sourceCount": 2
   },
   {
@@ -101,6 +108,7 @@
     },
     "posRank": "WR3",
     "averageRank": 8.0,
+    "ranking": 8,
     "sourceCount": 2
   },
   {
@@ -114,6 +122,7 @@
     },
     "posRank": "RB3",
     "averageRank": 9.0,
+    "ranking": 9,
     "sourceCount": 2
   },
   {
@@ -127,6 +136,7 @@
     },
     "posRank": "QB4",
     "averageRank": 10.0,
+    "ranking": 10,
     "sourceCount": 2
   },
   {
@@ -140,6 +150,7 @@
     },
     "posRank": "QB5",
     "averageRank": 11.0,
+    "ranking": 11,
     "sourceCount": 2
   },
   {
@@ -153,6 +164,7 @@
     },
     "posRank": "RB4",
     "averageRank": 12.0,
+    "ranking": 12,
     "sourceCount": 2
   },
   {
@@ -166,6 +178,7 @@
     },
     "posRank": "WR4",
     "averageRank": 13.0,
+    "ranking": 13,
     "sourceCount": 2
   },
   {
@@ -179,6 +192,7 @@
     },
     "posRank": "WR5",
     "averageRank": 14.0,
+    "ranking": 14,
     "sourceCount": 2
   },
   {
@@ -192,6 +206,7 @@
     },
     "posRank": "RB5",
     "averageRank": 15.0,
+    "ranking": 15,
     "sourceCount": 2
   },
   {
@@ -205,6 +220,7 @@
     },
     "posRank": "QB6",
     "averageRank": 16.0,
+    "ranking": 16,
     "sourceCount": 2
   },
   {
@@ -218,6 +234,7 @@
     },
     "posRank": "QB7",
     "averageRank": 17.0,
+    "ranking": 17,
     "sourceCount": 2
   },
   {
@@ -231,6 +248,7 @@
     },
     "posRank": "RB6",
     "averageRank": 18.0,
+    "ranking": 18,
     "sourceCount": 2
   },
   {
@@ -244,6 +262,7 @@
     },
     "posRank": "WR6",
     "averageRank": 19.0,
+    "ranking": 19,
     "sourceCount": 2
   },
   {
@@ -257,6 +276,7 @@
     },
     "posRank": "WR7",
     "averageRank": 20.0,
+    "ranking": 20,
     "sourceCount": 2
   },
   {
@@ -270,6 +290,7 @@
     },
     "posRank": "TE1",
     "averageRank": 21.0,
+    "ranking": 21,
     "sourceCount": 2
   },
   {
@@ -283,6 +304,7 @@
     },
     "posRank": "RB7",
     "averageRank": 22.0,
+    "ranking": 22,
     "sourceCount": 2
   },
   {
@@ -296,6 +318,7 @@
     },
     "posRank": "WR8",
     "averageRank": 23.0,
+    "ranking": 23,
     "sourceCount": 2
   },
   {
@@ -309,6 +332,7 @@
     },
     "posRank": "WR9",
     "averageRank": 24.0,
+    "ranking": 24,
     "sourceCount": 2
   },
   {
@@ -322,6 +346,7 @@
     },
     "posRank": "QB8",
     "averageRank": 25.0,
+    "ranking": 25,
     "sourceCount": 2
   },
   {
@@ -335,6 +360,7 @@
     },
     "posRank": "QB9",
     "averageRank": 26.0,
+    "ranking": 26,
     "sourceCount": 2
   },
   {
@@ -348,6 +374,7 @@
     },
     "posRank": "QB10",
     "averageRank": 27.0,
+    "ranking": 27,
     "sourceCount": 2
   },
   {
@@ -361,6 +388,7 @@
     },
     "posRank": "RB8",
     "averageRank": 28.0,
+    "ranking": 28,
     "sourceCount": 2
   },
   {
@@ -374,6 +402,7 @@
     },
     "posRank": "RB9",
     "averageRank": 29.0,
+    "ranking": 29,
     "sourceCount": 2
   },
   {
@@ -387,6 +416,7 @@
     },
     "posRank": "RB10",
     "averageRank": 30.0,
+    "ranking": 30,
     "sourceCount": 2
   },
   {
@@ -400,6 +430,7 @@
     },
     "posRank": "RB11",
     "averageRank": 31.0,
+    "ranking": 31,
     "sourceCount": 2
   },
   {
@@ -413,6 +444,7 @@
     },
     "posRank": "TE2",
     "averageRank": 32.0,
+    "ranking": 32,
     "sourceCount": 2
   },
   {
@@ -426,6 +458,7 @@
     },
     "posRank": "QB11",
     "averageRank": 33.0,
+    "ranking": 33,
     "sourceCount": 2
   },
   {
@@ -439,6 +472,7 @@
     },
     "posRank": "QB12",
     "averageRank": 34.0,
+    "ranking": 34,
     "sourceCount": 2
   },
   {
@@ -452,6 +486,7 @@
     },
     "posRank": "WR10",
     "averageRank": 35.0,
+    "ranking": 35,
     "sourceCount": 2
   },
   {
@@ -465,6 +500,7 @@
     },
     "posRank": "WR11",
     "averageRank": 36.0,
+    "ranking": 36,
     "sourceCount": 2
   },
   {
@@ -478,6 +514,7 @@
     },
     "posRank": "WR12",
     "averageRank": 37.0,
+    "ranking": 37,
     "sourceCount": 2
   },
   {
@@ -491,6 +528,7 @@
     },
     "posRank": "QB13",
     "averageRank": 38.0,
+    "ranking": 38,
     "sourceCount": 2
   },
   {
@@ -504,6 +542,7 @@
     },
     "posRank": "QB14",
     "averageRank": 39.0,
+    "ranking": 39,
     "sourceCount": 2
   },
   {
@@ -517,6 +556,7 @@
     },
     "posRank": "RB12",
     "averageRank": 40.0,
+    "ranking": 40,
     "sourceCount": 2
   },
   {
@@ -530,6 +570,7 @@
     },
     "posRank": "RB13",
     "averageRank": 41.0,
+    "ranking": 41,
     "sourceCount": 2
   },
   {
@@ -543,6 +584,7 @@
     },
     "posRank": "RB14",
     "averageRank": 42.0,
+    "ranking": 42,
     "sourceCount": 2
   },
   {
@@ -556,6 +598,7 @@
     },
     "posRank": "RB15",
     "averageRank": 43.0,
+    "ranking": 43,
     "sourceCount": 2
   },
   {
@@ -569,6 +612,7 @@
     },
     "posRank": "QB15",
     "averageRank": 44.0,
+    "ranking": 44,
     "sourceCount": 2
   },
   {
@@ -582,6 +626,7 @@
     },
     "posRank": "RB16",
     "averageRank": 45.0,
+    "ranking": 45,
     "sourceCount": 2
   },
   {
@@ -595,6 +640,7 @@
     },
     "posRank": "RB17",
     "averageRank": 46.0,
+    "ranking": 46,
     "sourceCount": 2
   },
   {
@@ -608,6 +654,7 @@
     },
     "posRank": "WR13",
     "averageRank": 47.0,
+    "ranking": 47,
     "sourceCount": 2
   },
   {
@@ -621,6 +668,7 @@
     },
     "posRank": "WR14",
     "averageRank": 48.0,
+    "ranking": 48,
     "sourceCount": 2
   },
   {
@@ -634,6 +682,7 @@
     },
     "posRank": "WR15",
     "averageRank": 49.0,
+    "ranking": 49,
     "sourceCount": 2
   },
   {
@@ -647,6 +696,7 @@
     },
     "posRank": "WR16",
     "averageRank": 50.0,
+    "ranking": 50,
     "sourceCount": 2
   },
   {
@@ -660,6 +710,7 @@
     },
     "posRank": "WR17",
     "averageRank": 51.0,
+    "ranking": 51,
     "sourceCount": 2
   },
   {
@@ -673,6 +724,7 @@
     },
     "posRank": "WR18",
     "averageRank": 52.0,
+    "ranking": 52,
     "sourceCount": 2
   },
   {
@@ -686,6 +738,7 @@
     },
     "posRank": "WR19",
     "averageRank": 53.0,
+    "ranking": 53,
     "sourceCount": 2
   },
   {
@@ -699,6 +752,7 @@
     },
     "posRank": "WR20",
     "averageRank": 54.0,
+    "ranking": 54,
     "sourceCount": 2
   },
   {
@@ -712,6 +766,7 @@
     },
     "posRank": "WR21",
     "averageRank": 55.0,
+    "ranking": 55,
     "sourceCount": 2
   },
   {
@@ -725,6 +780,7 @@
     },
     "posRank": "RB18",
     "averageRank": 56.0,
+    "ranking": 56,
     "sourceCount": 2
   },
   {
@@ -738,6 +794,7 @@
     },
     "posRank": "RB19",
     "averageRank": 57.0,
+    "ranking": 57,
     "sourceCount": 2
   },
   {
@@ -751,6 +808,7 @@
     },
     "posRank": "RB20",
     "averageRank": 58.0,
+    "ranking": 58,
     "sourceCount": 2
   },
   {
@@ -764,6 +822,7 @@
     },
     "posRank": "RB21",
     "averageRank": 59.0,
+    "ranking": 59,
     "sourceCount": 2
   },
   {
@@ -777,6 +836,7 @@
     },
     "posRank": "QB16",
     "averageRank": 60.0,
+    "ranking": 60,
     "sourceCount": 2
   },
   {
@@ -790,6 +850,7 @@
     },
     "posRank": "QB17",
     "averageRank": 61.0,
+    "ranking": 61,
     "sourceCount": 2
   },
   {
@@ -803,6 +864,7 @@
     },
     "posRank": "TE3",
     "averageRank": 62.0,
+    "ranking": 62,
     "sourceCount": 2
   },
   {
@@ -816,6 +878,7 @@
     },
     "posRank": "TE4",
     "averageRank": 63.0,
+    "ranking": 63,
     "sourceCount": 2
   },
   {
@@ -829,6 +892,7 @@
     },
     "posRank": "WR22",
     "averageRank": 64.0,
+    "ranking": 64,
     "sourceCount": 2
   },
   {
@@ -842,6 +906,7 @@
     },
     "posRank": "WR23",
     "averageRank": 65.0,
+    "ranking": 65,
     "sourceCount": 2
   },
   {
@@ -855,6 +920,7 @@
     },
     "posRank": "WR24",
     "averageRank": 66.0,
+    "ranking": 66,
     "sourceCount": 2
   },
   {
@@ -868,6 +934,7 @@
     },
     "posRank": "WR25",
     "averageRank": 67.0,
+    "ranking": 67,
     "sourceCount": 2
   },
   {
@@ -881,6 +948,7 @@
     },
     "posRank": "WR26",
     "averageRank": 68.0,
+    "ranking": 68,
     "sourceCount": 2
   },
   {
@@ -894,6 +962,7 @@
     },
     "posRank": "WR27",
     "averageRank": 69.0,
+    "ranking": 69,
     "sourceCount": 2
   },
   {
@@ -907,6 +976,7 @@
     },
     "posRank": "RB22",
     "averageRank": 70.0,
+    "ranking": 70,
     "sourceCount": 2
   },
   {
@@ -920,6 +990,7 @@
     },
     "posRank": "RB23",
     "averageRank": 71.0,
+    "ranking": 71,
     "sourceCount": 2
   },
   {
@@ -933,6 +1004,7 @@
     },
     "posRank": "RB24",
     "averageRank": 72.0,
+    "ranking": 72,
     "sourceCount": 2
   },
   {
@@ -946,6 +1018,7 @@
     },
     "posRank": "RB25",
     "averageRank": 73.0,
+    "ranking": 73,
     "sourceCount": 2
   },
   {
@@ -959,6 +1032,7 @@
     },
     "posRank": "TE5",
     "averageRank": 74.0,
+    "ranking": 74,
     "sourceCount": 2
   },
   {
@@ -972,6 +1046,7 @@
     },
     "posRank": "TE6",
     "averageRank": 75.0,
+    "ranking": 75,
     "sourceCount": 2
   },
   {
@@ -985,6 +1060,7 @@
     },
     "posRank": "TE7",
     "averageRank": 76.0,
+    "ranking": 76,
     "sourceCount": 2
   },
   {
@@ -998,6 +1074,7 @@
     },
     "posRank": "RB26",
     "averageRank": 77.0,
+    "ranking": 77,
     "sourceCount": 2
   },
   {
@@ -1011,6 +1088,7 @@
     },
     "posRank": "WR28",
     "averageRank": 78.0,
+    "ranking": 78,
     "sourceCount": 2
   },
   {
@@ -1024,6 +1102,7 @@
     },
     "posRank": "QB18",
     "averageRank": 79.0,
+    "ranking": 79,
     "sourceCount": 2
   },
   {
@@ -1037,6 +1116,7 @@
     },
     "posRank": "QB19",
     "averageRank": 80.0,
+    "ranking": 80,
     "sourceCount": 2
   },
   {
@@ -1050,6 +1130,7 @@
     },
     "posRank": "QB20",
     "averageRank": 81.0,
+    "ranking": 81,
     "sourceCount": 2
   },
   {
@@ -1063,6 +1144,7 @@
     },
     "posRank": "WR29",
     "averageRank": 82.0,
+    "ranking": 82,
     "sourceCount": 2
   },
   {
@@ -1076,6 +1158,7 @@
     },
     "posRank": "WR30",
     "averageRank": 83.0,
+    "ranking": 83,
     "sourceCount": 2
   },
   {
@@ -1089,6 +1172,7 @@
     },
     "posRank": "WR31",
     "averageRank": 84.0,
+    "ranking": 84,
     "sourceCount": 2
   },
   {
@@ -1102,6 +1186,7 @@
     },
     "posRank": "WR32",
     "averageRank": 85.0,
+    "ranking": 85,
     "sourceCount": 2
   },
   {
@@ -1115,6 +1200,7 @@
     },
     "posRank": "WR33",
     "averageRank": 86.0,
+    "ranking": 86,
     "sourceCount": 2
   },
   {
@@ -1128,6 +1214,7 @@
     },
     "posRank": "WR34",
     "averageRank": 87.0,
+    "ranking": 87,
     "sourceCount": 2
   },
   {
@@ -1141,6 +1228,7 @@
     },
     "posRank": "RB27",
     "averageRank": 88.0,
+    "ranking": 88,
     "sourceCount": 2
   },
   {
@@ -1154,6 +1242,7 @@
     },
     "posRank": "RB28",
     "averageRank": 89.0,
+    "ranking": 89,
     "sourceCount": 2
   },
   {
@@ -1167,6 +1256,7 @@
     },
     "posRank": "RB29",
     "averageRank": 90.0,
+    "ranking": 90,
     "sourceCount": 2
   },
   {
@@ -1180,6 +1270,7 @@
     },
     "posRank": "WR35",
     "averageRank": 91.0,
+    "ranking": 91,
     "sourceCount": 2
   },
   {
@@ -1193,6 +1284,7 @@
     },
     "posRank": "WR36",
     "averageRank": 92.0,
+    "ranking": 92,
     "sourceCount": 2
   },
   {
@@ -1206,6 +1298,7 @@
     },
     "posRank": "WR37",
     "averageRank": 93.0,
+    "ranking": 93,
     "sourceCount": 2
   },
   {
@@ -1219,6 +1312,7 @@
     },
     "posRank": "WR38",
     "averageRank": 94.0,
+    "ranking": 94,
     "sourceCount": 2
   },
   {
@@ -1232,6 +1326,7 @@
     },
     "posRank": "RB30",
     "averageRank": 95.0,
+    "ranking": 95,
     "sourceCount": 2
   },
   {
@@ -1245,6 +1340,7 @@
     },
     "posRank": "RB31",
     "averageRank": 96.0,
+    "ranking": 96,
     "sourceCount": 2
   },
   {
@@ -1258,6 +1354,7 @@
     },
     "posRank": "RB32",
     "averageRank": 97.0,
+    "ranking": 97,
     "sourceCount": 2
   },
   {
@@ -1271,6 +1368,7 @@
     },
     "posRank": "RB33",
     "averageRank": 98.0,
+    "ranking": 98,
     "sourceCount": 2
   },
   {
@@ -1284,6 +1382,7 @@
     },
     "posRank": "WR39",
     "averageRank": 99.0,
+    "ranking": 99,
     "sourceCount": 2
   },
   {
@@ -1297,6 +1396,7 @@
     },
     "posRank": "WR40",
     "averageRank": 100.0,
+    "ranking": 100,
     "sourceCount": 2
   },
   {
@@ -1310,6 +1410,7 @@
     },
     "posRank": "TE8",
     "averageRank": 101.0,
+    "ranking": 101,
     "sourceCount": 2
   },
   {
@@ -1323,6 +1424,7 @@
     },
     "posRank": "TE9",
     "averageRank": 102.0,
+    "ranking": 102,
     "sourceCount": 2
   },
   {
@@ -1336,6 +1438,7 @@
     },
     "posRank": "WR41",
     "averageRank": 103.0,
+    "ranking": 103,
     "sourceCount": 2
   },
   {
@@ -1349,6 +1452,7 @@
     },
     "posRank": "QB21",
     "averageRank": 104.0,
+    "ranking": 104,
     "sourceCount": 2
   },
   {
@@ -1362,6 +1466,7 @@
     },
     "posRank": "QB22",
     "averageRank": 105.0,
+    "ranking": 105,
     "sourceCount": 2
   },
   {
@@ -1375,6 +1480,7 @@
     },
     "posRank": "QB23",
     "averageRank": 106.0,
+    "ranking": 106,
     "sourceCount": 2
   },
   {
@@ -1388,6 +1494,7 @@
     },
     "posRank": "QB24",
     "averageRank": 107.0,
+    "ranking": 107,
     "sourceCount": 2
   },
   {
@@ -1401,6 +1508,7 @@
     },
     "posRank": "WR42",
     "averageRank": 108.0,
+    "ranking": 108,
     "sourceCount": 2
   },
   {
@@ -1414,6 +1522,7 @@
     },
     "posRank": "WR43",
     "averageRank": 109.0,
+    "ranking": 109,
     "sourceCount": 2
   },
   {
@@ -1427,6 +1536,7 @@
     },
     "posRank": "WR44",
     "averageRank": 110.0,
+    "ranking": 110,
     "sourceCount": 2
   },
   {
@@ -1440,6 +1550,7 @@
     },
     "posRank": "WR45",
     "averageRank": 111.0,
+    "ranking": 111,
     "sourceCount": 2
   },
   {
@@ -1453,6 +1564,7 @@
     },
     "posRank": "TE10",
     "averageRank": 112.0,
+    "ranking": 112,
     "sourceCount": 2
   },
   {
@@ -1466,6 +1578,7 @@
     },
     "posRank": "TE11",
     "averageRank": 113.0,
+    "ranking": 113,
     "sourceCount": 2
   },
   {
@@ -1479,6 +1592,7 @@
     },
     "posRank": "TE12",
     "averageRank": 114.0,
+    "ranking": 114,
     "sourceCount": 2
   },
   {
@@ -1492,6 +1606,7 @@
     },
     "posRank": "TE13",
     "averageRank": 115.0,
+    "ranking": 115,
     "sourceCount": 2
   },
   {
@@ -1505,6 +1620,7 @@
     },
     "posRank": "TE14",
     "averageRank": 116.0,
+    "ranking": 116,
     "sourceCount": 2
   },
   {
@@ -1518,6 +1634,7 @@
     },
     "posRank": "QB25",
     "averageRank": 117.0,
+    "ranking": 117,
     "sourceCount": 2
   },
   {
@@ -1531,6 +1648,7 @@
     },
     "posRank": "QB26",
     "averageRank": 118.0,
+    "ranking": 118,
     "sourceCount": 2
   },
   {
@@ -1544,6 +1662,7 @@
     },
     "posRank": "QB27",
     "averageRank": 119.0,
+    "ranking": 119,
     "sourceCount": 2
   },
   {
@@ -1557,6 +1676,7 @@
     },
     "posRank": "WR46",
     "averageRank": 120.0,
+    "ranking": 120,
     "sourceCount": 2
   },
   {
@@ -1570,6 +1690,7 @@
     },
     "posRank": "WR47",
     "averageRank": 121.0,
+    "ranking": 121,
     "sourceCount": 2
   },
   {
@@ -1583,6 +1704,7 @@
     },
     "posRank": "WR48",
     "averageRank": 122.0,
+    "ranking": 122,
     "sourceCount": 2
   },
   {
@@ -1596,6 +1718,7 @@
     },
     "posRank": "RB34",
     "averageRank": 123.0,
+    "ranking": 123,
     "sourceCount": 2
   },
   {
@@ -1609,6 +1732,7 @@
     },
     "posRank": "RB35",
     "averageRank": 124.0,
+    "ranking": 124,
     "sourceCount": 2
   },
   {
@@ -1622,6 +1746,7 @@
     },
     "posRank": "RB36",
     "averageRank": 125.0,
+    "ranking": 125,
     "sourceCount": 2
   },
   {
@@ -1635,6 +1760,7 @@
     },
     "posRank": "RB37",
     "averageRank": 126.0,
+    "ranking": 126,
     "sourceCount": 2
   },
   {
@@ -1648,6 +1774,7 @@
     },
     "posRank": "RB38",
     "averageRank": 127.0,
+    "ranking": 127,
     "sourceCount": 2
   },
   {
@@ -1661,6 +1788,7 @@
     },
     "posRank": "TE15",
     "averageRank": 128.0,
+    "ranking": 128,
     "sourceCount": 2
   },
   {
@@ -1674,6 +1802,7 @@
     },
     "posRank": "TE16",
     "averageRank": 129.0,
+    "ranking": 129,
     "sourceCount": 2
   },
   {
@@ -1687,6 +1816,7 @@
     },
     "posRank": "TE17",
     "averageRank": 130.0,
+    "ranking": 130,
     "sourceCount": 2
   },
   {
@@ -1700,6 +1830,7 @@
     },
     "posRank": "TE18",
     "averageRank": 131.0,
+    "ranking": 131,
     "sourceCount": 2
   },
   {
@@ -1713,6 +1844,7 @@
     },
     "posRank": "RB39",
     "averageRank": 132.0,
+    "ranking": 132,
     "sourceCount": 2
   },
   {
@@ -1726,6 +1858,7 @@
     },
     "posRank": "RB40",
     "averageRank": 133.0,
+    "ranking": 133,
     "sourceCount": 2
   },
   {
@@ -1739,6 +1872,7 @@
     },
     "posRank": "RB41",
     "averageRank": 134.0,
+    "ranking": 134,
     "sourceCount": 2
   },
   {
@@ -1752,6 +1886,7 @@
     },
     "posRank": "RB42",
     "averageRank": 135.0,
+    "ranking": 135,
     "sourceCount": 2
   },
   {
@@ -1765,6 +1900,7 @@
     },
     "posRank": "WR49",
     "averageRank": 136.0,
+    "ranking": 136,
     "sourceCount": 2
   },
   {
@@ -1778,6 +1914,7 @@
     },
     "posRank": "WR50",
     "averageRank": 137.0,
+    "ranking": 137,
     "sourceCount": 2
   },
   {
@@ -1791,6 +1928,7 @@
     },
     "posRank": "WR51",
     "averageRank": 138.0,
+    "ranking": 138,
     "sourceCount": 2
   },
   {
@@ -1804,6 +1942,7 @@
     },
     "posRank": "WR52",
     "averageRank": 139.0,
+    "ranking": 139,
     "sourceCount": 2
   },
   {
@@ -1817,6 +1956,7 @@
     },
     "posRank": "WR53",
     "averageRank": 140.0,
+    "ranking": 140,
     "sourceCount": 2
   },
   {
@@ -1830,6 +1970,7 @@
     },
     "posRank": "WR54",
     "averageRank": 141.0,
+    "ranking": 141,
     "sourceCount": 2
   },
   {
@@ -1843,6 +1984,7 @@
     },
     "posRank": "WR55",
     "averageRank": 142.0,
+    "ranking": 142,
     "sourceCount": 2
   },
   {
@@ -1856,6 +1998,7 @@
     },
     "posRank": "WR56",
     "averageRank": 143.0,
+    "ranking": 143,
     "sourceCount": 2
   },
   {
@@ -1869,6 +2012,7 @@
     },
     "posRank": "WR57",
     "averageRank": 144.0,
+    "ranking": 144,
     "sourceCount": 2
   },
   {
@@ -1882,6 +2026,7 @@
     },
     "posRank": "RB43",
     "averageRank": 145.0,
+    "ranking": 145,
     "sourceCount": 2
   },
   {
@@ -1895,6 +2040,7 @@
     },
     "posRank": "RB44",
     "averageRank": 146.0,
+    "ranking": 146,
     "sourceCount": 2
   },
   {
@@ -1908,6 +2054,7 @@
     },
     "posRank": "RB45",
     "averageRank": 147.0,
+    "ranking": 147,
     "sourceCount": 2
   },
   {
@@ -1921,6 +2068,7 @@
     },
     "posRank": "RB46",
     "averageRank": 148.0,
+    "ranking": 148,
     "sourceCount": 2
   },
   {
@@ -1934,6 +2082,7 @@
     },
     "posRank": "QB28",
     "averageRank": 149.0,
+    "ranking": 149,
     "sourceCount": 2
   },
   {
@@ -1947,6 +2096,7 @@
     },
     "posRank": "RB47",
     "averageRank": 150.0,
+    "ranking": 150,
     "sourceCount": 2
   },
   {
@@ -1960,6 +2110,7 @@
     },
     "posRank": "RB48",
     "averageRank": 151.0,
+    "ranking": 151,
     "sourceCount": 2
   },
   {
@@ -1973,6 +2124,7 @@
     },
     "posRank": "WR58",
     "averageRank": 152.0,
+    "ranking": 152,
     "sourceCount": 2
   },
   {
@@ -1986,6 +2138,7 @@
     },
     "posRank": "WR59",
     "averageRank": 153.0,
+    "ranking": 153,
     "sourceCount": 2
   },
   {
@@ -1999,6 +2152,7 @@
     },
     "posRank": "WR60",
     "averageRank": 154.0,
+    "ranking": 154,
     "sourceCount": 2
   },
   {
@@ -2012,6 +2166,7 @@
     },
     "posRank": "WR61",
     "averageRank": 155.0,
+    "ranking": 155,
     "sourceCount": 2
   },
   {
@@ -2025,6 +2180,7 @@
     },
     "posRank": "WR62",
     "averageRank": 156.0,
+    "ranking": 156,
     "sourceCount": 2
   },
   {
@@ -2038,6 +2194,7 @@
     },
     "posRank": "WR63",
     "averageRank": 157.0,
+    "ranking": 157,
     "sourceCount": 2
   },
   {
@@ -2051,6 +2208,7 @@
     },
     "posRank": "WR64",
     "averageRank": 158.0,
+    "ranking": 158,
     "sourceCount": 2
   },
   {
@@ -2064,6 +2222,7 @@
     },
     "posRank": "WR65",
     "averageRank": 159.0,
+    "ranking": 159,
     "sourceCount": 2
   },
   {
@@ -2077,6 +2236,7 @@
     },
     "posRank": "WR66",
     "averageRank": 160.0,
+    "ranking": 160,
     "sourceCount": 2
   },
   {
@@ -2090,6 +2250,7 @@
     },
     "posRank": "RB49",
     "averageRank": 161.0,
+    "ranking": 161,
     "sourceCount": 2
   },
   {
@@ -2103,6 +2264,7 @@
     },
     "posRank": "RB50",
     "averageRank": 162.0,
+    "ranking": 162,
     "sourceCount": 2
   },
   {
@@ -2116,6 +2278,7 @@
     },
     "posRank": "RB51",
     "averageRank": 163.0,
+    "ranking": 163,
     "sourceCount": 2
   },
   {
@@ -2129,6 +2292,7 @@
     },
     "posRank": "TE19",
     "averageRank": 164.0,
+    "ranking": 164,
     "sourceCount": 2
   },
   {
@@ -2142,6 +2306,7 @@
     },
     "posRank": "QB29",
     "averageRank": 165.0,
+    "ranking": 165,
     "sourceCount": 2
   },
   {
@@ -2155,6 +2320,7 @@
     },
     "posRank": "QB30",
     "averageRank": 166.0,
+    "ranking": 166,
     "sourceCount": 2
   },
   {
@@ -2168,6 +2334,7 @@
     },
     "posRank": "QB31",
     "averageRank": 167.0,
+    "ranking": 167,
     "sourceCount": 2
   },
   {
@@ -2181,6 +2348,7 @@
     },
     "posRank": "QB32",
     "averageRank": 168.0,
+    "ranking": 168,
     "sourceCount": 2
   },
   {
@@ -2194,6 +2362,7 @@
     },
     "posRank": "DST1",
     "averageRank": 169.0,
+    "ranking": 169,
     "sourceCount": 2
   },
   {
@@ -2207,6 +2376,7 @@
     },
     "posRank": "DST2",
     "averageRank": 170.0,
+    "ranking": 170,
     "sourceCount": 2
   },
   {
@@ -2220,6 +2390,7 @@
     },
     "posRank": "DST3",
     "averageRank": 171.0,
+    "ranking": 171,
     "sourceCount": 2
   },
   {
@@ -2233,6 +2404,7 @@
     },
     "posRank": "DST4",
     "averageRank": 172.0,
+    "ranking": 172,
     "sourceCount": 2
   },
   {
@@ -2246,6 +2418,7 @@
     },
     "posRank": "DST5",
     "averageRank": 173.0,
+    "ranking": 173,
     "sourceCount": 2
   },
   {
@@ -2259,6 +2432,7 @@
     },
     "posRank": "DST6",
     "averageRank": 174.0,
+    "ranking": 174,
     "sourceCount": 2
   },
   {
@@ -2272,6 +2446,7 @@
     },
     "posRank": "DST7",
     "averageRank": 175.0,
+    "ranking": 175,
     "sourceCount": 2
   },
   {
@@ -2285,6 +2460,7 @@
     },
     "posRank": "DST8",
     "averageRank": 176.0,
+    "ranking": 176,
     "sourceCount": 2
   },
   {
@@ -2298,6 +2474,7 @@
     },
     "posRank": "DST9",
     "averageRank": 177.0,
+    "ranking": 177,
     "sourceCount": 2
   },
   {
@@ -2311,6 +2488,7 @@
     },
     "posRank": "DST10",
     "averageRank": 178.0,
+    "ranking": 178,
     "sourceCount": 2
   },
   {
@@ -2324,6 +2502,7 @@
     },
     "posRank": "DST11",
     "averageRank": 179.0,
+    "ranking": 179,
     "sourceCount": 2
   },
   {
@@ -2337,6 +2516,7 @@
     },
     "posRank": "DST12",
     "averageRank": 180.0,
+    "ranking": 180,
     "sourceCount": 2
   },
   {
@@ -2350,6 +2530,7 @@
     },
     "posRank": "K1",
     "averageRank": 181.0,
+    "ranking": 181,
     "sourceCount": 2
   },
   {
@@ -2363,6 +2544,7 @@
     },
     "posRank": "K2",
     "averageRank": 182.0,
+    "ranking": 182,
     "sourceCount": 2
   },
   {
@@ -2376,6 +2558,7 @@
     },
     "posRank": "K3",
     "averageRank": 183.0,
+    "ranking": 183,
     "sourceCount": 2
   },
   {
@@ -2389,6 +2572,7 @@
     },
     "posRank": "K4",
     "averageRank": 184.0,
+    "ranking": 184,
     "sourceCount": 2
   },
   {
@@ -2402,6 +2586,7 @@
     },
     "posRank": "K5",
     "averageRank": 185.0,
+    "ranking": 185,
     "sourceCount": 2
   },
   {
@@ -2415,6 +2600,7 @@
     },
     "posRank": "K6",
     "averageRank": 186.0,
+    "ranking": 186,
     "sourceCount": 2
   },
   {
@@ -2428,6 +2614,7 @@
     },
     "posRank": "K7",
     "averageRank": 187.0,
+    "ranking": 187,
     "sourceCount": 2
   },
   {
@@ -2441,6 +2628,7 @@
     },
     "posRank": "K8",
     "averageRank": 188.0,
+    "ranking": 188,
     "sourceCount": 2
   },
   {
@@ -2454,6 +2642,7 @@
     },
     "posRank": "K9",
     "averageRank": 189.0,
+    "ranking": 189,
     "sourceCount": 2
   },
   {
@@ -2467,6 +2656,7 @@
     },
     "posRank": "K10",
     "averageRank": 190.0,
+    "ranking": 190,
     "sourceCount": 2
   },
   {
@@ -2480,6 +2670,7 @@
     },
     "posRank": "K11",
     "averageRank": 191.0,
+    "ranking": 191,
     "sourceCount": 2
   },
   {
@@ -2493,6 +2684,7 @@
     },
     "posRank": "K12",
     "averageRank": 192.0,
+    "ranking": 192,
     "sourceCount": 2
   },
   {
@@ -2506,6 +2698,7 @@
     },
     "posRank": "WR67",
     "averageRank": 193.0,
+    "ranking": 193,
     "sourceCount": 2
   },
   {
@@ -2519,6 +2712,7 @@
     },
     "posRank": "RB52",
     "averageRank": 194.0,
+    "ranking": 194,
     "sourceCount": 2
   },
   {
@@ -2532,6 +2726,7 @@
     },
     "posRank": "RB53",
     "averageRank": 195.0,
+    "ranking": 195,
     "sourceCount": 2
   },
   {
@@ -2545,6 +2740,7 @@
     },
     "posRank": "RB54",
     "averageRank": 196.0,
+    "ranking": 196,
     "sourceCount": 2
   },
   {
@@ -2558,6 +2754,7 @@
     },
     "posRank": "RB55",
     "averageRank": 197.0,
+    "ranking": 197,
     "sourceCount": 2
   },
   {
@@ -2571,6 +2768,7 @@
     },
     "posRank": "WR68",
     "averageRank": 198.0,
+    "ranking": 198,
     "sourceCount": 2
   },
   {
@@ -2584,6 +2782,7 @@
     },
     "posRank": "RB56",
     "averageRank": 199.0,
+    "ranking": 199,
     "sourceCount": 2
   },
   {
@@ -2597,6 +2796,7 @@
     },
     "posRank": "RB57",
     "averageRank": 200.0,
+    "ranking": 200,
     "sourceCount": 2
   },
   {
@@ -2610,6 +2810,7 @@
     },
     "posRank": "RB58",
     "averageRank": 201.0,
+    "ranking": 201,
     "sourceCount": 2
   },
   {
@@ -2623,6 +2824,7 @@
     },
     "posRank": "RB59",
     "averageRank": 202.0,
+    "ranking": 202,
     "sourceCount": 2
   },
   {
@@ -2636,6 +2838,7 @@
     },
     "posRank": "WR69",
     "averageRank": 203.0,
+    "ranking": 203,
     "sourceCount": 2
   },
   {
@@ -2649,6 +2852,7 @@
     },
     "posRank": "WR70",
     "averageRank": 204.0,
+    "ranking": 204,
     "sourceCount": 2
   },
   {
@@ -2662,6 +2866,7 @@
     },
     "posRank": "WR71",
     "averageRank": 205.0,
+    "ranking": 205,
     "sourceCount": 2
   },
   {
@@ -2675,6 +2880,7 @@
     },
     "posRank": "QB33",
     "averageRank": 206.0,
+    "ranking": 206,
     "sourceCount": 2
   },
   {
@@ -2688,6 +2894,7 @@
     },
     "posRank": "QB34",
     "averageRank": 207.0,
+    "ranking": 207,
     "sourceCount": 2
   },
   {
@@ -2701,6 +2908,7 @@
     },
     "posRank": "QB35",
     "averageRank": 208.0,
+    "ranking": 208,
     "sourceCount": 2
   },
   {
@@ -2714,6 +2922,7 @@
     },
     "posRank": "QB36",
     "averageRank": 209.0,
+    "ranking": 209,
     "sourceCount": 2
   },
   {
@@ -2727,6 +2936,7 @@
     },
     "posRank": "WR72",
     "averageRank": 210.0,
+    "ranking": 210,
     "sourceCount": 2
   },
   {
@@ -2740,6 +2950,7 @@
     },
     "posRank": "WR73",
     "averageRank": 211.0,
+    "ranking": 211,
     "sourceCount": 2
   },
   {
@@ -2753,6 +2964,7 @@
     },
     "posRank": "WR74",
     "averageRank": 212.0,
+    "ranking": 212,
     "sourceCount": 2
   },
   {
@@ -2766,6 +2978,7 @@
     },
     "posRank": "RB60",
     "averageRank": 213.0,
+    "ranking": 213,
     "sourceCount": 2
   },
   {
@@ -2779,6 +2992,7 @@
     },
     "posRank": "RB61",
     "averageRank": 214.0,
+    "ranking": 214,
     "sourceCount": 2
   },
   {
@@ -2792,6 +3006,7 @@
     },
     "posRank": "RB62",
     "averageRank": 215.0,
+    "ranking": 215,
     "sourceCount": 2
   },
   {
@@ -2805,6 +3020,7 @@
     },
     "posRank": "RB63",
     "averageRank": 216.0,
+    "ranking": 216,
     "sourceCount": 2
   },
   {
@@ -2818,6 +3034,7 @@
     },
     "posRank": "RB64",
     "averageRank": 217.0,
+    "ranking": 217,
     "sourceCount": 2
   },
   {
@@ -2831,6 +3048,7 @@
     },
     "posRank": "RB65",
     "averageRank": 218.0,
+    "ranking": 218,
     "sourceCount": 2
   },
   {
@@ -2844,6 +3062,7 @@
     },
     "posRank": "RB66",
     "averageRank": 219.0,
+    "ranking": 219,
     "sourceCount": 2
   },
   {
@@ -2857,6 +3076,7 @@
     },
     "posRank": "RB67",
     "averageRank": 220.0,
+    "ranking": 220,
     "sourceCount": 2
   },
   {
@@ -2870,6 +3090,7 @@
     },
     "posRank": "RB68",
     "averageRank": 221.0,
+    "ranking": 221,
     "sourceCount": 2
   },
   {
@@ -2883,6 +3104,7 @@
     },
     "posRank": "RB69",
     "averageRank": 222.0,
+    "ranking": 222,
     "sourceCount": 2
   },
   {
@@ -2896,6 +3118,7 @@
     },
     "posRank": "RB70",
     "averageRank": 223.0,
+    "ranking": 223,
     "sourceCount": 2
   },
   {
@@ -2909,6 +3132,7 @@
     },
     "posRank": "RB71",
     "averageRank": 224.0,
+    "ranking": 224,
     "sourceCount": 2
   },
   {
@@ -2922,6 +3146,7 @@
     },
     "posRank": "TE20",
     "averageRank": 225.0,
+    "ranking": 225,
     "sourceCount": 2
   },
   {
@@ -2935,6 +3160,7 @@
     },
     "posRank": "TE21",
     "averageRank": 226.0,
+    "ranking": 226,
     "sourceCount": 2
   },
   {
@@ -2948,6 +3174,7 @@
     },
     "posRank": "WR75",
     "averageRank": 227.0,
+    "ranking": 227,
     "sourceCount": 2
   },
   {
@@ -2961,6 +3188,7 @@
     },
     "posRank": "WR76",
     "averageRank": 228.0,
+    "ranking": 228,
     "sourceCount": 2
   },
   {
@@ -2974,6 +3202,7 @@
     },
     "posRank": "QB37",
     "averageRank": 229.0,
+    "ranking": 229,
     "sourceCount": 2
   },
   {
@@ -2987,6 +3216,7 @@
     },
     "posRank": "QB38",
     "averageRank": 230.0,
+    "ranking": 230,
     "sourceCount": 2
   },
   {
@@ -3000,6 +3230,7 @@
     },
     "posRank": "WR77",
     "averageRank": 231.0,
+    "ranking": 231,
     "sourceCount": 2
   },
   {
@@ -3013,6 +3244,7 @@
     },
     "posRank": "WR78",
     "averageRank": 232.0,
+    "ranking": 232,
     "sourceCount": 2
   },
   {
@@ -3026,6 +3258,7 @@
     },
     "posRank": "WR79",
     "averageRank": 233.0,
+    "ranking": 233,
     "sourceCount": 2
   },
   {
@@ -3039,6 +3272,7 @@
     },
     "posRank": "WR80",
     "averageRank": 234.0,
+    "ranking": 234,
     "sourceCount": 2
   },
   {
@@ -3052,6 +3286,7 @@
     },
     "posRank": "TE22",
     "averageRank": 235.0,
+    "ranking": 235,
     "sourceCount": 2
   },
   {
@@ -3065,6 +3300,7 @@
     },
     "posRank": "DST13",
     "averageRank": 236.0,
+    "ranking": 236,
     "sourceCount": 2
   },
   {
@@ -3078,6 +3314,7 @@
     },
     "posRank": "DST14",
     "averageRank": 237.0,
+    "ranking": 237,
     "sourceCount": 2
   },
   {
@@ -3091,6 +3328,7 @@
     },
     "posRank": "K13",
     "averageRank": 238.0,
+    "ranking": 238,
     "sourceCount": 2
   },
   {
@@ -3104,6 +3342,7 @@
     },
     "posRank": "K14",
     "averageRank": 239.0,
+    "ranking": 239,
     "sourceCount": 2
   },
   {
@@ -3117,6 +3356,7 @@
     },
     "posRank": "WR81",
     "averageRank": 240.0,
+    "ranking": 240,
     "sourceCount": 2
   },
   {
@@ -3130,6 +3370,7 @@
     },
     "posRank": "WR82",
     "averageRank": 241.0,
+    "ranking": 241,
     "sourceCount": 2
   },
   {
@@ -3143,6 +3384,7 @@
     },
     "posRank": "WR83",
     "averageRank": 242.0,
+    "ranking": 242,
     "sourceCount": 2
   },
   {
@@ -3156,6 +3398,7 @@
     },
     "posRank": "WR84",
     "averageRank": 243.0,
+    "ranking": 243,
     "sourceCount": 2
   },
   {
@@ -3169,6 +3412,7 @@
     },
     "posRank": "WR85",
     "averageRank": 244.0,
+    "ranking": 244,
     "sourceCount": 2
   },
   {
@@ -3182,6 +3426,7 @@
     },
     "posRank": "WR86",
     "averageRank": 245.0,
+    "ranking": 245,
     "sourceCount": 2
   },
   {
@@ -3195,6 +3440,7 @@
     },
     "posRank": "WR87",
     "averageRank": 246.0,
+    "ranking": 246,
     "sourceCount": 2
   },
   {
@@ -3208,6 +3454,7 @@
     },
     "posRank": "WR88",
     "averageRank": 247.0,
+    "ranking": 247,
     "sourceCount": 2
   },
   {
@@ -3221,6 +3468,7 @@
     },
     "posRank": "WR89",
     "averageRank": 248.0,
+    "ranking": 248,
     "sourceCount": 2
   },
   {
@@ -3234,6 +3482,7 @@
     },
     "posRank": "WR90",
     "averageRank": 249.0,
+    "ranking": 249,
     "sourceCount": 2
   },
   {
@@ -3247,6 +3496,7 @@
     },
     "posRank": "RB72",
     "averageRank": 250.0,
+    "ranking": 250,
     "sourceCount": 2
   },
   {
@@ -3260,6 +3510,7 @@
     },
     "posRank": "RB73",
     "averageRank": 251.0,
+    "ranking": 251,
     "sourceCount": 2
   },
   {
@@ -3273,6 +3524,7 @@
     },
     "posRank": "RB74",
     "averageRank": 252.0,
+    "ranking": 252,
     "sourceCount": 2
   },
   {
@@ -3286,6 +3538,7 @@
     },
     "posRank": "RB75",
     "averageRank": 253.0,
+    "ranking": 253,
     "sourceCount": 2
   },
   {
@@ -3299,6 +3552,7 @@
     },
     "posRank": "RB76",
     "averageRank": 254.0,
+    "ranking": 254,
     "sourceCount": 2
   },
   {
@@ -3312,6 +3566,7 @@
     },
     "posRank": "RB77",
     "averageRank": 255.0,
+    "ranking": 255,
     "sourceCount": 2
   },
   {
@@ -3325,6 +3580,7 @@
     },
     "posRank": "RB78",
     "averageRank": 256.0,
+    "ranking": 256,
     "sourceCount": 2
   },
   {
@@ -3338,6 +3594,7 @@
     },
     "posRank": "RB79",
     "averageRank": 257.0,
+    "ranking": 257,
     "sourceCount": 2
   },
   {
@@ -3351,6 +3608,7 @@
     },
     "posRank": "TE23",
     "averageRank": 258.0,
+    "ranking": 258,
     "sourceCount": 2
   },
   {
@@ -3364,6 +3622,7 @@
     },
     "posRank": "TE24",
     "averageRank": 259.0,
+    "ranking": 259,
     "sourceCount": 2
   },
   {
@@ -3377,6 +3636,7 @@
     },
     "posRank": "TE25",
     "averageRank": 260.0,
+    "ranking": 260,
     "sourceCount": 2
   },
   {
@@ -3390,6 +3650,7 @@
     },
     "posRank": "QB39",
     "averageRank": 261.0,
+    "ranking": 261,
     "sourceCount": 2
   },
   {
@@ -3403,6 +3664,7 @@
     },
     "posRank": "QB40",
     "averageRank": 262.0,
+    "ranking": 262,
     "sourceCount": 2
   },
   {
@@ -3416,6 +3678,7 @@
     },
     "posRank": "TE26",
     "averageRank": 263.0,
+    "ranking": 263,
     "sourceCount": 2
   },
   {
@@ -3429,6 +3692,7 @@
     },
     "posRank": "RB80",
     "averageRank": 264.0,
+    "ranking": 264,
     "sourceCount": 2
   },
   {
@@ -3442,6 +3706,7 @@
     },
     "posRank": "WR91",
     "averageRank": 265.0,
+    "ranking": 265,
     "sourceCount": 2
   },
   {
@@ -3455,6 +3720,7 @@
     },
     "posRank": "WR92",
     "averageRank": 266.0,
+    "ranking": 266,
     "sourceCount": 2
   },
   {
@@ -3468,6 +3734,7 @@
     },
     "posRank": "DST15",
     "averageRank": 267.0,
+    "ranking": 267,
     "sourceCount": 2
   },
   {
@@ -3481,6 +3748,7 @@
     },
     "posRank": "DST16",
     "averageRank": 268.0,
+    "ranking": 268,
     "sourceCount": 2
   },
   {
@@ -3494,6 +3762,7 @@
     },
     "posRank": "K15",
     "averageRank": 269.0,
+    "ranking": 269,
     "sourceCount": 2
   },
   {
@@ -3507,6 +3776,7 @@
     },
     "posRank": "K16",
     "averageRank": 270.0,
+    "ranking": 270,
     "sourceCount": 2
   },
   {
@@ -3520,6 +3790,7 @@
     },
     "posRank": "TE27",
     "averageRank": 271.0,
+    "ranking": 271,
     "sourceCount": 2
   },
   {
@@ -3533,6 +3804,7 @@
     },
     "posRank": "TE28",
     "averageRank": 272.0,
+    "ranking": 272,
     "sourceCount": 2
   },
   {
@@ -3546,6 +3818,7 @@
     },
     "posRank": "TE29",
     "averageRank": 273.0,
+    "ranking": 273,
     "sourceCount": 2
   },
   {
@@ -3559,6 +3832,7 @@
     },
     "posRank": "WR93",
     "averageRank": 274.0,
+    "ranking": 274,
     "sourceCount": 2
   },
   {
@@ -3572,6 +3846,7 @@
     },
     "posRank": "WR94",
     "averageRank": 275.0,
+    "ranking": 275,
     "sourceCount": 2
   },
   {
@@ -3585,6 +3860,7 @@
     },
     "posRank": "WR95",
     "averageRank": 276.0,
+    "ranking": 276,
     "sourceCount": 2
   },
   {
@@ -3598,6 +3874,7 @@
     },
     "posRank": "WR96",
     "averageRank": 277.0,
+    "ranking": 277,
     "sourceCount": 2
   },
   {
@@ -3611,6 +3888,7 @@
     },
     "posRank": "RB81",
     "averageRank": 278.0,
+    "ranking": 278,
     "sourceCount": 2
   },
   {
@@ -3624,6 +3902,7 @@
     },
     "posRank": "RB82",
     "averageRank": 279.0,
+    "ranking": 279,
     "sourceCount": 2
   },
   {
@@ -3637,6 +3916,7 @@
     },
     "posRank": "WR97",
     "averageRank": 280.0,
+    "ranking": 280,
     "sourceCount": 2
   },
   {
@@ -3650,6 +3930,7 @@
     },
     "posRank": "WR98",
     "averageRank": 281.0,
+    "ranking": 281,
     "sourceCount": 2
   },
   {
@@ -3663,6 +3944,7 @@
     },
     "posRank": "WR99",
     "averageRank": 282.0,
+    "ranking": 282,
     "sourceCount": 2
   },
   {
@@ -3676,6 +3958,7 @@
     },
     "posRank": "WR100",
     "averageRank": 283.0,
+    "ranking": 283,
     "sourceCount": 2
   },
   {
@@ -3689,6 +3972,7 @@
     },
     "posRank": "WR101",
     "averageRank": 284.0,
+    "ranking": 284,
     "sourceCount": 2
   },
   {
@@ -3702,6 +3986,7 @@
     },
     "posRank": "RB83",
     "averageRank": 285.0,
+    "ranking": 285,
     "sourceCount": 2
   },
   {
@@ -3715,6 +4000,7 @@
     },
     "posRank": "RB84",
     "averageRank": 286.0,
+    "ranking": 286,
     "sourceCount": 2
   },
   {
@@ -3728,6 +4014,7 @@
     },
     "posRank": "RB85",
     "averageRank": 287.0,
+    "ranking": 287,
     "sourceCount": 2
   },
   {
@@ -3741,6 +4028,7 @@
     },
     "posRank": "RB86",
     "averageRank": 288.0,
+    "ranking": 288,
     "sourceCount": 2
   },
   {
@@ -3754,6 +4042,7 @@
     },
     "posRank": "RB87",
     "averageRank": 289.0,
+    "ranking": 289,
     "sourceCount": 2
   },
   {
@@ -3767,6 +4056,7 @@
     },
     "posRank": "RB88",
     "averageRank": 290.0,
+    "ranking": 290,
     "sourceCount": 2
   },
   {
@@ -3780,6 +4070,7 @@
     },
     "posRank": "RB89",
     "averageRank": 291.0,
+    "ranking": 291,
     "sourceCount": 2
   },
   {
@@ -3793,6 +4084,7 @@
     },
     "posRank": "RB90",
     "averageRank": 292.0,
+    "ranking": 292,
     "sourceCount": 2
   },
   {
@@ -3806,6 +4098,7 @@
     },
     "posRank": "WR102",
     "averageRank": 293.0,
+    "ranking": 293,
     "sourceCount": 2
   },
   {
@@ -3819,6 +4112,7 @@
     },
     "posRank": "DST17",
     "averageRank": 294.0,
+    "ranking": 294,
     "sourceCount": 2
   },
   {
@@ -3832,6 +4126,7 @@
     },
     "posRank": "DST18",
     "averageRank": 295.0,
+    "ranking": 295,
     "sourceCount": 2
   },
   {
@@ -3845,6 +4140,7 @@
     },
     "posRank": "K17",
     "averageRank": 296.0,
+    "ranking": 296,
     "sourceCount": 2
   },
   {
@@ -3858,6 +4154,7 @@
     },
     "posRank": "K18",
     "averageRank": 297.0,
+    "ranking": 297,
     "sourceCount": 2
   },
   {
@@ -3871,6 +4168,7 @@
     },
     "posRank": "TE30",
     "averageRank": 298.0,
+    "ranking": 298,
     "sourceCount": 2
   },
   {
@@ -3884,6 +4182,7 @@
     },
     "posRank": "TE31",
     "averageRank": 299.0,
+    "ranking": 299,
     "sourceCount": 2
   },
   {
@@ -3897,6 +4196,7 @@
     },
     "posRank": "TE32",
     "averageRank": 300.0,
+    "ranking": 300,
     "sourceCount": 2
   }
 ]
