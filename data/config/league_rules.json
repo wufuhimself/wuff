@@ -1,0 +1,89 @@
+{
+  "_readme": "Machine-readable league rules and file map for keeper/draft decisions. Read this before inspecting app source or re-deriving rules from scratch.",
+  "league": {
+    "name": "Frank Gore Memorial League y15",
+    "leagueId": "9410",
+    "teams": 12,
+    "scoringType": "Head-to-Head",
+    "ppr": 1.0,
+    "starters": {
+      "QB": 1,
+      "RB": 2,
+      "WR": 3,
+      "TE": 1,
+      "FLEX": 0,
+      "SUPERFLEX": 1,
+      "DEF": 1,
+      "K": 0
+    },
+    "notes": "Superflex league (extra QB-eligible flex slot) with 3 dedicated WR spots. This inflates QB value and WR depth value relative to a standard league; always use league_format.starters, not generic rankings, when judging positional scarcity."
+  },
+  "keeperRules": {
+    "keeperSlotsPerTeam": 2,
+    "keeperCost": "none",
+    "keeperCostExplanation": "There is NO round-cost penalty for keeping a player. Keepers simply occupy the last 2 rounds of the current draft (rounds 14 and 15 in a 15-round, 12-team draft). Do not rank/select keepers by 'saved rounds' or draft-cost value — that logic only applies if keeperCost were round-based, which it is not here.",
+    "ineligibleDraftRounds": [1, 2],
+    "ineligibleDraftRoundsExplanation": "A player cannot be kept if they were drafted in round 1 or round 2 of the MOST RECENT draft, regardless of how good they are. This applies even if they were later acquired by another team via trade — eligibility follows the player's most recent draft round, not current roster owner.",
+    "priorKeeperSlotRounds": [14, 15],
+    "priorKeeperSlotRoundsExplanation": "If a player was drafted in round 14 or 15, that means they occupied a keeper slot in that draft (i.e. someone kept them). This is a signal, not itself a disqualifier.",
+    "maxConsecutiveKeeperSeasons": 2,
+    "maxConsecutiveKeeperSeasonsExplanation": "A player can be kept for at most 2 CONSECUTIVE seasons. If a player was drafted in round 14/15 in each of the last 2 straight draft years, they are capped out and cannot be kept again this year — they go back into the general draft pool, no matter how good they currently rank. This must be checked by looking back across draft_history year files, not just the most recent year.",
+    "selectionMethod": "Since there is no keeper cost, keeper choice should NOT be based on 'value saved vs draft round.' Instead, rank ELIGIBLE roster players (round 1/2 excluded, cap-maxed-out players excluded) by (1) raw current ranking first — trust the market's overall view of talent/risk/role — then (2) valueOverReplacementRounds (this league's actual starter/FLEX/SUPERFLEX counts) only as a tiebreak between players who are close in ranking, then (3) keeperYearsRemaining as a final tiebreak (prefer the player with more consecutive-keeper-season runway left, all else equal). Do not let VOR alone leapfrog a much lower-ranked scarce-position player (e.g. a TE6 or fringe backup QB) over a clearly better overall player just because their position is thin — this was tried and explicitly rejected by the user (Harold Fannin Jr. over Davante Adams, Tyler Shough over D'Andre Swift) as of the 2026 offseason planning.",
+    "behavioralNotes": "This league's real GMs, per user's direct read of the league (2026 offseason), keep skill-position value (WR2/WR3 tier) over a borderline non-rushing QB1 (e.g. Dak Prescott, Jared Goff, Kirk Cousins) even when the QB ranks a bit higher on paper. This tracks the QB draft-round analysis: this league pays a real round-1 premium for RUSHING QBs (Josh Allen, Lamar Jackson, Jalen Hurts, Kyler Murray all go round 1 nearly every year 2022-2025) but treats pure pocket passers as far more replaceable/skippable, including as keepers. There's no rushing-stat data in the saved rankings file to encode this as an automatic rule, so treat it as a judgment override signal when forecasting opponent keepers for QBs without real rushing production, not something the ranking-based algorithm alone will catch. Confirmed example: 'Look at all those Pickens' locked to keep George Pickens + Rashee Rice over Dak Prescott via keeperLockedOverride in their roster JSON entry. 2026 specific note: 8 QBs kept league-wide (Jayden Daniels, Drake Maye, Matthew Stafford, Bo Nix, Trevor Lawrence, Jaxson Dart, Justin Herbert, Tyler Shough); this makes mid-tier QBs (rank 25-40 range) widely available in draft while mid-tier RBs (RB15-25 range) are much scarcer. Keeper decision should weight RB/position scarcity heavily over raw rank when QB depth post-keepers is this deep."
+  },
+  "dataFiles": {
+    "currentRosters": "data/raw/rosters/yahoo_league_rosters.json",
+    "currentRosterSingle": "data/raw/rosters/yahoo_roster.json",
+    "currentRankings": "data/raw/rankings/yahoo_rankings.json",
+    "rankingsSource": "FantasyPros 2026 Draft OP Superflex Rankings (see app/FantasyPros_2026_Draft_OP_Superflex_Rankings.csv for the original CSV import)",
+    "postKeeperDraftBoard": "data/processed/rankings_post_keepers.csv",
+    "postKeeperDraftBoardNote": "Snapshot only — regenerate whenever keepers or rankings change. Does NOT auto-update.",
+    "draftHistoryDir": "data/raw/draft_history/",
+    "draftHistoryFilePattern": "data/raw/draft_history/{year}.json",
+    "draftHistoryNote": "One file per season: {\"year\": YYYY, \"picks\": [{\"round\": int, \"pick\": int, \"playerName\": str, \"team\": str}, ...]}. Add a new year file after each live draft so the consecutive-keeper-cap math keeps working automatically. Currently have 2020-2025.",
+    "draftHistoryRoundCountNote": "2020-2023 drafts were 16 rounds (roster included a kicker slot). Starting 2024, the league dropped the kicker position, so drafts are 15 rounds and PRIOR_KEEPER_ROUNDS (the last-2-rounds keeper slots) shifted from {15,16} to {14,15}. Don't treat a 180-pick 2020-2023 file as complete — it should be 192 (16 rounds x 12 teams); a 180-pick 2024+ file is correct.",
+    "draftPicksDir": "data/raw/draft_picks/",
+    "draftPicksFilePattern": "data/raw/draft_picks/{year}.json",
+    "draftPicksNote": "Which team owns how many picks in each round for a given draft year (accounts for traded picks). Currently have 2026.",
+    "standingsDir": "data/raw/standings/",
+    "standingsFilePattern": "data/raw/standings/{year}.json",
+    "standingsNote": "Final regular-season standings by team. Draft order for the FOLLOWING season is the inverse of these standings (worst record picks 1st), snaking each round. Use app/standings.py draft_order_from_standings() + snake_draft_order() rather than hardcoding an order. Fetch via 'fetch-standings <year> --league-key KEY' or 'backfill-standings' (requires valid Yahoo OAuth token). Currently have 2024-2025.",
+    "nflStatsWeeklyDir": "data/raw/nfl_stats/weekly/",
+    "nflStatsSeasonalDir": "data/raw/nfl_stats/seasonal/",
+    "nflStatsRostersDir": "data/raw/nfl_stats/rosters/",
+    "nflStatsNote": "Player stats from nflreadpy/nflverse (weekly, seasonal, and roster snapshots per season). Used for historical position lookups and player evaluation enrichment. Fetch via 'fetch-nfl-stats [--seasons 2019 2020 ...]. Does NOT include play-by-play (out of scope). Currently have 2022-2025.",
+    "draftAnalysisDir": "data/processed/draft_analysis/",
+    "draftAnalysisNote": "Regeneratable snapshots from draft-analysis reports (e.g. slot vs rank, position vs rank analyses). Optional CSV export via --export-csv flag.",
+    "leagueSettings": "data/config/league_settings.json"
+  },
+  "codeMap": {
+    "app/strategy.py": "Core keeper eligibility + selection logic. INELIGIBLE_KEEPER_ROUNDS, PRIOR_KEEPER_ROUNDS constants. roster_keeper_insight() builds per-player analysis, select_best_keepers() picks the top N per league_format rules.",
+    "app/draft_history.py": "Loads data/raw/draft_history/*.json, computes consecutive_keeper_years() for the cap rule.",
+    "app/draft_picks.py": "Loads data/raw/draft_picks/*.json, who owns which round picks.",
+    "app/standings.py": "Loads data/raw/standings/*.json and derives the next season's snake draft order (worst record picks first, reverses each round). Snake draft, confirmed.",
+    "app/league_context.py": "LeagueFormat dataclass — teams, starters, keeper_cost_uses_draft_round (should stay False), keeper_max_consecutive_seasons.",
+    "app/roster_store.py": "Load/save roster JSON into YahooRosterPlayer objects.",
+    "app/nfl_stats.py": "Fetches and caches NFL player stats from nflreadpy/nflverse: load_player_stats(summary_level='week'/'reg'), load_rosters(). Exposes refresh_nfl_stats() for CLI; load_* functions read CSVs for downstream consumers. Seasons default to FIRST_SEASON (2019) through current_nfl_season().",
+    "app/draft_analysis.py": "Historical draft-outcome analysis: draft_slot_vs_final_rank(), position_in_round_vs_final_rank(). Joins draft_history + standings + nfl_stats rosters to correlate draft decisions with season outcomes.",
+    "app/cli.py": "CLI commands, see README.md for the full runnable list. New in this update: list-league-keys (resolve game_key per season), fetch-standings, backfill-standings, fetch-nfl-stats, draft-slot-outcomes, position-round-outcomes."
+  },
+  "teamNames2025": [
+    "your waterbroke girl",
+    "Jordan Poops Blood",
+    "Uncle Nico",
+    "Half Bakered",
+    "BALLS DEEP",
+    "Wuf",
+    "AI-ex Gonna Take My Job",
+    "Look at all those Pickens",
+    "yay SN",
+    "Purdy Kewl",
+    "the watergirl",
+    "Kiss your Cousins"
+  ],
+  "teamNames2025Note": "Team display names can change year to year even though the 12 manager slots stay the same. draft_history year files store whatever short name was used in that season's draft results — do not assume names are stable across years.",
+  "myTeam": {
+    "displayName2025": "Wuf",
+    "keepers2026": ["Brock Bowers", "Tetairoa McMillan"]
+  }
+}

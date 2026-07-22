@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Standings — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>Standings by season</h2>
+        {% if years %}
+        <ul class="team-list">
+          {% for year in years %}
+          <li>
+            <a href="/standings/{{ year }}">{{ year }} final standings</a>
+            &nbsp;·&nbsp;
+            <a href="/draft-order/{{ year }}">{{ year + 1 }} draft order (inverse of these standings)</a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="status">No standings saved yet. Add a file under <code>data/raw/standings/{year}.json</code>.</p>
+        {% endif %}
+      </section>
+{% endblock %}

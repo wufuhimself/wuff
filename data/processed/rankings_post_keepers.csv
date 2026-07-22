@@ -1,0 +1,516 @@
+draftOrder,ranking,playerName,position,posRank,team,source
+1,1,Josh Allen,QB,QB1,BUF,FantasyPros 2026 Draft OP Superflex
+2,2,Lamar Jackson,QB,QB2,BAL,FantasyPros 2026 Draft OP Superflex
+3,4,Joe Burrow,QB,QB4,CIN,FantasyPros 2026 Draft OP Superflex
+4,6,Ja'Marr Chase,WR,WR1,CIN,FantasyPros 2026 Draft OP Superflex
+5,7,Jalen Hurts,QB,QB6,PHI,FantasyPros 2026 Draft OP Superflex
+6,8,Puka Nacua,WR,WR2,LAR,FantasyPros 2026 Draft OP Superflex
+7,10,Bijan Robinson,RB,RB1,ATL,FantasyPros 2026 Draft OP Superflex
+8,12,Jahmyr Gibbs,RB,RB2,DET,FantasyPros 2026 Draft OP Superflex
+9,13,Jaxon Smith-Njigba,WR,WR3,SEA,FantasyPros 2026 Draft OP Superflex
+10,14,Dak Prescott,QB,QB9,DAL,FantasyPros 2026 Draft OP Superflex
+11,15,Amon-Ra St. Brown,WR,WR4,DET,FantasyPros 2026 Draft OP Superflex
+12,17,Christian McCaffrey,RB,RB3,SF,FantasyPros 2026 Draft OP Superflex
+13,19,CeeDee Lamb,WR,WR5,DAL,FantasyPros 2026 Draft OP Superflex
+14,20,Brock Purdy,QB,QB12,SF,FantasyPros 2026 Draft OP Superflex
+15,21,Justin Jefferson,WR,WR6,MIN,FantasyPros 2026 Draft OP Superflex
+16,22,Jonathan Taylor,RB,RB4,IND,FantasyPros 2026 Draft OP Superflex
+17,23,Drake London,WR,WR7,ATL,FantasyPros 2026 Draft OP Superflex
+18,25,Patrick Mahomes II,QB,QB14,KC,FantasyPros 2026 Draft OP Superflex
+19,26,Nico Collins,WR,WR8,HOU,FantasyPros 2026 Draft OP Superflex
+20,27,A.J. Brown,WR,WR9,NE,FantasyPros 2026 Draft OP Superflex
+21,29,Ashton Jeanty,RB,RB5,LV,FantasyPros 2026 Draft OP Superflex
+22,32,De'Von Achane,RB,RB6,MIA,FantasyPros 2026 Draft OP Superflex
+23,35,Chris Olave,WR,WR11,NO,FantasyPros 2026 Draft OP Superflex
+24,36,Chase Brown,RB,RB8,CIN,FantasyPros 2026 Draft OP Superflex
+25,39,Kyler Murray,QB,QB17,MIN,FantasyPros 2026 Draft OP Superflex
+26,40,Omarion Hampton,RB,RB9,LAC,FantasyPros 2026 Draft OP Superflex
+27,42,Saquon Barkley,RB,RB10,PHI,FantasyPros 2026 Draft OP Superflex
+28,43,Jordan Love,QB,QB18,GB,FantasyPros 2026 Draft OP Superflex
+29,44,Tetairoa McMillan,WR,WR14,CAR,FantasyPros 2026 Draft OP Superflex
+30,46,Baker Mayfield,QB,QB19,TB,FantasyPros 2026 Draft OP Superflex
+31,48,Zay Flowers,WR,WR16,BAL,FantasyPros 2026 Draft OP Superflex
+32,49,Tee Higgins,WR,WR17,CIN,FantasyPros 2026 Draft OP Superflex
+33,51,Ladd McConkey,WR,WR18,LAC,FantasyPros 2026 Draft OP Superflex
+34,53,Malik Willis,QB,QB21,MIA,FantasyPros 2026 Draft OP Superflex
+35,54,Jeremiyah Love,RB,RB12,ARI,FantasyPros 2026 Draft OP Superflex
+36,55,Colston Loveland,TE,TE3,CHI,FantasyPros 2026 Draft OP Superflex
+37,56,Derrick Henry,RB,RB13,BAL,FantasyPros 2026 Draft OP Superflex
+38,59,Breece Hall,RB,RB14,NYJ,FantasyPros 2026 Draft OP Superflex
+39,60,C.J. Stroud,QB,QB22,HOU,FantasyPros 2026 Draft OP Superflex
+40,61,Terry McLaurin,WR,WR22,WAS,FantasyPros 2026 Draft OP Superflex
+41,62,Kyren Williams,RB,RB15,LAR,FantasyPros 2026 Draft OP Superflex
+42,63,Josh Jacobs,RB,RB16,GB,FantasyPros 2026 Draft OP Superflex
+43,64,Luther Burden III,WR,WR23,CHI,FantasyPros 2026 Draft OP Superflex
+44,65,Sam Darnold,QB,QB23,SEA,FantasyPros 2026 Draft OP Superflex
+45,66,Cam Ward,QB,QB24,TEN,FantasyPros 2026 Draft OP Superflex
+46,70,Daniel Jones,QB,QB25,IND,FantasyPros 2026 Draft OP Superflex
+47,71,DJ Moore,WR,WR25,BUF,FantasyPros 2026 Draft OP Superflex
+48,72,Mike Evans,WR,WR26,SF,FantasyPros 2026 Draft OP Superflex
+49,73,Jameson Williams,WR,WR27,DET,FantasyPros 2026 Draft OP Superflex
+50,74,Tyler Warren,TE,TE4,IND,FantasyPros 2026 Draft OP Superflex
+51,75,Cam Skattebo,RB,RB19,NYG,FantasyPros 2026 Draft OP Superflex
+52,76,Bryce Young,QB,QB26,CAR,FantasyPros 2026 Draft OP Superflex
+53,77,Christian Watson,WR,WR28,GB,FantasyPros 2026 Draft OP Superflex
+54,78,Bucky Irving,RB,RB20,TB,FantasyPros 2026 Draft OP Superflex
+55,79,Rome Odunze,WR,WR29,CHI,FantasyPros 2026 Draft OP Superflex
+56,80,TreVeyon Henderson,RB,RB21,NE,FantasyPros 2026 Draft OP Superflex
+57,81,Quinshon Judkins,RB,RB22,CLE,FantasyPros 2026 Draft OP Superflex
+58,82,D'Andre Swift,RB,RB23,CHI,FantasyPros 2026 Draft OP Superflex
+59,83,Carnell Tate,WR,WR30,TEN,FantasyPros 2026 Draft OP Superflex
+60,84,David Montgomery,RB,RB24,HOU,FantasyPros 2026 Draft OP Superflex
+61,85,Marvin Harrison Jr.,WR,WR31,ARI,FantasyPros 2026 Draft OP Superflex
+62,86,Jacoby Brissett,QB,QB27,ARI,FantasyPros 2026 Draft OP Superflex
+63,87,Tucker Kraft,TE,TE5,GB,FantasyPros 2026 Draft OP Superflex
+64,88,Jaylen Warren,RB,RB25,PIT,FantasyPros 2026 Draft OP Superflex
+65,89,Bhayshul Tuten,RB,RB26,JAC,FantasyPros 2026 Draft OP Superflex
+66,90,DK Metcalf,WR,WR32,PIT,FantasyPros 2026 Draft OP Superflex
+67,91,Harold Fannin Jr.,TE,TE6,CLE,FantasyPros 2026 Draft OP Superflex
+68,92,Alec Pierce,WR,WR33,IND,FantasyPros 2026 Draft OP Superflex
+69,93,Courtland Sutton,WR,WR34,DEN,FantasyPros 2026 Draft OP Superflex
+70,94,Jadarian Price,RB,RB27,SEA,FantasyPros 2026 Draft OP Superflex
+71,95,Brian Thomas Jr.,WR,WR35,JAC,FantasyPros 2026 Draft OP Superflex
+72,96,Kyle Pitts Sr.,TE,TE7,ATL,FantasyPros 2026 Draft OP Superflex
+73,97,Chris Godwin Jr.,WR,WR36,TB,FantasyPros 2026 Draft OP Superflex
+74,98,Rhamondre Stevenson,RB,RB28,NE,FantasyPros 2026 Draft OP Superflex
+75,99,Michael Pittman Jr.,WR,WR37,PIT,FantasyPros 2026 Draft OP Superflex
+76,100,Chuba Hubbard,RB,RB29,CAR,FantasyPros 2026 Draft OP Superflex
+77,101,Tony Pollard,RB,RB30,TEN,FantasyPros 2026 Draft OP Superflex
+78,102,RJ Harvey,RB,RB31,DEN,FantasyPros 2026 Draft OP Superflex
+79,103,Jordyn Tyson,WR,WR38,NO,FantasyPros 2026 Draft OP Superflex
+80,104,Wan'Dale Robinson,WR,WR39,TEN,FantasyPros 2026 Draft OP Superflex
+81,105,Sam LaPorta,TE,TE8,DET,FantasyPros 2026 Draft OP Superflex
+82,106,Rico Dowdle,RB,RB32,PIT,FantasyPros 2026 Draft OP Superflex
+83,107,Michael Wilson,WR,WR40,ARI,FantasyPros 2026 Draft OP Superflex
+84,108,Parker Washington,WR,WR41,JAC,FantasyPros 2026 Draft OP Superflex
+85,109,Jakobi Meyers,WR,WR42,JAC,FantasyPros 2026 Draft OP Superflex
+86,110,Josh Downs,WR,WR43,IND,FantasyPros 2026 Draft OP Superflex
+87,111,Makai Lemon,WR,WR44,PHI,FantasyPros 2026 Draft OP Superflex
+88,112,Travis Kelce,TE,TE9,KC,FantasyPros 2026 Draft OP Superflex
+89,113,Kyle Monangai,RB,RB33,CHI,FantasyPros 2026 Draft OP Superflex
+90,114,Ricky Pearsall,WR,WR45,SF,FantasyPros 2026 Draft OP Superflex
+91,115,Kenny Gainwell,RB,RB34,TB,FantasyPros 2026 Draft OP Superflex
+92,116,Geno Smith,QB,QB28,NYJ,FantasyPros 2026 Draft OP Superflex
+93,117,Quentin Johnston,WR,WR46,LAC,FantasyPros 2026 Draft OP Superflex
+94,118,Jake Ferguson,TE,TE10,DAL,FantasyPros 2026 Draft OP Superflex
+95,119,Jordan Addison,WR,WR47,MIN,FantasyPros 2026 Draft OP Superflex
+96,120,George Kittle,TE,TE11,SF,FantasyPros 2026 Draft OP Superflex
+97,121,J.K. Dobbins,RB,RB35,DEN,FantasyPros 2026 Draft OP Superflex
+98,122,Aaron Rodgers,QB,QB29,PIT,FantasyPros 2026 Draft OP Superflex
+99,123,Aaron Jones Sr.,RB,RB36,MIN,FantasyPros 2026 Draft OP Superflex
+100,124,Blake Corum,RB,RB37,LAR,FantasyPros 2026 Draft OP Superflex
+101,125,Jayden Reed,WR,WR48,GB,FantasyPros 2026 Draft OP Superflex
+102,126,Rachaad White,RB,RB38,WAS,FantasyPros 2026 Draft OP Superflex
+103,127,Dalton Kincaid,TE,TE12,BUF,FantasyPros 2026 Draft OP Superflex
+104,128,Khalil Shakir,WR,WR49,BUF,FantasyPros 2026 Draft OP Superflex
+105,129,Isaiah Likely,TE,TE13,NYG,FantasyPros 2026 Draft OP Superflex
+106,130,Jayden Higgins,WR,WR50,HOU,FantasyPros 2026 Draft OP Superflex
+107,131,Xavier Worthy,WR,WR51,KC,FantasyPros 2026 Draft OP Superflex
+108,132,Dallas Goedert,TE,TE14,PHI,FantasyPros 2026 Draft OP Superflex
+109,133,Jacory Croskey-Merritt,RB,RB39,WAS,FantasyPros 2026 Draft OP Superflex
+110,134,Jordan Mason,RB,RB40,MIN,FantasyPros 2026 Draft OP Superflex
+111,135,Fernando Mendoza,QB,QB30,LV,FantasyPros 2026 Draft OP Superflex
+112,136,KC Concepcion,WR,WR52,CLE,FantasyPros 2026 Draft OP Superflex
+113,137,Romeo Doubs,WR,WR53,NE,FantasyPros 2026 Draft OP Superflex
+114,138,Jonathon Brooks,RB,RB41,CAR,FantasyPros 2026 Draft OP Superflex
+115,139,Tyrone Tracy Jr.,RB,RB42,NYG,FantasyPros 2026 Draft OP Superflex
+116,140,Mark Andrews,TE,TE15,BAL,FantasyPros 2026 Draft OP Superflex
+117,141,Jalen Coker,WR,WR54,CAR,FantasyPros 2026 Draft OP Superflex
+118,142,Woody Marks,RB,RB43,HOU,FantasyPros 2026 Draft OP Superflex
+119,143,Matthew Golden,WR,WR55,GB,FantasyPros 2026 Draft OP Superflex
+120,144,Tyler Allgeier,RB,RB44,ARI,FantasyPros 2026 Draft OP Superflex
+121,145,Zach Charbonnet,RB,RB45,SEA,FantasyPros 2026 Draft OP Superflex
+122,146,Tyjae Spears,RB,RB46,TEN,FantasyPros 2026 Draft OP Superflex
+123,147,Chris Rodriguez Jr.,RB,RB47,JAC,FantasyPros 2026 Draft OP Superflex
+124,148,Dylan Sampson,RB,RB48,CLE,FantasyPros 2026 Draft OP Superflex
+125,149,Juwan Johnson,TE,TE16,NO,FantasyPros 2026 Draft OP Superflex
+126,150,Isiah Pacheco,RB,RB49,DET,FantasyPros 2026 Draft OP Superflex
+127,151,Alvin Kamara,RB,RB50,NO,FantasyPros 2026 Draft OP Superflex
+128,152,Rashid Shaheed,WR,WR56,SEA,FantasyPros 2026 Draft OP Superflex
+129,153,Brenton Strange,TE,TE17,JAC,FantasyPros 2026 Draft OP Superflex
+130,154,Jerry Jeudy,WR,WR57,CLE,FantasyPros 2026 Draft OP Superflex
+131,155,Omar Cooper Jr.,WR,WR58,NYJ,FantasyPros 2026 Draft OP Superflex
+132,156,Jauan Jennings,WR,WR59,MIN,FantasyPros 2026 Draft OP Superflex
+133,157,Denzel Boston,WR,WR60,CLE,FantasyPros 2026 Draft OP Superflex
+134,158,Oronde Gadsden II,TE,TE18,LAC,FantasyPros 2026 Draft OP Superflex
+135,159,Chig Okonkwo,TE,TE19,WAS,FantasyPros 2026 Draft OP Superflex
+136,160,Hunter Henry,TE,TE20,NE,FantasyPros 2026 Draft OP Superflex
+137,161,Tua Tagovailoa,QB,QB31,ATL,FantasyPros 2026 Draft OP Superflex
+138,162,Keaton Mitchell,RB,RB51,LAC,FantasyPros 2026 Draft OP Superflex
+139,163,Michael Penix Jr.,QB,QB32,ATL,FantasyPros 2026 Draft OP Superflex
+140,164,Jonah Coleman,RB,RB52,DEN,FantasyPros 2026 Draft OP Superflex
+141,165,Adonai Mitchell,WR,WR61,NYJ,FantasyPros 2026 Draft OP Superflex
+142,166,Tre Tucker,WR,WR62,LV,FantasyPros 2026 Draft OP Superflex
+143,167,Jalen McMillan,WR,WR63,TB,FantasyPros 2026 Draft OP Superflex
+144,168,Dalton Schultz,TE,TE21,HOU,FantasyPros 2026 Draft OP Superflex
+145,169,Tank Bigsby,RB,RB53,PHI,FantasyPros 2026 Draft OP Superflex
+146,170,Travis Hunter,WR,WR64,JAC,FantasyPros 2026 Draft OP Superflex
+147,171,Brian Robinson Jr.,RB,RB54,ATL,FantasyPros 2026 Draft OP Superflex
+148,172,Tre' Harris,WR,WR65,LAC,FantasyPros 2026 Draft OP Superflex
+149,173,Braelon Allen,RB,RB55,NYJ,FantasyPros 2026 Draft OP Superflex
+150,174,T.J. Hockenson,TE,TE22,MIN,FantasyPros 2026 Draft OP Superflex
+151,175,Troy Franklin,WR,WR66,DEN,FantasyPros 2026 Draft OP Superflex
+152,176,Ryan Flournoy,WR,WR67,DAL,FantasyPros 2026 Draft OP Superflex
+153,177,Kayshon Boutte,WR,WR68,NE,FantasyPros 2026 Draft OP Superflex
+154,178,Stefon Diggs,WR,WR69,FA,FantasyPros 2026 Draft OP Superflex
+155,179,James Conner,RB,RB56,ARI,FantasyPros 2026 Draft OP Superflex
+156,180,Emanuel Wilson,RB,RB57,SEA,FantasyPros 2026 Draft OP Superflex
+157,181,Jaylin Noel,WR,WR70,HOU,FantasyPros 2026 Draft OP Superflex
+158,182,Calvin Ridley,WR,WR71,TEN,FantasyPros 2026 Draft OP Superflex
+159,183,AJ Barner,TE,TE23,SEA,FantasyPros 2026 Draft OP Superflex
+160,184,Isaac TeSlaa,WR,WR72,DET,FantasyPros 2026 Draft OP Superflex
+161,185,Kenyon Sadiq,TE,TE24,NYJ,FantasyPros 2026 Draft OP Superflex
+162,186,Darnell Mooney,WR,WR73,NYG,FantasyPros 2026 Draft OP Superflex
+163,187,Ray Davis,RB,RB58,BUF,FantasyPros 2026 Draft OP Superflex
+164,188,Kimani Vidal,RB,RB59,LAC,FantasyPros 2026 Draft OP Superflex
+165,189,Jalen Nailor,WR,WR74,LV,FantasyPros 2026 Draft OP Superflex
+166,190,Gunnar Helm,TE,TE25,TEN,FantasyPros 2026 Draft OP Superflex
+167,191,Malik Washington,WR,WR75,MIA,FantasyPros 2026 Draft OP Superflex
+168,192,Deebo Samuel Sr.,WR,WR76,FA,FantasyPros 2026 Draft OP Superflex
+169,193,Pat Bryant,WR,WR77,DEN,FantasyPros 2026 Draft OP Superflex
+170,194,Shedeur Sanders,QB,QB33,CLE,FantasyPros 2026 Draft OP Superflex
+171,195,Dontayvion Wicks,WR,WR78,PHI,FantasyPros 2026 Draft OP Superflex
+172,196,Emmett Johnson,RB,RB60,KC,FantasyPros 2026 Draft OP Superflex
+173,197,Antonio Williams,WR,WR79,WAS,FantasyPros 2026 Draft OP Superflex
+174,198,Mike Washington Jr.,RB,RB61,LV,FantasyPros 2026 Draft OP Superflex
+175,199,Sean Tucker,RB,RB62,TB,FantasyPros 2026 Draft OP Superflex
+176,200,Tank Dell,WR,WR80,HOU,FantasyPros 2026 Draft OP Superflex
+177,201,Nicholas Singleton,RB,RB63,TEN,FantasyPros 2026 Draft OP Superflex
+178,202,Cooper Kupp,WR,WR81,SEA,FantasyPros 2026 Draft OP Superflex
+179,203,Chimere Dike,WR,WR82,TEN,FantasyPros 2026 Draft OP Superflex
+180,204,Deshaun Watson,QB,QB34,CLE,FantasyPros 2026 Draft OP Superflex
+181,205,Rashod Bateman,WR,WR83,BAL,FantasyPros 2026 Draft OP Superflex
+182,206,De'Zhaun Stribling,WR,WR84,SF,FantasyPros 2026 Draft OP Superflex
+183,207,Kaytron Allen,RB,RB64,WAS,FantasyPros 2026 Draft OP Superflex
+184,208,Germie Bernard,WR,WR85,PIT,FantasyPros 2026 Draft OP Superflex
+185,209,Pat Freiermuth,TE,TE26,PIT,FantasyPros 2026 Draft OP Superflex
+186,210,Jaylen Wright,RB,RB65,MIA,FantasyPros 2026 Draft OP Superflex
+187,211,Cade Otton,TE,TE27,TB,FantasyPros 2026 Draft OP Superflex
+188,212,Brandon Aiyuk,WR,WR86,SF,FantasyPros 2026 Draft OP Superflex
+189,213,David Njoku,TE,TE28,LAC,FantasyPros 2026 Draft OP Superflex
+190,214,Zachariah Branch,WR,WR87,ATL,FantasyPros 2026 Draft OP Superflex
+191,215,Jack Bech,WR,WR88,LV,FantasyPros 2026 Draft OP Superflex
+192,216,Terrance Ferguson,TE,TE29,LAR,FantasyPros 2026 Draft OP Superflex
+193,217,Ted Hurst III,WR,WR89,TB,FantasyPros 2026 Draft OP Superflex
+194,218,Justice Hill,RB,RB66,BAL,FantasyPros 2026 Draft OP Superflex
+195,219,Colby Parkinson,TE,TE30,LAR,FantasyPros 2026 Draft OP Superflex
+196,220,Elic Ayomanor,WR,WR90,TEN,FantasyPros 2026 Draft OP Superflex
+197,221,Kirk Cousins,QB,QB35,LV,FantasyPros 2026 Draft OP Superflex
+198,222,Ollie Gordon II,RB,RB67,MIA,FantasyPros 2026 Draft OP Superflex
+199,223,Keon Coleman,WR,WR91,BUF,FantasyPros 2026 Draft OP Superflex
+200,224,Evan Engram,TE,TE31,DEN,FantasyPros 2026 Draft OP Superflex
+201,225,MarShawn Lloyd,RB,RB68,GB,FantasyPros 2026 Draft OP Superflex
+202,226,Ty Johnson,RB,RB69,BUF,FantasyPros 2026 Draft OP Superflex
+203,227,Elijah Sarratt,WR,WR92,BAL,FantasyPros 2026 Draft OP Superflex
+204,228,Chris Bell,WR,WR93,MIA,FantasyPros 2026 Draft OP Superflex
+205,229,Christian Kirk,WR,WR94,SF,FantasyPros 2026 Draft OP Superflex
+206,230,Tyreek Hill,WR,WR95,FA,FantasyPros 2026 Draft OP Superflex
+207,231,DJ Giddens,RB,RB70,IND,FantasyPros 2026 Draft OP Superflex
+208,232,Malachi Fields,WR,WR96,NYG,FantasyPros 2026 Draft OP Superflex
+209,233,Eli Stowers,TE,TE32,PHI,FantasyPros 2026 Draft OP Superflex
+210,234,Tory Horton,WR,WR97,SEA,FantasyPros 2026 Draft OP Superflex
+211,235,Marvin Mims Jr.,WR,WR98,DEN,FantasyPros 2026 Draft OP Superflex
+212,236,Jaydon Blue,RB,RB71,DAL,FantasyPros 2026 Draft OP Superflex
+213,237,Mason Taylor,TE,TE33,NYJ,FantasyPros 2026 Draft OP Superflex
+214,238,Chris Brooks,RB,RB72,GB,FantasyPros 2026 Draft OP Superflex
+215,239,Theo Johnson,TE,TE34,NYG,FantasyPros 2026 Draft OP Superflex
+216,240,Isaiah Davis,RB,RB73,NYJ,FantasyPros 2026 Draft OP Superflex
+217,241,Darius Slayton,WR,WR99,NYG,FantasyPros 2026 Draft OP Superflex
+218,242,Chris Brazzell II,WR,WR100,CAR,FantasyPros 2026 Draft OP Superflex
+219,243,Greg Dulcich,TE,TE35,MIA,FantasyPros 2026 Draft OP Superflex
+220,244,Xavier Legette,WR,WR101,CAR,FantasyPros 2026 Draft OP Superflex
+221,245,Samaje Perine,RB,RB74,CIN,FantasyPros 2026 Draft OP Superflex
+222,246,Trey Benson,RB,RB75,ARI,FantasyPros 2026 Draft OP Superflex
+223,247,Jordan James,RB,RB76,SF,FantasyPros 2026 Draft OP Superflex
+224,248,LeQuint Allen Jr.,RB,RB77,JAC,FantasyPros 2026 Draft OP Superflex
+225,249,Demond Claiborne,RB,RB78,MIN,FantasyPros 2026 Draft OP Superflex
+226,250,Devin Neal,RB,RB79,NO,FantasyPros 2026 Draft OP Superflex
+227,251,Kaleb Johnson,RB,RB80,PIT,FantasyPros 2026 Draft OP Superflex
+228,252,Malik Davis,RB,RB81,DAL,FantasyPros 2026 Draft OP Superflex
+229,253,Tyquan Thornton,WR,WR102,KC,FantasyPros 2026 Draft OP Superflex
+230,254,George Holani,RB,RB82,SEA,FantasyPros 2026 Draft OP Superflex
+231,255,Seth McGowan,RB,RB83,IND,FantasyPros 2026 Draft OP Superflex
+232,256,Devaughn Vele,WR,WR103,NO,FantasyPros 2026 Draft OP Superflex
+233,257,Kyle Williams,WR,WR104,NE,FantasyPros 2026 Draft OP Superflex
+234,258,Brashard Smith,RB,RB84,KC,FantasyPros 2026 Draft OP Superflex
+235,259,Keenan Allen,WR,WR105,LAC,FantasyPros 2026 Draft OP Superflex
+236,260,Mack Hollins,WR,WR106,NE,FantasyPros 2026 Draft OP Superflex
+237,261,Hollywood Brown,WR,WR107,PHI,FantasyPros 2026 Draft OP Superflex
+238,262,Kaelon Black,RB,RB85,SF,FantasyPros 2026 Draft OP Superflex
+239,263,Mike Gesicki,TE,TE36,CIN,FantasyPros 2026 Draft OP Superflex
+240,264,Devin Singletary,RB,RB86,NYG,FantasyPros 2026 Draft OP Superflex
+241,265,Oscar Delp,TE,TE37,NO,FantasyPros 2026 Draft OP Superflex
+242,266,Emari Demercado,RB,RB87,KC,FantasyPros 2026 Draft OP Superflex
+243,267,Jerome Ford,RB,RB88,WAS,FantasyPros 2026 Draft OP Superflex
+244,268,Kendre Miller,RB,RB89,NO,FantasyPros 2026 Draft OP Superflex
+245,269,Jaleel McLaughlin,RB,RB90,DEN,FantasyPros 2026 Draft OP Superflex
+246,270,Najee Harris,RB,RB91,LAC,FantasyPros 2026 Draft OP Superflex
+247,271,Isaiah Bond,WR,WR108,CLE,FantasyPros 2026 Draft OP Superflex
+248,272,Adam Randall,RB,RB92,BAL,FantasyPros 2026 Draft OP Superflex
+249,273,Trevor Etienne,RB,RB93,CAR,FantasyPros 2026 Draft OP Superflex
+250,274,Ja'Kobi Lane,WR,WR109,BAL,FantasyPros 2026 Draft OP Superflex
+251,275,Jake Tonges,TE,TE38,SF,FantasyPros 2026 Draft OP Superflex
+252,276,Skyler Bell,WR,WR110,BUF,FantasyPros 2026 Draft OP Superflex
+253,277,Isaac Guerendo,RB,RB94,SF,FantasyPros 2026 Draft OP Superflex
+254,278,Tahj Brooks,RB,RB95,CIN,FantasyPros 2026 Draft OP Superflex
+255,279,Andrei Iosivas,WR,WR111,CIN,FantasyPros 2026 Draft OP Superflex
+256,280,Jarquez Hunter,RB,RB96,LAR,FantasyPros 2026 Draft OP Superflex
+257,281,Joe Mixon,RB,RB97,FA,FantasyPros 2026 Draft OP Superflex
+258,282,Audric Estime,RB,RB98,NO,FantasyPros 2026 Draft OP Superflex
+259,283,Darnell Washington,TE,TE39,PIT,FantasyPros 2026 Draft OP Superflex
+260,284,J.J. McCarthy,QB,QB36,MIN,FantasyPros 2026 Draft OP Superflex
+261,285,Will Shipley,RB,RB99,PHI,FantasyPros 2026 Draft OP Superflex
+262,286,Cedric Tillman,WR,WR112,CLE,FantasyPros 2026 Draft OP Superflex
+263,287,Konata Mumpfield,WR,WR113,LAR,FantasyPros 2026 Draft OP Superflex
+264,288,Kareem Hunt,RB,RB100,FA,FantasyPros 2026 Draft OP Superflex
+265,289,Max Klare,TE,TE40,LAR,FantasyPros 2026 Draft OP Superflex
+266,290,Tez Johnson,WR,WR114,TB,FantasyPros 2026 Draft OP Superflex
+267,291,Luke McCaffrey,WR,WR115,WAS,FantasyPros 2026 Draft OP Superflex
+268,292,Jalen Royals,WR,WR116,KC,FantasyPros 2026 Draft OP Superflex
+269,293,Caleb Douglas,WR,WR117,MIA,FantasyPros 2026 Draft OP Superflex
+270,294,Jahan Dotson,WR,WR118,ATL,FantasyPros 2026 Draft OP Superflex
+271,295,Calvin Austin III,WR,WR119,NYG,FantasyPros 2026 Draft OP Superflex
+272,296,Joshua Palmer,WR,WR120,BUF,FantasyPros 2026 Draft OP Superflex
+273,297,Olamide Zaccheaus,WR,WR121,ATL,FantasyPros 2026 Draft OP Superflex
+274,298,Tyler Higbee,TE,TE41,LAR,FantasyPros 2026 Draft OP Superflex
+275,299,Jalen Tolbert,WR,WR122,MIA,FantasyPros 2026 Draft OP Superflex
+276,300,Michael Mayer,TE,TE42,LV,FantasyPros 2026 Draft OP Superflex
+277,301,Elijah Arroyo,TE,TE43,SEA,FantasyPros 2026 Draft OP Superflex
+278,302,Bam Knight,RB,RB101,ARI,FantasyPros 2026 Draft OP Superflex
+279,303,Noah Gray,TE,TE44,KC,FantasyPros 2026 Draft OP Superflex
+280,304,Ja'Tavion Sanders,TE,TE45,CAR,FantasyPros 2026 Draft OP Superflex
+281,305,Dawson Knox,TE,TE46,BUF,FantasyPros 2026 Draft OP Superflex
+282,306,Kendrick Bourne,WR,WR123,ARI,FantasyPros 2026 Draft OP Superflex
+283,307,Cole Kmet,TE,TE47,CHI,FantasyPros 2026 Draft OP Superflex
+284,308,DeMario Douglas,WR,WR124,NE,FantasyPros 2026 Draft OP Superflex
+285,309,Brenen Thompson,WR,WR125,LAC,FantasyPros 2026 Draft OP Superflex
+286,310,Bryce Lance,WR,WR126,NO,FantasyPros 2026 Draft OP Superflex
+287,311,Eli Heidenreich,RB,RB102,PIT,FantasyPros 2026 Draft OP Superflex
+288,312,Dont'e Thornton Jr.,WR,WR127,LV,FantasyPros 2026 Draft OP Superflex
+289,313,Mac Jones,QB,QB37,SF,FantasyPros 2026 Draft OP Superflex
+290,314,Xavier Hutchinson,WR,WR128,HOU,FantasyPros 2026 Draft OP Superflex
+291,315,J'Mari Taylor,RB,RB103,JAC,FantasyPros 2026 Draft OP Superflex
+292,316,Nick Chubb,RB,RB104,FA,FantasyPros 2026 Draft OP Superflex
+293,317,Jawhar Jordan,RB,RB105,HOU,FantasyPros 2026 Draft OP Superflex
+294,318,Kalif Raymond,WR,WR129,CHI,FantasyPros 2026 Draft OP Superflex
+295,319,Michael Carter,RB,RB106,TEN,FantasyPros 2026 Draft OP Superflex
+296,320,Treylon Burks,WR,WR130,WAS,FantasyPros 2026 Draft OP Superflex
+297,321,Nick Westbrook-Ikhine,WR,WR131,IND,FantasyPros 2026 Draft OP Superflex
+298,322,KaVontae Turpin,WR,WR132,DAL,FantasyPros 2026 Draft OP Superflex
+299,323,Tutu Atwell,WR,WR133,MIA,FantasyPros 2026 Draft OP Superflex
+300,324,Raheim Sanders,RB,RB107,CLE,FantasyPros 2026 Draft OP Superflex
+301,325,Savion Williams,WR,WR134,GB,FantasyPros 2026 Draft OP Superflex
+302,326,Jaylin Lane,WR,WR135,WAS,FantasyPros 2026 Draft OP Superflex
+303,327,Ty Simpson,QB,QB38,LAR,FantasyPros 2026 Draft OP Superflex
+304,328,Justin Joly,TE,TE48,DEN,FantasyPros 2026 Draft OP Superflex
+305,329,John Metchie III,WR,WR136,CAR,FantasyPros 2026 Draft OP Superflex
+306,330,Eli Raridon,TE,TE49,NE,FantasyPros 2026 Draft OP Superflex
+307,331,Noah Fant,TE,TE50,NO,FantasyPros 2026 Draft OP Superflex
+308,332,Kevin Coleman Jr.,WR,WR137,MIA,FantasyPros 2026 Draft OP Superflex
+309,333,Anthony Richardson Sr.,QB,QB39,IND,FantasyPros 2026 Draft OP Superflex
+310,334,Zavion Thomas,WR,WR138,CHI,FantasyPros 2026 Draft OP Superflex
+311,335,Justin Fields,QB,QB40,KC,FantasyPros 2026 Draft OP Superflex
+312,336,Kyle Juszczyk,RB,RB108,SF,FantasyPros 2026 Draft OP Superflex
+313,337,Carson Beck,QB,QB41,ARI,FantasyPros 2026 Draft OP Superflex
+314,338,Austin Ekeler,RB,RB109,FA,FantasyPros 2026 Draft OP Superflex
+315,339,Devontez Walker,WR,WR139,BAL,FantasyPros 2026 Draft OP Superflex
+316,340,Greg Dortch,WR,WR140,DET,FantasyPros 2026 Draft OP Superflex
+317,341,Tommy Tremble,TE,TE51,CAR,FantasyPros 2026 Draft OP Superflex
+318,342,John Bates,TE,TE52,WAS,FantasyPros 2026 Draft OP Superflex
+319,343,Joe Milton III,QB,QB42,DAL,FantasyPros 2026 Draft OP Superflex
+320,344,Luke Musgrave,TE,TE53,GB,FantasyPros 2026 Draft OP Superflex
+321,345,Erick All Jr.,TE,TE54,CIN,FantasyPros 2026 Draft OP Superflex
+322,346,Jordan Whittington,WR,WR141,LAR,FantasyPros 2026 Draft OP Superflex
+323,347,Phil Mafah,RB,RB110,DAL,FantasyPros 2026 Draft OP Superflex
+324,348,Dameon Pierce,RB,RB111,PHI,FantasyPros 2026 Draft OP Superflex
+325,349,Dyami Brown,WR,WR142,WAS,FantasyPros 2026 Draft OP Superflex
+326,350,Cyrus Allen,WR,WR143,KC,FantasyPros 2026 Draft OP Superflex
+327,351,Jeremy McNichols,RB,RB112,WAS,FantasyPros 2026 Draft OP Superflex
+328,352,Deion Burks,WR,WR144,IND,FantasyPros 2026 Draft OP Superflex
+329,353,Daniel Bellinger,TE,TE55,TEN,FantasyPros 2026 Draft OP Superflex
+330,354,Ben Sinnott,TE,TE56,WAS,FantasyPros 2026 Draft OP Superflex
+331,355,Terrell Jennings,RB,RB113,NE,FantasyPros 2026 Draft OP Superflex
+332,356,Austin Hooper,TE,TE57,ATL,FantasyPros 2026 Draft OP Superflex
+333,357,Tommy Myers,TE,TE58,FA,FantasyPros 2026 Draft OP Superflex
+334,358,Antonio Gibson,RB,RB114,FA,FantasyPros 2026 Draft OP Superflex
+335,359,Ashton Dulin,WR,WR145,IND,FantasyPros 2026 Draft OP Superflex
+336,360,Jam Miller,RB,RB115,NE,FantasyPros 2026 Draft OP Superflex
+337,361,Rasheen Ali,RB,RB116,BAL,FantasyPros 2026 Draft OP Superflex
+338,362,CJ Daniels,WR,WR146,LAR,FantasyPros 2026 Draft OP Superflex
+339,363,DeAndre Hopkins,WR,WR147,BAL,FantasyPros 2026 Draft OP Superflex
+340,364,Marlin Klein,TE,TE59,HOU,FantasyPros 2026 Draft OP Superflex
+341,365,Odell Beckham Jr.,WR,WR148,NYG,FantasyPros 2026 Draft OP Superflex
+342,366,Tyler Lockett,WR,WR149,LV,FantasyPros 2026 Draft OP Superflex
+343,367,Elijah Higgins,TE,TE60,ARI,FantasyPros 2026 Draft OP Superflex
+344,368,Jaret Patterson,RB,RB117,LAC,FantasyPros 2026 Draft OP Superflex
+345,369,Roschon Johnson,RB,RB118,CHI,FantasyPros 2026 Draft OP Superflex
+346,370,Darren Waller,TE,TE61,FA,FantasyPros 2026 Draft OP Superflex
+347,371,Dylan Laube,RB,RB119,LV,FantasyPros 2026 Draft OP Superflex
+348,372,Jonnu Smith,TE,TE62,FA,FantasyPros 2026 Draft OP Superflex
+349,373,Miles Sanders,RB,RB120,FA,FantasyPros 2026 Draft OP Superflex
+350,374,Jameis Winston,QB,QB43,NYG,FantasyPros 2026 Draft OP Superflex
+351,375,Damien Martinez,RB,RB121,GB,FantasyPros 2026 Draft OP Superflex
+352,376,Joe Flacco,QB,QB44,CIN,FantasyPros 2026 Draft OP Superflex
+353,377,Mitch Tinsley,WR,WR150,CIN,FantasyPros 2026 Draft OP Superflex
+354,378,Jahdae Walker,WR,WR151,CHI,FantasyPros 2026 Draft OP Superflex
+355,379,Sterling Shepard,WR,WR152,FA,FantasyPros 2026 Draft OP Superflex
+356,380,Xavier Smith,WR,WR153,LAR,FantasyPros 2026 Draft OP Superflex
+357,381,Marquez Valdes-Scantling,WR,WR154,DAL,FantasyPros 2026 Draft OP Superflex
+358,382,Charlie Kolar,TE,TE63,LAC,FantasyPros 2026 Draft OP Superflex
+359,383,Tim Patrick,WR,WR155,NYJ,FantasyPros 2026 Draft OP Superflex
+360,384,Josh Oliver,TE,TE64,MIN,FantasyPros 2026 Draft OP Superflex
+361,385,Khalil Herbert,RB,RB122,FA,FantasyPros 2026 Draft OP Superflex
+362,386,Hunter Luepke,RB,RB123,DAL,FantasyPros 2026 Draft OP Superflex
+363,387,Alexander Mattison,RB,RB124,FA,FantasyPros 2026 Draft OP Superflex
+364,388,Kevin Austin Jr.,WR,WR156,NO,FantasyPros 2026 Draft OP Superflex
+365,389,Colbie Young,WR,WR157,CIN,FantasyPros 2026 Draft OP Superflex
+366,390,Marcus Mariota,QB,QB45,WAS,FantasyPros 2026 Draft OP Superflex
+367,391,Zach Ertz,TE,TE65,FA,FantasyPros 2026 Draft OP Superflex
+368,392,Riley Leonard,QB,QB46,IND,FantasyPros 2026 Draft OP Superflex
+369,393,Hunter Renfrow,WR,WR158,FA,FantasyPros 2026 Draft OP Superflex
+370,394,AJ Dillon,RB,RB125,CAR,FantasyPros 2026 Draft OP Superflex
+371,395,Luke Schoonmaker,TE,TE66,DAL,FantasyPros 2026 Draft OP Superflex
+372,396,Elijah Moore,WR,WR159,PHI,FantasyPros 2026 Draft OP Superflex
+373,397,Demarcus Robinson,WR,WR160,SF,FantasyPros 2026 Draft OP Superflex
+374,398,Jordan Waters,RB,RB126,LAR,FantasyPros 2026 Draft OP Superflex
+375,399,Sione Vaki,RB,RB127,DET,FantasyPros 2026 Draft OP Superflex
+376,400,Raheem Mostert,RB,RB128,LV,FantasyPros 2026 Draft OP Superflex
+377,401,Adam Trautman,TE,TE67,DEN,FantasyPros 2026 Draft OP Superflex
+378,402,Brandin Cooks,WR,WR161,FA,FantasyPros 2026 Draft OP Superflex
+379,403,Nate Boerkircher,TE,TE68,JAC,FantasyPros 2026 Draft OP Superflex
+380,404,Tai Felton,WR,WR162,MIN,FantasyPros 2026 Draft OP Superflex
+381,405,Ty Chandler,RB,RB129,NO,FantasyPros 2026 Draft OP Superflex
+382,406,Zavier Scott,RB,RB130,MIN,FantasyPros 2026 Draft OP Superflex
+383,407,Malik Benson,WR,WR163,LV,FantasyPros 2026 Draft OP Superflex
+384,408,Alec Ingold,RB,RB131,LAC,FantasyPros 2026 Draft OP Superflex
+385,409,Zay Jones,WR,WR164,FA,FantasyPros 2026 Draft OP Superflex
+386,410,Drew Sample,TE,TE69,CIN,FantasyPros 2026 Draft OP Superflex
+387,411,Patrick Ricard,RB,RB132,NYG,FantasyPros 2026 Draft OP Superflex
+388,412,Sam Roush,TE,TE70,CHI,FantasyPros 2026 Draft OP Superflex
+389,413,Myles Montgomery,RB,RB133,NE,FantasyPros 2026 Draft OP Superflex
+390,414,Mitchell Evans,TE,TE71,CAR,FantasyPros 2026 Draft OP Superflex
+391,415,Reggie Virgil,WR,WR165,ARI,FantasyPros 2026 Draft OP Superflex
+392,416,Isaiah Williams,WR,WR178,NYJ,FantasyPros 2026 Draft OP Superflex
+393,417,Albert Okwuegbunam Jr.,TE,TE72,LV,FantasyPros 2026 Draft OP Superflex
+394,418,Durham Smythe,TE,TE73,BAL,FantasyPros 2026 Draft OP Superflex
+395,419,Roman Wilson,WR,WR167,PIT,FantasyPros 2026 Draft OP Superflex
+396,420,Jakobie Keeney-James,WR,WR168,FA,FantasyPros 2026 Draft OP Superflex
+397,421,Van Jefferson,WR,WR169,WAS,FantasyPros 2026 Draft OP Superflex
+398,422,Pierre Strong Jr.,RB,RB134,GB,FantasyPros 2026 Draft OP Superflex
+399,423,Ronnie Rivers,RB,RB135,LAR,FantasyPros 2026 Draft OP Superflex
+400,424,Clyde Edwards-Helaire,RB,RB136,FA,FantasyPros 2026 Draft OP Superflex
+401,425,Diontae Johnson,WR,WR170,FA,FantasyPros 2026 Draft OP Superflex
+402,426,Cash Jones,RB,RB137,ATL,FantasyPros 2026 Draft OP Superflex
+403,427,Sincere McCormick,RB,RB138,SF,FantasyPros 2026 Draft OP Superflex
+404,428,Scotty Miller,WR,WR171,CHI,FantasyPros 2026 Draft OP Superflex
+405,429,Brittain Brown,RB,RB139,CHI,FantasyPros 2026 Draft OP Superflex
+406,430,Tanner Hudson,TE,TE74,CIN,FantasyPros 2026 Draft OP Superflex
+407,431,Ameer Abdullah,RB,RB140,JAC,FantasyPros 2026 Draft OP Superflex
+408,432,Mecole Hardman Jr.,WR,WR172,BUF,FantasyPros 2026 Draft OP Superflex
+409,433,Jabari Small,RB,RB141,DET,FantasyPros 2026 Draft OP Superflex
+410,434,Jermaine Burton,WR,WR173,FA,FantasyPros 2026 Draft OP Superflex
+411,435,Lil'Jordan Humphrey,WR,WR174,DEN,FantasyPros 2026 Draft OP Superflex
+412,436,Cam Akers,RB,RB142,FA,FantasyPros 2026 Draft OP Superflex
+413,437,Graig Cooper,RB,RB143,FA,FantasyPros 2026 Draft OP Superflex
+414,438,Kendrick Law,WR,WR175,DET,FantasyPros 2026 Draft OP Superflex
+415,439,Max Bredeson,RB,RB144,MIN,FantasyPros 2026 Draft OP Superflex
+416,440,Josh Reynolds,WR,WR176,FA,FantasyPros 2026 Draft OP Superflex
+417,441,Mo Alie-Cox,TE,TE75,IND,FantasyPros 2026 Draft OP Superflex
+418,442,Elijah Dotson,RB,RB145,FA,FantasyPros 2026 Draft OP Superflex
+419,443,Frank Gore Jr.,RB,RB146,BUF,FantasyPros 2026 Draft OP Superflex
+420,444,Jacardia Wright,RB,RB147,SEA,FantasyPros 2026 Draft OP Superflex
+421,445,Reggie Gilliam,RB,RB148,NE,FantasyPros 2026 Draft OP Superflex
+422,446,Adam Prentice,RB,RB149,DEN,FantasyPros 2026 Draft OP Superflex
+423,447,Jake Bobo,WR,WR177,SEA,FantasyPros 2026 Draft OP Superflex
+424,448,Nathan Carter,RB,RB150,ATL,FantasyPros 2026 Draft OP Superflex
+425,449,Jacob Saylors,RB,RB151,DET,FantasyPros 2026 Draft OP Superflex
+426,450,Isaiah Williams,WR,WR178,FA,FantasyPros 2026 Draft OP Superflex
+427,451,Ja'Lynn Polk,WR,WR179,NO,FantasyPros 2026 Draft OP Superflex
+428,452,Miles Davis,RB,RB152,CAR,FantasyPros 2026 Draft OP Superflex
+429,453,Brock Wright,TE,TE76,DET,FantasyPros 2026 Draft OP Superflex
+430,454,Kye Robichaux,RB,RB153,DET,FantasyPros 2026 Draft OP Superflex
+431,455,Robert Henry Jr.,RB,RB154,WAS,FantasyPros 2026 Draft OP Superflex
+432,456,Kalel Mullings,RB,RB155,TEN,FantasyPros 2026 Draft OP Superflex
+433,457,Noah Whittington,RB,RB156,HOU,FantasyPros 2026 Draft OP Superflex
+434,458,Dontae McMillan,RB,RB157,BAL,FantasyPros 2026 Draft OP Superflex
+435,459,Barion Brown,WR,WR180,NO,FantasyPros 2026 Draft OP Superflex
+436,460,Xavier Restrepo,WR,WR181,TEN,FantasyPros 2026 Draft OP Superflex
+437,461,Devonte Boyd,WR,WR182,FA,FantasyPros 2026 Draft OP Superflex
+438,462,Elijah Tau-Tolliver,RB,RB158,BAL,FantasyPros 2026 Draft OP Superflex
+439,463,Donovan Edwards,RB,RB159,MIA,FantasyPros 2026 Draft OP Superflex
+440,464,Myles Price,WR,WR183,MIN,FantasyPros 2026 Draft OP Superflex
+441,465,Tyler Goodson,RB,RB160,ATL,FantasyPros 2026 Draft OP Superflex
+442,466,Michael Woods II,WR,WR184,FA,FantasyPros 2026 Draft OP Superflex
+443,467,Taysom Hill,TE,TE77,FA,FantasyPros 2026 Draft OP Superflex
+444,468,Russell Gage Jr.,WR,WR185,FA,FantasyPros 2026 Draft OP Superflex
+445,469,Quez Watkins,WR,WR186,PHI,FantasyPros 2026 Draft OP Superflex
+446,470,Montorie Foster Jr.,WR,WR187,SEA,FantasyPros 2026 Draft OP Superflex
+447,471,Jared Wiley,TE,TE78,KC,FantasyPros 2026 Draft OP Superflex
+448,472,Myles Gaskin,RB,RB161,FA,FantasyPros 2026 Draft OP Superflex
+449,473,Ronnie Bell,WR,WR188,NO,FantasyPros 2026 Draft OP Superflex
+450,474,Nate Adkins,TE,TE79,DEN,FantasyPros 2026 Draft OP Superflex
+451,475,Moliki Matavao,TE,TE80,NO,FantasyPros 2026 Draft OP Superflex
+452,476,Tyler Conklin,TE,TE81,DET,FantasyPros 2026 Draft OP Superflex
+453,477,Kendric Pryor,WR,WR189,CIN,FantasyPros 2026 Draft OP Superflex
+454,478,Michael Briscoe,WR,WR190,MIN,FantasyPros 2026 Draft OP Superflex
+455,479,Cedrick Wilson Jr.,WR,WR191,DET,FantasyPros 2026 Draft OP Superflex
+456,480,Ray-Ray McCloud III,WR,WR192,FA,FantasyPros 2026 Draft OP Superflex
+457,481,Michael Bandy,WR,WR193,DEN,FantasyPros 2026 Draft OP Superflex
+458,482,Roman Hemby,RB,RB162,LV,FantasyPros 2026 Draft OP Superflex
+459,483,Jordan Watkins,WR,WR194,SF,FantasyPros 2026 Draft OP Superflex
+460,484,Anthony Gould,WR,WR195,IND,FantasyPros 2026 Draft OP Superflex
+461,485,Michael Trigg,TE,TE82,DAL,FantasyPros 2026 Draft OP Superflex
+462,486,Gabe Davis,WR,WR196,FA,FantasyPros 2026 Draft OP Superflex
+463,487,David Sills V,WR,WR197,TB,FantasyPros 2026 Draft OP Superflex
+464,488,Tyler Badie,RB,RB163,DEN,FantasyPros 2026 Draft OP Superflex
+465,489,Will Kacmarek,TE,TE83,MIA,FantasyPros 2026 Draft OP Superflex
+466,490,Jack Endries,TE,TE84,CIN,FantasyPros 2026 Draft OP Superflex
+467,491,Miles Kitselman,TE,TE85,DET,FantasyPros 2026 Draft OP Superflex
+468,492,Skyy Moore,WR,WR198,GB,FantasyPros 2026 Draft OP Superflex
+469,493,Michael Burton,RB,RB164,CLE,FantasyPros 2026 Draft OP Superflex
+470,494,Royce Freeman,RB,RB165,FA,FantasyPros 2026 Draft OP Superflex
+471,495,Lew Nichols III,RB,RB166,PIT,FantasyPros 2026 Draft OP Superflex
+472,496,Desmond Reid,RB,RB167,FA,FantasyPros 2026 Draft OP Superflex
+473,497,Jackson Hawes,TE,TE86,BUF,FantasyPros 2026 Draft OP Superflex
+474,498,Thomas Fidone II,TE,TE87,NYG,FantasyPros 2026 Draft OP Superflex
+475,499,Tanner Koziol,TE,TE88,JAC,FantasyPros 2026 Draft OP Superflex
+476,500,Michael Wortham,WR,WR199,JAC,FantasyPros 2026 Draft OP Superflex
+477,501,Velus Jones Jr.,WR,WR200,SEA,FantasyPros 2026 Draft OP Superflex
+478,502,Travis Homer,RB,RB168,PIT,FantasyPros 2026 Draft OP Superflex
+479,503,Will Mallory,TE,TE89,IND,FantasyPros 2026 Draft OP Superflex
+480,504,Zamir White,RB,RB169,LV,FantasyPros 2026 Draft OP Superflex
+481,505,Jonathan Mingo,WR,WR201,DAL,FantasyPros 2026 Draft OP Superflex
+482,506,Xavier Weaver,WR,WR202,ARI,FantasyPros 2026 Draft OP Superflex
+483,507,British Brooks,RB,RB170,HOU,FantasyPros 2026 Draft OP Superflex
+484,508,Jaydn Ott,RB,RB171,KC,FantasyPros 2026 Draft OP Superflex
+485,509,Noah Brown,WR,WR203,FA,FantasyPros 2026 Draft OP Superflex
+486,510,Matt Hibner,TE,TE90,BAL,FantasyPros 2026 Draft OP Superflex
+487,511,Josh Cameron,WR,WR204,JAC,FantasyPros 2026 Draft OP Superflex
+488,512,JuJu Smith-Schuster,WR,WR205,NYG,FantasyPros 2026 Draft OP Superflex
+489,513,Chip Trayanum,RB,RB172,NYJ,FantasyPros 2026 Draft OP Superflex
+490,514,Arian Smith,WR,WR206,NYJ,FantasyPros 2026 Draft OP Superflex
+491,515,Derius Davis,WR,WR207,LAC,FantasyPros 2026 Draft OP Superflex
+492,516,Kaden Wetjen,WR,WR208,PIT,FantasyPros 2026 Draft OP Superflex
+493,517,Khalil Dinkins,TE,TE91,SF,FantasyPros 2026 Draft OP Superflex
+494,518,Jimmy Horn Jr.,WR,WR209,CAR,FantasyPros 2026 Draft OP Superflex
+495,519,Foster Moreau,TE,TE92,HOU,FantasyPros 2026 Draft OP Superflex
+496,520,Ben Skowronek,WR,WR210,PIT,FantasyPros 2026 Draft OP Superflex
+497,521,Emmanuel Henderson Jr.,WR,WR211,SEA,FantasyPros 2026 Draft OP Superflex
+498,522,Trey Palmer,WR,WR212,NO,FantasyPros 2026 Draft OP Superflex
+499,523,Theo Wease Jr.,WR,WR213,MIA,FantasyPros 2026 Draft OP Superflex
+500,524,KeAndre Lambert-Smith,WR,WR214,LAC,FantasyPros 2026 Draft OP Superflex
+501,525,Patrick Taylor Jr.,RB,RB173,SF,FantasyPros 2026 Draft OP Superflex
+502,526,Terion Stewart,RB,RB174,KC,FantasyPros 2026 Draft OP Superflex
+503,527,Bub Means,WR,WR215,NO,FantasyPros 2026 Draft OP Superflex
+504,528,Anthony Hankerson,RB,RB175,MIA,FantasyPros 2026 Draft OP Superflex
+505,529,Kendall Milton,RB,RB176,CIN,FantasyPros 2026 Draft OP Superflex
+506,530,David Moore,WR,WR216,CAR,FantasyPros 2026 Draft OP Superflex
+507,531,Jeshaun Jones,WR,WR217,MIN,FantasyPros 2026 Draft OP Superflex
+508,532,Will Dissly,TE,TE93,FA,FantasyPros 2026 Draft OP Superflex
+509,533,Gus Edwards,RB,RB177,FA,FantasyPros 2026 Draft OP Superflex
+510,534,Curtis Samuel,WR,WR218,FA,FantasyPros 2026 Draft OP Superflex
+511,535,Jacob Cowing,WR,WR219,SF,FantasyPros 2026 Draft OP Superflex
+512,536,Juice Wells Jr.,WR,WR220,ATL,FantasyPros 2026 Draft OP Superflex
+513,537,Elijah Mitchell,RB,RB178,PHI,FantasyPros 2026 Draft OP Superflex
+514,538,Trey Sermon,RB,RB179,FA,FantasyPros 2026 Draft OP Superflex
+515,539,Ja'Quinden Jackson,RB,RB180,FA,FantasyPros 2026 Draft OP Superflex

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ year }} standings — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>{{ year }} final standings</h2>
+        <p class="status">
+          <a href="/draft-order/{{ year }}">See {{ year + 1 }} draft order derived from these standings</a>
+          &nbsp;·&nbsp;
+          <a href="/standings">All seasons</a>
+        </p>
+        {% if standings %}
+        <table class="table">
+          <thead><tr><th>Rank</th><th>Team</th><th>Record</th><th>PF</th><th>PA</th><th>Streak</th><th>Waiver $</th><th>Moves</th><th>Playoffs</th></tr></thead>
+          <tbody>
+            {% for row in standings %}
+            <tr>
+              <td>{{ row.rank }}</td>
+              <td>{{ row.team }}</td>
+              <td>{{ row.wins }}-{{ row.losses }}-{{ row.ties }}</td>
+              <td>{{ row.pointsFor }}</td>
+              <td>{{ row.pointsAgainst }}</td>
+              <td>{{ row.streak }}</td>
+              <td>{{ row.waiverBudget }}</td>
+              <td>{{ row.moves }}</td>
+              <td>{{ 'Yes' if row.madePlayoffs else '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </section>
+{% endblock %}

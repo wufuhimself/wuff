@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Keepers board — Yahoo Fantasy{% endblock %}
+{% block content %}
+      {% if per_team %}
+      <section class="card">
+        <h2>Best 2 keepers per team</h2>
+        <table class="table">
+          <thead><tr><th>Team</th><th>Keeper 1</th><th>Keeper 2</th></tr></thead>
+          <tbody>
+            {% for entry in per_team %}
+            <tr>
+              <td>{{ entry.team }}</td>
+              {% for c in entry.chosen %}
+              <td class="wrap">{{ c.playerName }} <span class="pill">{{ c.posRank or c.position }}</span> <span class="pill">rank {{ c.ranking }}</span>{% if c.keeperYearsRemaining is not none %} <span class="pill">{{ c.keeperYearsRemaining }} yr left</span>{% endif %}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Post-keepers draft board (top 100)</h2>
+        <p class="status">Full board written to <code>data/processed/rankings_post_keepers.csv</code> by this same computation (run <code>python3 -m python_app.cli keepers-board</code> to regenerate the file).</p>
+        <form method="get" style="margin-bottom: 1rem;">
+          <label for="team">Highlight picks owned by:</label>
+          <select name="team" id="team" onchange="this.form.submit()">
+            {% for t in team_names %}
+            <option value="{{ t }}" {% if t == my_team %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+          <span class="status">Real picks (accounts for saved trades) at that team's actual draft slot.</span>
+        </form>
+        <table class="table">
+          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th></tr></thead>
+          <tbody>
+            {% for round_number, rows in remaining_board|groupby('round') %}
+            <tr class="round-divider"><td colspan="4">Round {{ round_number }}</td></tr>
+            {% for row in rows %}
+            <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
+              <td>{{ row.draftOrder }}{% if row.isMyPick %} <span class="pill">your pick</span>{% endif %}</td>
+              <td>{{ row.playerName }}</td>
+              <td>{{ row.posRank or row.position }}</td>
+              <td>{{ row.team }}</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+{% endblock %}

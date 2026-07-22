@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Draft history — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>Draft history by year</h2>
+        {% if years %}
+        <ul class="team-list">
+          {% for year in years %}
+          <li>
+            <a href="/draft-history/{{ year }}">{{ year }} draft</a>
+            &nbsp;·&nbsp;
+            <a href="/draft-picks/{{ year }}">pick ownership</a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="status">No draft history saved yet. Add files under <code>data/raw/draft_history/{year}.json</code>.</p>
+        {% endif %}
+      </section>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ year }} pick ownership — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>{{ year }} pick ownership</h2>
+        <p class="status"><a href="/draft-history/{{ year }}">Back to {{ year }} draft results</a></p>
+        {% if teams %}
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Team</th>
+              {% for r in all_rounds %}<th>R{{ r }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for team, rounds in teams.items() %}
+            <tr>
+              <td>{{ team }}</td>
+              {% for r in all_rounds %}<td>{{ rounds.get(r, 0) }}</td>{% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </section>
+{% endblock %}

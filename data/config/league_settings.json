@@ -1,0 +1,49 @@
+{
+  "teams": 12,
+  "league_id": "9410",
+  "league_name": "Frank Gore Memorial League y15",
+  "draft_type": "Offline Draft",
+  "scoring_type": "Head-to-Head",
+  "keeper_cost_uses_draft_round": false,
+  "keeper_slots_at_draft_end": true,
+  "keeper_max_consecutive_seasons": 2,
+  "roster_positions": [
+    "QB",
+    "WR",
+    "WR",
+    "WR",
+    "RB",
+    "RB",
+    "TE",
+    "Q/W/R/T",
+    "DEF",
+    "BN",
+    "BN",
+    "BN",
+    "BN",
+    "BN",
+    "BN",
+    "IR"
+  ],
+  "scoring": {
+    "pass_yd_per_point": 25,
+    "pass_td": 4,
+    "interception": -2,
+    "rush_yd_per_point": 10,
+    "rush_td": 6,
+    "receptions": 1,
+    "rec_yd_per_point": 10,
+    "rec_td": 6,
+    "fumble_lost": -2
+  },
+  "starters": {
+    "QB": 1,
+    "RB": 2,
+    "WR": 3,
+    "TE": 1,
+    "FLEX": 0,
+    "SUPERFLEX": 1,
+    "DEF": 1,
+    "K": 0
+  }
+}

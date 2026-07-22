@@ -1,0 +1,7 @@
+Flask
+requests
+python-dotenv
+beautifulsoup4
+cryptography
+nflreadpy
+pdfplumber

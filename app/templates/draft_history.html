@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ year }} draft — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>{{ year }} draft</h2>
+        <div class="year-links">
+          <a href="/draft-history/{{ year }}?mode=all" class="{{ 'active' if mode == 'all' or not mode }}">All picks</a>
+          <a href="/draft-history/{{ year }}?mode=live" class="{{ 'active' if mode == 'live' }}">Live draft only</a>
+          <a href="/draft-history/{{ year }}?mode=keepers" class="{{ 'active' if mode == 'keepers' }}">Keeper slots only</a>
+          &nbsp;·&nbsp;
+          <a href="/draft-picks/{{ year }}">Pick ownership</a>
+          &nbsp;·&nbsp;
+          <a href="/draft-history">All years</a>
+        </div>
+        {% if mode == 'live' %}
+        <p class="status">Excludes the last-2-rounds keeper slots — this is fresh draft-day demand only.</p>
+        {% elif mode == 'keepers' %}
+        <p class="status">Only the last-2-rounds keeper-slot picks — players retained from the prior season.</p>
+        {% endif %}
+      </section>
+
+      {% for round_number, picks in rounds.items() %}
+      <section class="card round-block">
+        <h3>Round {{ round_number }}</h3>
+        <table class="table">
+          <thead><tr><th>Pick</th><th>Player</th><th>Team</th></tr></thead>
+          <tbody>
+            {% for p in picks %}
+            <tr>
+              <td>{{ p.pick }}</td>
+              <td>{{ p.playerName }}</td>
+              <td>{{ p.team }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endfor %}
+{% endblock %}

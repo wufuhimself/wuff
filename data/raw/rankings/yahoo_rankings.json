@@ -1,0 +1,2702 @@
+[
+  {
+    "playerId": "Josh Allen",
+    "playerName": "Josh Allen",
+    "position": "QB",
+    "team": "BUF",
+    "ranking": 1,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB1"
+  },
+  {
+    "playerId": "Baker Mayfield",
+    "playerName": "Baker Mayfield",
+    "position": "QB",
+    "team": "TB",
+    "ranking": 81,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB20"
+  },
+  {
+    "playerId": "Mike Washington Jr.",
+    "playerName": "Mike Washington Jr.",
+    "position": "RB",
+    "team": "LV",
+    "ranking": 161,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB49"
+  },
+  {
+    "playerId": "Zachariah Branch",
+    "playerName": "Zachariah Branch",
+    "position": "WR",
+    "team": "ATL",
+    "ranking": 241,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR82"
+  },
+  {
+    "playerId": "Jayden Daniels",
+    "playerName": "Jayden Daniels",
+    "position": "QB",
+    "team": "WAS",
+    "ranking": 2,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB2"
+  },
+  {
+    "playerId": "Marvin Harrison Jr.",
+    "playerName": "Marvin Harrison Jr.",
+    "position": "WR",
+    "team": "ARI",
+    "ranking": 82,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR29"
+  },
+  {
+    "playerId": "Ray Davis",
+    "playerName": "Ray Davis",
+    "position": "RB",
+    "team": "BUF",
+    "ranking": 162,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB50"
+  },
+  {
+    "playerId": "Caleb Douglas",
+    "playerName": "Caleb Douglas",
+    "position": "WR",
+    "team": "MIA",
+    "ranking": 242,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR83"
+  },
+  {
+    "playerId": "Lamar Jackson",
+    "playerName": "Lamar Jackson",
+    "position": "QB",
+    "team": "BAL",
+    "ranking": 3,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB3"
+  },
+  {
+    "playerId": "Courtland Sutton",
+    "playerName": "Courtland Sutton",
+    "position": "WR",
+    "team": "DEN",
+    "ranking": 83,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR30"
+  },
+  {
+    "playerId": "Tyrone Tracy Jr.",
+    "playerName": "Tyrone Tracy Jr.",
+    "position": "RB",
+    "team": "NYG",
+    "ranking": 163,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB51"
+  },
+  {
+    "playerId": "Jalen Tolbert",
+    "playerName": "Jalen Tolbert",
+    "position": "WR",
+    "team": "MIA",
+    "ranking": 243,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR84"
+  },
+  {
+    "playerId": "Jahmyr Gibbs",
+    "playerName": "Jahmyr Gibbs",
+    "position": "RB",
+    "team": "DET",
+    "ranking": 4,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB1"
+  },
+  {
+    "playerId": "Michael Pittman Jr.",
+    "playerName": "Michael Pittman Jr.",
+    "position": "WR",
+    "team": "PIT",
+    "ranking": 84,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR31"
+  },
+  {
+    "playerId": "Terrance Ferguson",
+    "playerName": "Terrance Ferguson",
+    "position": "TE",
+    "team": "LAR",
+    "ranking": 164,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE19"
+  },
+  {
+    "playerId": "Malik Washington",
+    "playerName": "Malik Washington",
+    "position": "WR",
+    "team": "MIA",
+    "ranking": 244,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR85"
+  },
+  {
+    "playerId": "Bijan Robinson",
+    "playerName": "Bijan Robinson",
+    "position": "RB",
+    "team": "ATL",
+    "ranking": 5,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB2"
+  },
+  {
+    "playerId": "DK Metcalf",
+    "playerName": "DK Metcalf",
+    "position": "WR",
+    "team": "PIT",
+    "ranking": 85,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR32"
+  },
+  {
+    "playerId": "Aaron Rodgers",
+    "playerName": "Aaron Rodgers",
+    "position": "QB",
+    "team": "PIT",
+    "ranking": 165,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB29"
+  },
+  {
+    "playerId": "Christian Kirk",
+    "playerName": "Christian Kirk",
+    "position": "WR",
+    "team": "SF",
+    "ranking": 245,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR86"
+  },
+  {
+    "playerId": "Puka Nacua",
+    "playerName": "Puka Nacua",
+    "position": "WR",
+    "team": "LAR",
+    "ranking": 6,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR1"
+  },
+  {
+    "playerId": "Alec Pierce",
+    "playerName": "Alec Pierce",
+    "position": "WR",
+    "team": "IND",
+    "ranking": 86,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR33"
+  },
+  {
+    "playerId": "Deshaun Watson",
+    "playerName": "Deshaun Watson",
+    "position": "QB",
+    "team": "CLE",
+    "ranking": 166,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB30"
+  },
+  {
+    "playerId": "Savion Williams",
+    "playerName": "Savion Williams",
+    "position": "WR",
+    "team": "GB",
+    "ranking": 246,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR87"
+  },
+  {
+    "playerId": "Ja'Marr Chase",
+    "playerName": "Ja'Marr Chase",
+    "position": "WR",
+    "team": "CIN",
+    "ranking": 7,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR2"
+  },
+  {
+    "playerId": "Jordyn Tyson",
+    "playerName": "Jordyn Tyson",
+    "position": "WR",
+    "team": "NO",
+    "ranking": 87,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR34"
+  },
+  {
+    "playerId": "Jacoby Brissett",
+    "playerName": "Jacoby Brissett",
+    "position": "QB",
+    "team": "ARI",
+    "ranking": 167,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB31"
+  },
+  {
+    "playerId": "Chris Brazzell II",
+    "playerName": "Chris Brazzell II",
+    "position": "WR",
+    "team": "CAR",
+    "ranking": 247,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR88"
+  },
+  {
+    "playerId": "Jaxon Smith-Njigba",
+    "playerName": "Jaxon Smith-Njigba",
+    "position": "WR",
+    "team": "SEA",
+    "ranking": 8,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR3"
+  },
+  {
+    "playerId": "Tony Pollard",
+    "playerName": "Tony Pollard",
+    "position": "RB",
+    "team": "TEN",
+    "ranking": 88,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB27"
+  },
+  {
+    "playerId": "Tua Tagovailoa",
+    "playerName": "Tua Tagovailoa",
+    "position": "QB",
+    "team": "ATL",
+    "ranking": 168,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB32"
+  },
+  {
+    "playerId": "Tyreek Hill",
+    "playerName": "Tyreek Hill",
+    "position": "WR",
+    "team": "FA",
+    "ranking": 248,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR89"
+  },
+  {
+    "playerId": "Christian McCaffrey",
+    "playerName": "Christian McCaffrey",
+    "position": "RB",
+    "team": "SF",
+    "ranking": 9,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB3"
+  },
+  {
+    "playerId": "Jaylen Warren",
+    "playerName": "Jaylen Warren",
+    "position": "RB",
+    "team": "PIT",
+    "ranking": 89,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB28"
+  },
+  {
+    "playerId": "Broncos D/ST",
+    "playerName": "Broncos D/ST",
+    "position": "DST",
+    "team": "DEN",
+    "ranking": 169,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST1"
+  },
+  {
+    "playerId": "De'Zhaun Stribling",
+    "playerName": "De'Zhaun Stribling",
+    "position": "WR",
+    "team": "SF",
+    "ranking": 249,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR90"
+  },
+  {
+    "playerId": "Drake Maye",
+    "playerName": "Drake Maye",
+    "position": "QB",
+    "team": "NE",
+    "ranking": 10,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB4"
+  },
+  {
+    "playerId": "Rhamondre Stevenson",
+    "playerName": "Rhamondre Stevenson",
+    "position": "RB",
+    "team": "NE",
+    "ranking": 90,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB29"
+  },
+  {
+    "playerId": "Texans D/ST",
+    "playerName": "Texans D/ST",
+    "position": "DST",
+    "team": "HOU",
+    "ranking": 170,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST2"
+  },
+  {
+    "playerId": "Adam Randall",
+    "playerName": "Adam Randall",
+    "position": "RB",
+    "team": "BAL",
+    "ranking": 250,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB72"
+  },
+  {
+    "playerId": "Jalen Hurts",
+    "playerName": "Jalen Hurts",
+    "position": "QB",
+    "team": "PHI",
+    "ranking": 11,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB5"
+  },
+  {
+    "playerId": "Parker Washington",
+    "playerName": "Parker Washington",
+    "position": "WR",
+    "team": "JAC",
+    "ranking": 91,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR35"
+  },
+  {
+    "playerId": "Steelers D/ST",
+    "playerName": "Steelers D/ST",
+    "position": "DST",
+    "team": "PIT",
+    "ranking": 171,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST3"
+  },
+  {
+    "playerId": "MarShawn Lloyd",
+    "playerName": "MarShawn Lloyd",
+    "position": "RB",
+    "team": "GB",
+    "ranking": 251,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB73"
+  },
+  {
+    "playerId": "Jonathan Taylor",
+    "playerName": "Jonathan Taylor",
+    "position": "RB",
+    "team": "IND",
+    "ranking": 12,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB4"
+  },
+  {
+    "playerId": "Christian Watson",
+    "playerName": "Christian Watson",
+    "position": "WR",
+    "team": "GB",
+    "ranking": 92,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR36"
+  },
+  {
+    "playerId": "Seahawks D/ST",
+    "playerName": "Seahawks D/ST",
+    "position": "DST",
+    "team": "SEA",
+    "ranking": 172,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST4"
+  },
+  {
+    "playerId": "Emari Demercado",
+    "playerName": "Emari Demercado",
+    "position": "RB",
+    "team": "KC",
+    "ranking": 252,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB74"
+  },
+  {
+    "playerId": "Amon-Ra St. Brown",
+    "playerName": "Amon-Ra St. Brown",
+    "position": "WR",
+    "team": "DET",
+    "ranking": 13,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR4"
+  },
+  {
+    "playerId": "Matthew Golden",
+    "playerName": "Matthew Golden",
+    "position": "WR",
+    "team": "GB",
+    "ranking": 93,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR37"
+  },
+  {
+    "playerId": "Rams D/ST",
+    "playerName": "Rams D/ST",
+    "position": "DST",
+    "team": "LAR",
+    "ranking": 173,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST5"
+  },
+  {
+    "playerId": "Jaydon Blue",
+    "playerName": "Jaydon Blue",
+    "position": "RB",
+    "team": "DAL",
+    "ranking": 253,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB75"
+  },
+  {
+    "playerId": "CeeDee Lamb",
+    "playerName": "CeeDee Lamb",
+    "position": "WR",
+    "team": "DAL",
+    "ranking": 14,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR5"
+  },
+  {
+    "playerId": "Mike Evans",
+    "playerName": "Mike Evans",
+    "position": "WR",
+    "team": "SF",
+    "ranking": 94,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR38"
+  },
+  {
+    "playerId": "Ravens D/ST",
+    "playerName": "Ravens D/ST",
+    "position": "DST",
+    "team": "BAL",
+    "ranking": 174,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST6"
+  },
+  {
+    "playerId": "Trey Benson",
+    "playerName": "Trey Benson",
+    "position": "RB",
+    "team": "ARI",
+    "ranking": 254,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB76"
+  },
+  {
+    "playerId": "De'Von Achane",
+    "playerName": "De'Von Achane",
+    "position": "RB",
+    "team": "MIA",
+    "ranking": 15,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB5"
+  },
+  {
+    "playerId": "Rico Dowdle",
+    "playerName": "Rico Dowdle",
+    "position": "RB",
+    "team": "PIT",
+    "ranking": 95,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB30"
+  },
+  {
+    "playerId": "Eagles D/ST",
+    "playerName": "Eagles D/ST",
+    "position": "DST",
+    "team": "PHI",
+    "ranking": 175,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST7"
+  },
+  {
+    "playerId": "Kaleb Johnson",
+    "playerName": "Kaleb Johnson",
+    "position": "RB",
+    "team": "PIT",
+    "ranking": 255,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB77"
+  },
+  {
+    "playerId": "Joe Burrow",
+    "playerName": "Joe Burrow",
+    "position": "QB",
+    "team": "CIN",
+    "ranking": 16,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB6"
+  },
+  {
+    "playerId": "Chuba Hubbard",
+    "playerName": "Chuba Hubbard",
+    "position": "RB",
+    "team": "CAR",
+    "ranking": 96,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB31"
+  },
+  {
+    "playerId": "Browns D/ST",
+    "playerName": "Browns D/ST",
+    "position": "DST",
+    "team": "CLE",
+    "ranking": 176,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST8"
+  },
+  {
+    "playerId": "Ty Johnson",
+    "playerName": "Ty Johnson",
+    "position": "RB",
+    "team": "BUF",
+    "ranking": 256,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB78"
+  },
+  {
+    "playerId": "Jaxson Dart",
+    "playerName": "Jaxson Dart",
+    "position": "QB",
+    "team": "NYG",
+    "ranking": 17,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB7"
+  },
+  {
+    "playerId": "Aaron Jones Sr.",
+    "playerName": "Aaron Jones Sr.",
+    "position": "RB",
+    "team": "MIN",
+    "ranking": 97,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB32"
+  },
+  {
+    "playerId": "Patriots D/ST",
+    "playerName": "Patriots D/ST",
+    "position": "DST",
+    "team": "NE",
+    "ranking": 177,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST9"
+  },
+  {
+    "playerId": "Kyle Juszczyk",
+    "playerName": "Kyle Juszczyk",
+    "position": "RB",
+    "team": "SF",
+    "ranking": 257,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB79"
+  },
+  {
+    "playerId": "Jeremiyah Love",
+    "playerName": "Jeremiyah Love",
+    "position": "RB",
+    "team": "ARI",
+    "ranking": 18,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB6"
+  },
+  {
+    "playerId": "Kenny Gainwell",
+    "playerName": "Kenny Gainwell",
+    "position": "RB",
+    "team": "TB",
+    "ranking": 98,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB33"
+  },
+  {
+    "playerId": "Lions D/ST",
+    "playerName": "Lions D/ST",
+    "position": "DST",
+    "team": "DET",
+    "ranking": 178,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST10"
+  },
+  {
+    "playerId": "Dalton Schultz",
+    "playerName": "Dalton Schultz",
+    "position": "TE",
+    "team": "HOU",
+    "ranking": 258,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE23"
+  },
+  {
+    "playerId": "Justin Jefferson",
+    "playerName": "Justin Jefferson",
+    "position": "WR",
+    "team": "MIN",
+    "ranking": 19,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR6"
+  },
+  {
+    "playerId": "Brian Thomas Jr.",
+    "playerName": "Brian Thomas Jr.",
+    "position": "WR",
+    "team": "JAC",
+    "ranking": 99,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR39"
+  },
+  {
+    "playerId": "Chiefs D/ST",
+    "playerName": "Chiefs D/ST",
+    "position": "DST",
+    "team": "KC",
+    "ranking": 179,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST11"
+  },
+  {
+    "playerId": "Gunnar Helm",
+    "playerName": "Gunnar Helm",
+    "position": "TE",
+    "team": "TEN",
+    "ranking": 259,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE24"
+  },
+  {
+    "playerId": "Drake London",
+    "playerName": "Drake London",
+    "position": "WR",
+    "team": "ATL",
+    "ranking": 20,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR7"
+  },
+  {
+    "playerId": "Jakobi Meyers",
+    "playerName": "Jakobi Meyers",
+    "position": "WR",
+    "team": "JAC",
+    "ranking": 100,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR40"
+  },
+  {
+    "playerId": "Chargers D/ST",
+    "playerName": "Chargers D/ST",
+    "position": "DST",
+    "team": "LAC",
+    "ranking": 180,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST12"
+  },
+  {
+    "playerId": "Oronde Gadsden",
+    "playerName": "Oronde Gadsden",
+    "position": "TE",
+    "team": "LAC",
+    "ranking": 260,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE25"
+  },
+  {
+    "playerId": "Trey McBride",
+    "playerName": "Trey McBride",
+    "position": "TE",
+    "team": "ARI",
+    "ranking": 21,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE1"
+  },
+  {
+    "playerId": "George Kittle",
+    "playerName": "George Kittle",
+    "position": "TE",
+    "team": "SF",
+    "ranking": 101,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE8"
+  },
+  {
+    "playerId": "Brandon Aubrey",
+    "playerName": "Brandon Aubrey",
+    "position": "K",
+    "team": "DAL",
+    "ranking": 181,
+    "source": "NFL26_CS_Super",
+    "posRank": "K1"
+  },
+  {
+    "playerId": "Joe Flacco",
+    "playerName": "Joe Flacco",
+    "position": "QB",
+    "team": "CIN",
+    "ranking": 261,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB39"
+  },
+  {
+    "playerId": "James Cook III",
+    "playerName": "James Cook III",
+    "position": "RB",
+    "team": "BUF",
+    "ranking": 22,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB7"
+  },
+  {
+    "playerId": "Dallas Goedert",
+    "playerName": "Dallas Goedert",
+    "position": "TE",
+    "team": "PHI",
+    "ranking": 102,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE9"
+  },
+  {
+    "playerId": "Cameron Dicker",
+    "playerName": "Cameron Dicker",
+    "position": "K",
+    "team": "LAC",
+    "ranking": 182,
+    "source": "NFL26_CS_Super",
+    "posRank": "K2"
+  },
+  {
+    "playerId": "Mac Jones",
+    "playerName": "Mac Jones",
+    "position": "QB",
+    "team": "SF",
+    "ranking": 262,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB40"
+  },
+  {
+    "playerId": "Rashee Rice",
+    "playerName": "Rashee Rice",
+    "position": "WR",
+    "team": "KC",
+    "ranking": 23,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR8"
+  },
+  {
+    "playerId": "Wan'Dale Robinson",
+    "playerName": "Wan'Dale Robinson",
+    "position": "WR",
+    "team": "TEN",
+    "ranking": 103,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR41"
+  },
+  {
+    "playerId": "Jason Myers",
+    "playerName": "Jason Myers",
+    "position": "K",
+    "team": "SEA",
+    "ranking": 183,
+    "source": "NFL26_CS_Super",
+    "posRank": "K3"
+  },
+  {
+    "playerId": "Chig Okonkwo",
+    "playerName": "Chig Okonkwo",
+    "position": "TE",
+    "team": "WAS",
+    "ranking": 263,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE26"
+  },
+  {
+    "playerId": "Nico Collins",
+    "playerName": "Nico Collins",
+    "position": "WR",
+    "team": "HOU",
+    "ranking": 24,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR9"
+  },
+  {
+    "playerId": "Malik Willis",
+    "playerName": "Malik Willis",
+    "position": "QB",
+    "team": "MIA",
+    "ranking": 104,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB21"
+  },
+  {
+    "playerId": "Harrison Mevis",
+    "playerName": "Harrison Mevis",
+    "position": "K",
+    "team": "LAR",
+    "ranking": 184,
+    "source": "NFL26_CS_Super",
+    "posRank": "K4"
+  },
+  {
+    "playerId": "Chris Brooks",
+    "playerName": "Chris Brooks",
+    "position": "RB",
+    "team": "GB",
+    "ranking": 264,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB80"
+  },
+  {
+    "playerId": "Trevor Lawrence",
+    "playerName": "Trevor Lawrence",
+    "position": "QB",
+    "team": "JAC",
+    "ranking": 25,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB8"
+  },
+  {
+    "playerId": "Jordan Love",
+    "playerName": "Jordan Love",
+    "position": "QB",
+    "team": "GB",
+    "ranking": 105,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB22"
+  },
+  {
+    "playerId": "Ka'imi Fairbairn",
+    "playerName": "Ka'imi Fairbairn",
+    "position": "K",
+    "team": "HOU",
+    "ranking": 185,
+    "source": "NFL26_CS_Super",
+    "posRank": "K5"
+  },
+  {
+    "playerId": "Xavier Legette",
+    "playerName": "Xavier Legette",
+    "position": "WR",
+    "team": "CAR",
+    "ranking": 265,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR91"
+  },
+  {
+    "playerId": "Dak Prescott",
+    "playerName": "Dak Prescott",
+    "position": "QB",
+    "team": "DAL",
+    "ranking": 26,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB9"
+  },
+  {
+    "playerId": "Cam Ward",
+    "playerName": "Cam Ward",
+    "position": "QB",
+    "team": "TEN",
+    "ranking": 106,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB23"
+  },
+  {
+    "playerId": "Eddy Pineiro",
+    "playerName": "Eddy Pineiro",
+    "position": "K",
+    "team": "SF",
+    "ranking": 186,
+    "source": "NFL26_CS_Super",
+    "posRank": "K6"
+  },
+  {
+    "playerId": "Pat Bryant",
+    "playerName": "Pat Bryant",
+    "position": "WR",
+    "team": "DEN",
+    "ranking": 266,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR92"
+  },
+  {
+    "playerId": "Bo Nix",
+    "playerName": "Bo Nix",
+    "position": "QB",
+    "team": "DEN",
+    "ranking": 27,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB10"
+  },
+  {
+    "playerId": "C.J. Stroud",
+    "playerName": "C.J. Stroud",
+    "position": "QB",
+    "team": "HOU",
+    "ranking": 107,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB24"
+  },
+  {
+    "playerId": "Harrison Butker",
+    "playerName": "Harrison Butker",
+    "position": "K",
+    "team": "KC",
+    "ranking": 187,
+    "source": "NFL26_CS_Super",
+    "posRank": "K7"
+  },
+  {
+    "playerId": "Jaguars D/ST",
+    "playerName": "Jaguars D/ST",
+    "position": "DST",
+    "team": "JAC",
+    "ranking": 267,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST15"
+  },
+  {
+    "playerId": "Ashton Jeanty",
+    "playerName": "Ashton Jeanty",
+    "position": "RB",
+    "team": "LV",
+    "ranking": 28,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB8"
+  },
+  {
+    "playerId": "Makai Lemon",
+    "playerName": "Makai Lemon",
+    "position": "WR",
+    "team": "PHI",
+    "ranking": 108,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR42"
+  },
+  {
+    "playerId": "Cam Little",
+    "playerName": "Cam Little",
+    "position": "K",
+    "team": "JAC",
+    "ranking": 188,
+    "source": "NFL26_CS_Super",
+    "posRank": "K8"
+  },
+  {
+    "playerId": "Colts D/ST",
+    "playerName": "Colts D/ST",
+    "position": "DST",
+    "team": "IND",
+    "ranking": 268,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST16"
+  },
+  {
+    "playerId": "Omarion Hampton",
+    "playerName": "Omarion Hampton",
+    "position": "RB",
+    "team": "LAC",
+    "ranking": 29,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB9"
+  },
+  {
+    "playerId": "Michael Wilson",
+    "playerName": "Michael Wilson",
+    "position": "WR",
+    "team": "ARI",
+    "ranking": 109,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR43"
+  },
+  {
+    "playerId": "Jake Bates",
+    "playerName": "Jake Bates",
+    "position": "K",
+    "team": "DET",
+    "ranking": 189,
+    "source": "NFL26_CS_Super",
+    "posRank": "K9"
+  },
+  {
+    "playerId": "Evan McPherson",
+    "playerName": "Evan McPherson",
+    "position": "K",
+    "team": "CIN",
+    "ranking": 269,
+    "source": "NFL26_CS_Super",
+    "posRank": "K15"
+  },
+  {
+    "playerId": "Saquon Barkley",
+    "playerName": "Saquon Barkley",
+    "position": "RB",
+    "team": "PHI",
+    "ranking": 30,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB10"
+  },
+  {
+    "playerId": "Ricky Pearsall",
+    "playerName": "Ricky Pearsall",
+    "position": "WR",
+    "team": "SF",
+    "ranking": 110,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR44"
+  },
+  {
+    "playerId": "Tyler Loop",
+    "playerName": "Tyler Loop",
+    "position": "K",
+    "team": "BAL",
+    "ranking": 190,
+    "source": "NFL26_CS_Super",
+    "posRank": "K10"
+  },
+  {
+    "playerId": "Nick Folk",
+    "playerName": "Nick Folk",
+    "position": "K",
+    "team": "ATL",
+    "ranking": 270,
+    "source": "NFL26_CS_Super",
+    "posRank": "K16"
+  },
+  {
+    "playerId": "Derrick Henry",
+    "playerName": "Derrick Henry",
+    "position": "RB",
+    "team": "BAL",
+    "ranking": 31,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB11"
+  },
+  {
+    "playerId": "Jordan Addison",
+    "playerName": "Jordan Addison",
+    "position": "WR",
+    "team": "MIN",
+    "ranking": 111,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR45"
+  },
+  {
+    "playerId": "Cairo Santos",
+    "playerName": "Cairo Santos",
+    "position": "K",
+    "team": "CHI",
+    "ranking": 191,
+    "source": "NFL26_CS_Super",
+    "posRank": "K11"
+  },
+  {
+    "playerId": "AJ Barner",
+    "playerName": "AJ Barner",
+    "position": "TE",
+    "team": "SEA",
+    "ranking": 271,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE27"
+  },
+  {
+    "playerId": "Brock Bowers",
+    "playerName": "Brock Bowers",
+    "position": "TE",
+    "team": "LV",
+    "ranking": 32,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE2"
+  },
+  {
+    "playerId": "Travis Kelce",
+    "playerName": "Travis Kelce",
+    "position": "TE",
+    "team": "KC",
+    "ranking": 112,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE10"
+  },
+  {
+    "playerId": "Will Reichard",
+    "playerName": "Will Reichard",
+    "position": "K",
+    "team": "MIN",
+    "ranking": 192,
+    "source": "NFL26_CS_Super",
+    "posRank": "K12"
+  },
+  {
+    "playerId": "Greg Dulcich",
+    "playerName": "Greg Dulcich",
+    "position": "TE",
+    "team": "MIA",
+    "ranking": 272,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE28"
+  },
+  {
+    "playerId": "Brock Purdy",
+    "playerName": "Brock Purdy",
+    "position": "QB",
+    "team": "SF",
+    "ranking": 33,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB11"
+  },
+  {
+    "playerId": "Jake Ferguson",
+    "playerName": "Jake Ferguson",
+    "position": "TE",
+    "team": "DAL",
+    "ranking": 113,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE11"
+  },
+  {
+    "playerId": "Jalen Nailor",
+    "playerName": "Jalen Nailor",
+    "position": "WR",
+    "team": "LV",
+    "ranking": 193,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR67"
+  },
+  {
+    "playerId": "Cade Otton",
+    "playerName": "Cade Otton",
+    "position": "TE",
+    "team": "TB",
+    "ranking": 273,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE29"
+  },
+  {
+    "playerId": "Matthew Stafford",
+    "playerName": "Matthew Stafford",
+    "position": "QB",
+    "team": "LAR",
+    "ranking": 34,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB12"
+  },
+  {
+    "playerId": "Mark Andrews",
+    "playerName": "Mark Andrews",
+    "position": "TE",
+    "team": "BAL",
+    "ranking": 114,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE12"
+  },
+  {
+    "playerId": "Brian Robinson Jr.",
+    "playerName": "Brian Robinson Jr.",
+    "position": "RB",
+    "team": "ATL",
+    "ranking": 194,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB52"
+  },
+  {
+    "playerId": "Tory Horton",
+    "playerName": "Tory Horton",
+    "position": "WR",
+    "team": "SEA",
+    "ranking": 274,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR93"
+  },
+  {
+    "playerId": "Garrett Wilson",
+    "playerName": "Garrett Wilson",
+    "position": "WR",
+    "team": "NYJ",
+    "ranking": 35,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR10"
+  },
+  {
+    "playerId": "Tucker Kraft",
+    "playerName": "Tucker Kraft",
+    "position": "TE",
+    "team": "GB",
+    "ranking": 115,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE13"
+  },
+  {
+    "playerId": "Tyjae Spears",
+    "playerName": "Tyjae Spears",
+    "position": "RB",
+    "team": "TEN",
+    "ranking": 195,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB53"
+  },
+  {
+    "playerId": "Ja'Kobi Lane",
+    "playerName": "Ja'Kobi Lane",
+    "position": "WR",
+    "team": "BAL",
+    "ranking": 275,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR94"
+  },
+  {
+    "playerId": "A.J. Brown",
+    "playerName": "A.J. Brown",
+    "position": "WR",
+    "team": "NE",
+    "ranking": 36,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR11"
+  },
+  {
+    "playerId": "T.J. Hockenson",
+    "playerName": "T.J. Hockenson",
+    "position": "TE",
+    "team": "MIN",
+    "ranking": 116,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE14"
+  },
+  {
+    "playerId": "Tyler Allgeier",
+    "playerName": "Tyler Allgeier",
+    "position": "RB",
+    "team": "ARI",
+    "ranking": 196,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB54"
+  },
+  {
+    "playerId": "Ted Hurst",
+    "playerName": "Ted Hurst",
+    "position": "WR",
+    "team": "TB",
+    "ranking": 276,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR95"
+  },
+  {
+    "playerId": "Chris Olave",
+    "playerName": "Chris Olave",
+    "position": "WR",
+    "team": "NO",
+    "ranking": 37,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR12"
+  },
+  {
+    "playerId": "Sam Darnold",
+    "playerName": "Sam Darnold",
+    "position": "QB",
+    "team": "SEA",
+    "ranking": 117,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB25"
+  },
+  {
+    "playerId": "James Conner",
+    "playerName": "James Conner",
+    "position": "RB",
+    "team": "ARI",
+    "ranking": 197,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB55"
+  },
+  {
+    "playerId": "Keon Coleman",
+    "playerName": "Keon Coleman",
+    "position": "WR",
+    "team": "BUF",
+    "ranking": 277,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR96"
+  },
+  {
+    "playerId": "Caleb Williams",
+    "playerName": "Caleb Williams",
+    "position": "QB",
+    "team": "CHI",
+    "ranking": 38,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB13"
+  },
+  {
+    "playerId": "Bryce Young",
+    "playerName": "Bryce Young",
+    "position": "QB",
+    "team": "CAR",
+    "ranking": 118,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB26"
+  },
+  {
+    "playerId": "Rashod Bateman",
+    "playerName": "Rashod Bateman",
+    "position": "WR",
+    "team": "BAL",
+    "ranking": 198,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR68"
+  },
+  {
+    "playerId": "George Holani",
+    "playerName": "George Holani",
+    "position": "RB",
+    "team": "SEA",
+    "ranking": 278,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB81"
+  },
+  {
+    "playerId": "Justin Herbert",
+    "playerName": "Justin Herbert",
+    "position": "QB",
+    "team": "LAC",
+    "ranking": 39,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB14"
+  },
+  {
+    "playerId": "Fernando Mendoza",
+    "playerName": "Fernando Mendoza",
+    "position": "QB",
+    "team": "LV",
+    "ranking": 119,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB27"
+  },
+  {
+    "playerId": "Keaton Mitchell",
+    "playerName": "Keaton Mitchell",
+    "position": "RB",
+    "team": "LAC",
+    "ranking": 199,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB56"
+  },
+  {
+    "playerId": "Isaiah Davis",
+    "playerName": "Isaiah Davis",
+    "position": "RB",
+    "team": "NYJ",
+    "ranking": 279,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB82"
+  },
+  {
+    "playerId": "Josh Jacobs",
+    "playerName": "Josh Jacobs",
+    "position": "RB",
+    "team": "GB",
+    "ranking": 40,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB12"
+  },
+  {
+    "playerId": "Khalil Shakir",
+    "playerName": "Khalil Shakir",
+    "position": "WR",
+    "team": "BUF",
+    "ranking": 120,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR46"
+  },
+  {
+    "playerId": "Justice Hill",
+    "playerName": "Justice Hill",
+    "position": "RB",
+    "team": "BAL",
+    "ranking": 200,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB57"
+  },
+  {
+    "playerId": "Elijah Sarratt",
+    "playerName": "Elijah Sarratt",
+    "position": "WR",
+    "team": "BAL",
+    "ranking": 280,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR97"
+  },
+  {
+    "playerId": "Chase Brown",
+    "playerName": "Chase Brown",
+    "position": "RB",
+    "team": "CIN",
+    "ranking": 41,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB13"
+  },
+  {
+    "playerId": "Jayden Reed",
+    "playerName": "Jayden Reed",
+    "position": "WR",
+    "team": "GB",
+    "ranking": 121,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR47"
+  },
+  {
+    "playerId": "Jordan James",
+    "playerName": "Jordan James",
+    "position": "RB",
+    "team": "SF",
+    "ranking": 201,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB58"
+  },
+  {
+    "playerId": "Dontayvion Wicks",
+    "playerName": "Dontayvion Wicks",
+    "position": "WR",
+    "team": "PHI",
+    "ranking": 281,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR98"
+  },
+  {
+    "playerId": "Breece Hall",
+    "playerName": "Breece Hall",
+    "position": "RB",
+    "team": "NYJ",
+    "ranking": 42,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB14"
+  },
+  {
+    "playerId": "Josh Downs",
+    "playerName": "Josh Downs",
+    "position": "WR",
+    "team": "IND",
+    "ranking": 122,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR48"
+  },
+  {
+    "playerId": "Kaelon Black",
+    "playerName": "Kaelon Black",
+    "position": "RB",
+    "team": "SF",
+    "ranking": 202,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB59"
+  },
+  {
+    "playerId": "Kayshon Boutte",
+    "playerName": "Kayshon Boutte",
+    "position": "WR",
+    "team": "NE",
+    "ranking": 282,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR99"
+  },
+  {
+    "playerId": "Kenneth Walker III",
+    "playerName": "Kenneth Walker III",
+    "position": "RB",
+    "team": "KC",
+    "ranking": 43,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB15"
+  },
+  {
+    "playerId": "Rachaad White",
+    "playerName": "Rachaad White",
+    "position": "RB",
+    "team": "WAS",
+    "ranking": 123,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB34"
+  },
+  {
+    "playerId": "Jauan Jennings",
+    "playerName": "Jauan Jennings",
+    "position": "WR",
+    "team": "MIN",
+    "ranking": 203,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR69"
+  },
+  {
+    "playerId": "Nick Westbrook-Ikhine",
+    "playerName": "Nick Westbrook-Ikhine",
+    "position": "WR",
+    "team": "IND",
+    "ranking": 283,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR100"
+  },
+  {
+    "playerId": "Patrick Mahomes",
+    "playerName": "Patrick Mahomes",
+    "position": "QB",
+    "team": "KC",
+    "ranking": 44,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB15"
+  },
+  {
+    "playerId": "J.K. Dobbins",
+    "playerName": "J.K. Dobbins",
+    "position": "RB",
+    "team": "DEN",
+    "ranking": 124,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB35"
+  },
+  {
+    "playerId": "Jaylin Noel",
+    "playerName": "Jaylin Noel",
+    "position": "WR",
+    "team": "HOU",
+    "ranking": 204,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR70"
+  },
+  {
+    "playerId": "Darius Slayton",
+    "playerName": "Darius Slayton",
+    "position": "WR",
+    "team": "NYG",
+    "ranking": 284,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR101"
+  },
+  {
+    "playerId": "Javonte Williams",
+    "playerName": "Javonte Williams",
+    "position": "RB",
+    "team": "DAL",
+    "ranking": 45,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB16"
+  },
+  {
+    "playerId": "RJ Harvey",
+    "playerName": "RJ Harvey",
+    "position": "RB",
+    "team": "DEN",
+    "ranking": 125,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB36"
+  },
+  {
+    "playerId": "Darnell Mooney",
+    "playerName": "Darnell Mooney",
+    "position": "WR",
+    "team": "NYG",
+    "ranking": 205,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR71"
+  },
+  {
+    "playerId": "DJ Giddens",
+    "playerName": "DJ Giddens",
+    "position": "RB",
+    "team": "IND",
+    "ranking": 285,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB83"
+  },
+  {
+    "playerId": "Kyren Williams",
+    "playerName": "Kyren Williams",
+    "position": "RB",
+    "team": "LAR",
+    "ranking": 46,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB17"
+  },
+  {
+    "playerId": "Kyle Monangai",
+    "playerName": "Kyle Monangai",
+    "position": "RB",
+    "team": "CHI",
+    "ranking": 126,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB37"
+  },
+  {
+    "playerId": "Shedeur Sanders",
+    "playerName": "Shedeur Sanders",
+    "position": "QB",
+    "team": "CLE",
+    "ranking": 206,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB33"
+  },
+  {
+    "playerId": "Malik Davis",
+    "playerName": "Malik Davis",
+    "position": "RB",
+    "team": "DAL",
+    "ranking": 286,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB84"
+  },
+  {
+    "playerId": "George Pickens",
+    "playerName": "George Pickens",
+    "position": "WR",
+    "team": "DAL",
+    "ranking": 47,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR13"
+  },
+  {
+    "playerId": "Jonathon Brooks",
+    "playerName": "Jonathon Brooks",
+    "position": "RB",
+    "team": "CAR",
+    "ranking": 127,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB38"
+  },
+  {
+    "playerId": "Kirk Cousins",
+    "playerName": "Kirk Cousins",
+    "position": "QB",
+    "team": "LV",
+    "ranking": 207,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB34"
+  },
+  {
+    "playerId": "Sean Tucker",
+    "playerName": "Sean Tucker",
+    "position": "RB",
+    "team": "TB",
+    "ranking": 287,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB85"
+  },
+  {
+    "playerId": "Tetairoa McMillan",
+    "playerName": "Tetairoa McMillan",
+    "position": "WR",
+    "team": "CAR",
+    "ranking": 48,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR14"
+  },
+  {
+    "playerId": "Kenyon Sadiq",
+    "playerName": "Kenyon Sadiq",
+    "position": "TE",
+    "team": "NYJ",
+    "ranking": 128,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE15"
+  },
+  {
+    "playerId": "Michael Penix Jr.",
+    "playerName": "Michael Penix Jr.",
+    "position": "QB",
+    "team": "ATL",
+    "ranking": 208,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB35"
+  },
+  {
+    "playerId": "Trevor Etienne",
+    "playerName": "Trevor Etienne",
+    "position": "RB",
+    "team": "CAR",
+    "ranking": 288,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB86"
+  },
+  {
+    "playerId": "Zay Flowers",
+    "playerName": "Zay Flowers",
+    "position": "WR",
+    "team": "BAL",
+    "ranking": 49,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR15"
+  },
+  {
+    "playerId": "Isaiah Likely",
+    "playerName": "Isaiah Likely",
+    "position": "TE",
+    "team": "NYG",
+    "ranking": 129,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE16"
+  },
+  {
+    "playerId": "J.J. McCarthy",
+    "playerName": "J.J. McCarthy",
+    "position": "QB",
+    "team": "MIN",
+    "ranking": 209,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB36"
+  },
+  {
+    "playerId": "Emanuel Wilson",
+    "playerName": "Emanuel Wilson",
+    "position": "RB",
+    "team": "SEA",
+    "ranking": 289,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB87"
+  },
+  {
+    "playerId": "DeVonta Smith",
+    "playerName": "DeVonta Smith",
+    "position": "WR",
+    "team": "PHI",
+    "ranking": 50,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR16"
+  },
+  {
+    "playerId": "Dalton Kincaid",
+    "playerName": "Dalton Kincaid",
+    "position": "TE",
+    "team": "BUF",
+    "ranking": 130,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE17"
+  },
+  {
+    "playerId": "Chris Bell",
+    "playerName": "Chris Bell",
+    "position": "WR",
+    "team": "MIA",
+    "ranking": 210,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR72"
+  },
+  {
+    "playerId": "Will Shipley",
+    "playerName": "Will Shipley",
+    "position": "RB",
+    "team": "PHI",
+    "ranking": 290,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB88"
+  },
+  {
+    "playerId": "Emeka Egbuka",
+    "playerName": "Emeka Egbuka",
+    "position": "WR",
+    "team": "TB",
+    "ranking": 51,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR17"
+  },
+  {
+    "playerId": "Hunter Henry",
+    "playerName": "Hunter Henry",
+    "position": "TE",
+    "team": "NE",
+    "ranking": 131,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE18"
+  },
+  {
+    "playerId": "Jack Bech",
+    "playerName": "Jack Bech",
+    "position": "WR",
+    "team": "LV",
+    "ranking": 211,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR73"
+  },
+  {
+    "playerId": "Devin Singletary",
+    "playerName": "Devin Singletary",
+    "position": "RB",
+    "team": "NYG",
+    "ranking": 291,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB89"
+  },
+  {
+    "playerId": "Malik Nabers",
+    "playerName": "Malik Nabers",
+    "position": "WR",
+    "team": "NYG",
+    "ranking": 52,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR18"
+  },
+  {
+    "playerId": "Jacory Croskey-Merritt",
+    "playerName": "Jacory Croskey-Merritt",
+    "position": "RB",
+    "team": "WAS",
+    "ranking": 132,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB39"
+  },
+  {
+    "playerId": "Deebo Samuel Sr.",
+    "playerName": "Deebo Samuel Sr.",
+    "position": "WR",
+    "team": "FA",
+    "ranking": 212,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR74"
+  },
+  {
+    "playerId": "Hunter Luepke",
+    "playerName": "Hunter Luepke",
+    "position": "RB",
+    "team": "DAL",
+    "ranking": 292,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB90"
+  },
+  {
+    "playerId": "Davante Adams",
+    "playerName": "Davante Adams",
+    "position": "WR",
+    "team": "LAR",
+    "ranking": 53,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR19"
+  },
+  {
+    "playerId": "Blake Corum",
+    "playerName": "Blake Corum",
+    "position": "RB",
+    "team": "LAR",
+    "ranking": 133,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB40"
+  },
+  {
+    "playerId": "Kaytron Allen",
+    "playerName": "Kaytron Allen",
+    "position": "RB",
+    "team": "WAS",
+    "ranking": 213,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB60"
+  },
+  {
+    "playerId": "Dyami Brown",
+    "playerName": "Dyami Brown",
+    "position": "WR",
+    "team": "WAS",
+    "ranking": 293,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR102"
+  },
+  {
+    "playerId": "Ladd McConkey",
+    "playerName": "Ladd McConkey",
+    "position": "WR",
+    "team": "LAC",
+    "ranking": 54,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR20"
+  },
+  {
+    "playerId": "Woody Marks",
+    "playerName": "Woody Marks",
+    "position": "RB",
+    "team": "HOU",
+    "ranking": 134,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB41"
+  },
+  {
+    "playerId": "Nicholas Singleton",
+    "playerName": "Nicholas Singleton",
+    "position": "RB",
+    "team": "TEN",
+    "ranking": 214,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB61"
+  },
+  {
+    "playerId": "Bengals D/ST",
+    "playerName": "Bengals D/ST",
+    "position": "DST",
+    "team": "CIN",
+    "ranking": 294,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST17"
+  },
+  {
+    "playerId": "Terry McLaurin",
+    "playerName": "Terry McLaurin",
+    "position": "WR",
+    "team": "WAS",
+    "ranking": 55,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR21"
+  },
+  {
+    "playerId": "Jordan Mason",
+    "playerName": "Jordan Mason",
+    "position": "RB",
+    "team": "MIN",
+    "ranking": 135,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB42"
+  },
+  {
+    "playerId": "Demond Claiborne",
+    "playerName": "Demond Claiborne",
+    "position": "RB",
+    "team": "MIN",
+    "ranking": 215,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB62"
+  },
+  {
+    "playerId": "Bears D/ST",
+    "playerName": "Bears D/ST",
+    "position": "DST",
+    "team": "CHI",
+    "ranking": 295,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST18"
+  },
+  {
+    "playerId": "Travis Etienne Jr.",
+    "playerName": "Travis Etienne Jr.",
+    "position": "RB",
+    "team": "NO",
+    "ranking": 56,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB18"
+  },
+  {
+    "playerId": "KC Concepcion",
+    "playerName": "KC Concepcion",
+    "position": "WR",
+    "team": "CLE",
+    "ranking": 136,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR49"
+  },
+  {
+    "playerId": "Jonah Coleman",
+    "playerName": "Jonah Coleman",
+    "position": "RB",
+    "team": "DEN",
+    "ranking": 216,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB63"
+  },
+  {
+    "playerId": "Trey Smack",
+    "playerName": "Trey Smack",
+    "position": "K",
+    "team": "GB",
+    "ranking": 296,
+    "source": "NFL26_CS_Super",
+    "posRank": "K17"
+  },
+  {
+    "playerId": "Cam Skattebo",
+    "playerName": "Cam Skattebo",
+    "position": "RB",
+    "team": "NYG",
+    "ranking": 57,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB19"
+  },
+  {
+    "playerId": "Chris Godwin Jr.",
+    "playerName": "Chris Godwin Jr.",
+    "position": "WR",
+    "team": "TB",
+    "ranking": 137,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR50"
+  },
+  {
+    "playerId": "Seth McGowan",
+    "playerName": "Seth McGowan",
+    "position": "RB",
+    "team": "IND",
+    "ranking": 217,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB64"
+  },
+  {
+    "playerId": "Jake Elliott",
+    "playerName": "Jake Elliott",
+    "position": "K",
+    "team": "PHI",
+    "ranking": 297,
+    "source": "NFL26_CS_Super",
+    "posRank": "K18"
+  },
+  {
+    "playerId": "Quinshon Judkins",
+    "playerName": "Quinshon Judkins",
+    "position": "RB",
+    "team": "CLE",
+    "ranking": 58,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB20"
+  },
+  {
+    "playerId": "Xavier Worthy",
+    "playerName": "Xavier Worthy",
+    "position": "WR",
+    "team": "KC",
+    "ranking": 138,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR51"
+  },
+  {
+    "playerId": "Emmett Johnson",
+    "playerName": "Emmett Johnson",
+    "position": "RB",
+    "team": "KC",
+    "ranking": 218,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB65"
+  },
+  {
+    "playerId": "Mike Gesicki",
+    "playerName": "Mike Gesicki",
+    "position": "TE",
+    "team": "CIN",
+    "ranking": 298,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE30"
+  },
+  {
+    "playerId": "Bucky Irving",
+    "playerName": "Bucky Irving",
+    "position": "RB",
+    "team": "TB",
+    "ranking": 59,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB21"
+  },
+  {
+    "playerId": "Romeo Doubs",
+    "playerName": "Romeo Doubs",
+    "position": "WR",
+    "team": "NE",
+    "ranking": 139,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR52"
+  },
+  {
+    "playerId": "Dylan Sampson",
+    "playerName": "Dylan Sampson",
+    "position": "RB",
+    "team": "CLE",
+    "ranking": 219,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB66"
+  },
+  {
+    "playerId": "Evan Engram",
+    "playerName": "Evan Engram",
+    "position": "TE",
+    "team": "DEN",
+    "ranking": 299,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE31"
+  },
+  {
+    "playerId": "Kyler Murray",
+    "playerName": "Kyler Murray",
+    "position": "QB",
+    "team": "MIN",
+    "ranking": 60,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB16"
+  },
+  {
+    "playerId": "Quentin Johnston",
+    "playerName": "Quentin Johnston",
+    "position": "WR",
+    "team": "LAC",
+    "ranking": 140,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR53"
+  },
+  {
+    "playerId": "Samaje Perine",
+    "playerName": "Samaje Perine",
+    "position": "RB",
+    "team": "CIN",
+    "ranking": 220,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB67"
+  },
+  {
+    "playerId": "David Njoku",
+    "playerName": "David Njoku",
+    "position": "TE",
+    "team": "LAC",
+    "ranking": 300,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE32"
+  },
+  {
+    "playerId": "Tyler Shough",
+    "playerName": "Tyler Shough",
+    "position": "QB",
+    "team": "NO",
+    "ranking": 61,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB17"
+  },
+  {
+    "playerId": "Jayden Higgins",
+    "playerName": "Jayden Higgins",
+    "position": "WR",
+    "team": "HOU",
+    "ranking": 141,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR54"
+  },
+  {
+    "playerId": "LeQuint Allen",
+    "playerName": "LeQuint Allen",
+    "position": "RB",
+    "team": "JAC",
+    "ranking": 221,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB68"
+  },
+  {
+    "playerId": "Colston Loveland",
+    "playerName": "Colston Loveland",
+    "position": "TE",
+    "team": "CHI",
+    "ranking": 62,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE3"
+  },
+  {
+    "playerId": "Jerry Jeudy",
+    "playerName": "Jerry Jeudy",
+    "position": "WR",
+    "team": "CLE",
+    "ranking": 142,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR55"
+  },
+  {
+    "playerId": "Jaylen Wright",
+    "playerName": "Jaylen Wright",
+    "position": "RB",
+    "team": "MIA",
+    "ranking": 222,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB69"
+  },
+  {
+    "playerId": "Tyler Warren",
+    "playerName": "Tyler Warren",
+    "position": "TE",
+    "team": "IND",
+    "ranking": 63,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE4"
+  },
+  {
+    "playerId": "Jalen Coker",
+    "playerName": "Jalen Coker",
+    "position": "WR",
+    "team": "CAR",
+    "ranking": 143,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR56"
+  },
+  {
+    "playerId": "Ollie Gordon II",
+    "playerName": "Ollie Gordon II",
+    "position": "RB",
+    "team": "MIA",
+    "ranking": 223,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB70"
+  },
+  {
+    "playerId": "Tee Higgins",
+    "playerName": "Tee Higgins",
+    "position": "WR",
+    "team": "CIN",
+    "ranking": 64,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR22"
+  },
+  {
+    "playerId": "Rashid Shaheed",
+    "playerName": "Rashid Shaheed",
+    "position": "WR",
+    "team": "SEA",
+    "ranking": 144,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR57"
+  },
+  {
+    "playerId": "Kimani Vidal",
+    "playerName": "Kimani Vidal",
+    "position": "RB",
+    "team": "LAC",
+    "ranking": 224,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB71"
+  },
+  {
+    "playerId": "Jaylen Waddle",
+    "playerName": "Jaylen Waddle",
+    "position": "WR",
+    "team": "DEN",
+    "ranking": 65,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR23"
+  },
+  {
+    "playerId": "Zach Charbonnet",
+    "playerName": "Zach Charbonnet",
+    "position": "RB",
+    "team": "SEA",
+    "ranking": 145,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB43"
+  },
+  {
+    "playerId": "Juwan Johnson",
+    "playerName": "Juwan Johnson",
+    "position": "TE",
+    "team": "NO",
+    "ranking": 225,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE20"
+  },
+  {
+    "playerId": "Jameson Williams",
+    "playerName": "Jameson Williams",
+    "position": "WR",
+    "team": "DET",
+    "ranking": 66,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR24"
+  },
+  {
+    "playerId": "Alvin Kamara",
+    "playerName": "Alvin Kamara",
+    "position": "RB",
+    "team": "NO",
+    "ranking": 146,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB44"
+  },
+  {
+    "playerId": "Brenton Strange",
+    "playerName": "Brenton Strange",
+    "position": "TE",
+    "team": "JAC",
+    "ranking": 226,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE21"
+  },
+  {
+    "playerId": "Carnell Tate",
+    "playerName": "Carnell Tate",
+    "position": "WR",
+    "team": "TEN",
+    "ranking": 67,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR25"
+  },
+  {
+    "playerId": "Isiah Pacheco",
+    "playerName": "Isiah Pacheco",
+    "position": "RB",
+    "team": "DET",
+    "ranking": 147,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB45"
+  },
+  {
+    "playerId": "Stefon Diggs",
+    "playerName": "Stefon Diggs",
+    "position": "WR",
+    "team": "FA",
+    "ranking": 227,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR75"
+  },
+  {
+    "playerId": "Rome Odunze",
+    "playerName": "Rome Odunze",
+    "position": "WR",
+    "team": "CHI",
+    "ranking": 68,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR26"
+  },
+  {
+    "playerId": "Chris Rodriguez Jr.",
+    "playerName": "Chris Rodriguez Jr.",
+    "position": "RB",
+    "team": "JAC",
+    "ranking": 148,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB46"
+  },
+  {
+    "playerId": "Tre Harris",
+    "playerName": "Tre Harris",
+    "position": "WR",
+    "team": "LAC",
+    "ranking": 228,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR76"
+  },
+  {
+    "playerId": "Luther Burden III",
+    "playerName": "Luther Burden III",
+    "position": "WR",
+    "team": "CHI",
+    "ranking": 69,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR27"
+  },
+  {
+    "playerId": "Geno Smith",
+    "playerName": "Geno Smith",
+    "position": "QB",
+    "team": "NYJ",
+    "ranking": 149,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB28"
+  },
+  {
+    "playerId": "Carson Beck",
+    "playerName": "Carson Beck",
+    "position": "QB",
+    "team": "ARI",
+    "ranking": 229,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB37"
+  },
+  {
+    "playerId": "TreVeyon Henderson",
+    "playerName": "TreVeyon Henderson",
+    "position": "RB",
+    "team": "NE",
+    "ranking": 70,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB22"
+  },
+  {
+    "playerId": "Braelon Allen",
+    "playerName": "Braelon Allen",
+    "position": "RB",
+    "team": "NYJ",
+    "ranking": 150,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB47"
+  },
+  {
+    "playerId": "Justin Fields",
+    "playerName": "Justin Fields",
+    "position": "QB",
+    "team": "KC",
+    "ranking": 230,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB38"
+  },
+  {
+    "playerId": "Bhayshul Tuten",
+    "playerName": "Bhayshul Tuten",
+    "position": "RB",
+    "team": "JAC",
+    "ranking": 71,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB23"
+  },
+  {
+    "playerId": "Tank Bigsby",
+    "playerName": "Tank Bigsby",
+    "position": "RB",
+    "team": "PHI",
+    "ranking": 151,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB48"
+  },
+  {
+    "playerId": "Isaac TeSlaa",
+    "playerName": "Isaac TeSlaa",
+    "position": "WR",
+    "team": "DET",
+    "ranking": 231,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR77"
+  },
+  {
+    "playerId": "Jadarian Price",
+    "playerName": "Jadarian Price",
+    "position": "RB",
+    "team": "SEA",
+    "ranking": 72,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB24"
+  },
+  {
+    "playerId": "Jalen McMillan",
+    "playerName": "Jalen McMillan",
+    "position": "WR",
+    "team": "TB",
+    "ranking": 152,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR58"
+  },
+  {
+    "playerId": "Ryan Flournoy",
+    "playerName": "Ryan Flournoy",
+    "position": "WR",
+    "team": "DAL",
+    "ranking": 232,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR78"
+  },
+  {
+    "playerId": "D'Andre Swift",
+    "playerName": "D'Andre Swift",
+    "position": "RB",
+    "team": "CHI",
+    "ranking": 73,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB25"
+  },
+  {
+    "playerId": "Calvin Ridley",
+    "playerName": "Calvin Ridley",
+    "position": "WR",
+    "team": "TEN",
+    "ranking": 153,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR59"
+  },
+  {
+    "playerId": "Brandon Aiyuk",
+    "playerName": "Brandon Aiyuk",
+    "position": "WR",
+    "team": "SF",
+    "ranking": 233,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR79"
+  },
+  {
+    "playerId": "Kyle Pitts Sr.",
+    "playerName": "Kyle Pitts Sr.",
+    "position": "TE",
+    "team": "ATL",
+    "ranking": 74,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE5"
+  },
+  {
+    "playerId": "Denzel Boston",
+    "playerName": "Denzel Boston",
+    "position": "WR",
+    "team": "CLE",
+    "ranking": 154,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR60"
+  },
+  {
+    "playerId": "Cooper Kupp",
+    "playerName": "Cooper Kupp",
+    "position": "WR",
+    "team": "SEA",
+    "ranking": 234,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR80"
+  },
+  {
+    "playerId": "Harold Fannin Jr.",
+    "playerName": "Harold Fannin Jr.",
+    "position": "TE",
+    "team": "CLE",
+    "ranking": 75,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE6"
+  },
+  {
+    "playerId": "Travis Hunter",
+    "playerName": "Travis Hunter",
+    "position": "WR",
+    "team": "JAC",
+    "ranking": 155,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR61"
+  },
+  {
+    "playerId": "Pat Freiermuth",
+    "playerName": "Pat Freiermuth",
+    "position": "TE",
+    "team": "PIT",
+    "ranking": 235,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE22"
+  },
+  {
+    "playerId": "Sam LaPorta",
+    "playerName": "Sam LaPorta",
+    "position": "TE",
+    "team": "DET",
+    "ranking": 76,
+    "source": "NFL26_CS_Super",
+    "posRank": "TE7"
+  },
+  {
+    "playerId": "Germie Bernard",
+    "playerName": "Germie Bernard",
+    "position": "WR",
+    "team": "PIT",
+    "ranking": 156,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR62"
+  },
+  {
+    "playerId": "Buccaneers D/ST",
+    "playerName": "Buccaneers D/ST",
+    "position": "DST",
+    "team": "TB",
+    "ranking": 236,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST13"
+  },
+  {
+    "playerId": "David Montgomery",
+    "playerName": "David Montgomery",
+    "position": "RB",
+    "team": "HOU",
+    "ranking": 77,
+    "source": "NFL26_CS_Super",
+    "posRank": "RB26"
+  },
+  {
+    "playerId": "Antonio Williams",
+    "playerName": "Antonio Williams",
+    "position": "WR",
+    "team": "WAS",
+    "ranking": 157,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR63"
+  },
+  {
+    "playerId": "Packers D/ST",
+    "playerName": "Packers D/ST",
+    "position": "DST",
+    "team": "GB",
+    "ranking": 237,
+    "source": "NFL26_CS_Super",
+    "posRank": "DST14"
+  },
+  {
+    "playerId": "DJ Moore",
+    "playerName": "DJ Moore",
+    "position": "WR",
+    "team": "BUF",
+    "ranking": 78,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR28"
+  },
+  {
+    "playerId": "Adonai Mitchell",
+    "playerName": "Adonai Mitchell",
+    "position": "WR",
+    "team": "NYJ",
+    "ranking": 158,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR64"
+  },
+  {
+    "playerId": "Chris Boswell",
+    "playerName": "Chris Boswell",
+    "position": "K",
+    "team": "PIT",
+    "ranking": 238,
+    "source": "NFL26_CS_Super",
+    "posRank": "K13"
+  },
+  {
+    "playerId": "Daniel Jones",
+    "playerName": "Daniel Jones",
+    "position": "QB",
+    "team": "IND",
+    "ranking": 79,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB18"
+  },
+  {
+    "playerId": "Omar Cooper Jr.",
+    "playerName": "Omar Cooper Jr.",
+    "position": "WR",
+    "team": "NYJ",
+    "ranking": 159,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR65"
+  },
+  {
+    "playerId": "Chase McLaughlin",
+    "playerName": "Chase McLaughlin",
+    "position": "K",
+    "team": "TB",
+    "ranking": 239,
+    "source": "NFL26_CS_Super",
+    "posRank": "K14"
+  },
+  {
+    "playerId": "Jared Goff",
+    "playerName": "Jared Goff",
+    "position": "QB",
+    "team": "DET",
+    "ranking": 80,
+    "source": "NFL26_CS_Super",
+    "posRank": "QB19"
+  },
+  {
+    "playerId": "Tre Tucker",
+    "playerName": "Tre Tucker",
+    "position": "WR",
+    "team": "LV",
+    "ranking": 160,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR66"
+  },
+  {
+    "playerId": "Tank Dell",
+    "playerName": "Tank Dell",
+    "position": "WR",
+    "team": "HOU",
+    "ranking": 240,
+    "source": "NFL26_CS_Super",
+    "posRank": "WR81"
+  }
+]

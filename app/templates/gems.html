@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+  <h2>⭐ Gem Finder</h2>
+  <p>Analyze feature table to find undervalued players (high fantasy points, low draft rank).</p>
+</div>
+
+{% if error %}
+  <div class="error">{{ error }}</div>
+{% else %}
+
+<div class="card">
+  <h3>Key Metrics</h3>
+  <div class="grid">
+    <div>
+      <div style="font-size: 0.85rem; color: #667085; margin-bottom: 0.25rem;">Players Analyzed (Season {{ season }})</div>
+      <div style="font-size: 1.8rem; font-weight: 700; color: #0a2f5c;">{{ totalPlayers }}</div>
+    </div>
+    <div>
+      <div style="font-size: 0.85rem; color: #667085; margin-bottom: 0.25rem;">Top Gems</div>
+      <div style="font-size: 1.8rem; font-weight: 700; color: #10b981;">{{ gems|length }}</div>
+    </div>
+    <div>
+      <div style="font-size: 0.85rem; color: #667085; margin-bottom: 0.25rem;">Top Busts</div>
+      <div style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">{{ busts|length }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Position Analysis (Avg Points & ADP)</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Position</th>
+        <th>Avg Points</th>
+        <th>Avg ADP</th>
+        <th>Players</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pos, data in positions.items() %}
+      <tr>
+        <td><strong>{{ pos }}</strong></td>
+        <td>{{ data.avgPoints }}</td>
+        <td>{{ data.avgAdp }}</td>
+        <td>{{ data.count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>🔥 Gems (Outperformed Expectation)</h3>
+  <p style="font-size: 0.9rem; color: #667085;">Players who scored more points than average for their ADP slot.</p>
+
+  {% for pos in gems_by_pos|dictsort %}
+  <div style="margin-bottom: 2rem;">
+    <h4 style="margin-top: 0; margin-bottom: 0.75rem; color: #0a2f5c;">{{ pos[0] }}</h4>
+    <table class="table" style="margin-bottom: 0;">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Team</th>
+          <th>ADP</th>
+          <th>Expected</th>
+          <th>Actual</th>
+          <th>Rank</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for gem in pos[1] %}
+        <tr>
+          <td><strong>{{ gem.playerName }}</strong></td>
+          <td>{{ gem.team }}</td>
+          <td>{{ gem.adp|int }}</td>
+          <td>{{ gem.expected }}</td>
+          <td><strong>{{ gem.fantasyPoints|int }}</strong></td>
+          <td style="color: #10b981; font-weight: 600;">#{{ gem.rank }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h3>💣 Busts (Underperformed Expectation)</h3>
+  <p style="font-size: 0.9rem; color: #667085;">Players who scored fewer points than average for their ADP slot.</p>
+
+  {% for pos in busts_by_pos|dictsort %}
+  <div style="margin-bottom: 2rem;">
+    <h4 style="margin-top: 0; margin-bottom: 0.75rem; color: #0a2f5c;">{{ pos[0] }}</h4>
+    <table class="table" style="margin-bottom: 0;">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Team</th>
+          <th>ADP</th>
+          <th>Expected</th>
+          <th>Actual</th>
+          <th>Rank</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bust in pos[1] %}
+        <tr>
+          <td><strong>{{ bust.playerName }}</strong></td>
+          <td>{{ bust.team }}</td>
+          <td>{{ bust.adp|int }}</td>
+          <td>{{ bust.expected }}</td>
+          <td><strong>{{ bust.fantasyPoints|int }}</strong></td>
+          <td style="color: #ef4444; font-weight: 600;">#{{ bust.rank }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+
+{% endif %}
+{% endblock %}

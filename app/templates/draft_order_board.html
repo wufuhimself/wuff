@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Team draft boards — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>Team draft boards (snake order from {{ standings_year }} standings)</h2>
+        <p class="status"><a href="/draft-order/{{ standings_year }}">Back to draft order</a></p>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <p class="status">Exact overall pick number per round, joined to the post-keeper board rank at that pick — accounts for traded picks where saved (see <code>picksByRoundOrigins</code> in <code>data/raw/draft_picks/{{ standings_year + 1 }}.json</code>); otherwise assumes standard snake order.</p>
+      </section>
+      {% for team, entries in teams.items() %}
+      <section class="card">
+        <h3>{{ team }}</h3>
+        <table class="table">
+          <thead><tr><th>Round</th><th>Overall pick</th><th>Board rank #</th><th>Player</th><th>Pos</th><th>Via trade</th></tr></thead>
+          <tbody>
+            {% for entry in entries %}
+            <tr>
+              <td>{{ entry.round }}</td>
+              <td>{{ entry.pick }}</td>
+              <td>{{ entry.player.draftOrder if entry.player else 'N/A' }}</td>
+              <td>{{ entry.player.playerName if entry.player else '(off board)' }}</td>
+              <td>{{ entry.player.position if entry.player else '' }}</td>
+              <td>{% if entry.fromTeam %}<span class="pill">from {{ entry.fromTeam }}</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endfor %}
+{% endblock %}

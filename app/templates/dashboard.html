@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <div class="grid">
+        <section class="card">
+          <h2>Roster</h2>
+          <p class="status">Saved roster players: {{ roster | length }}</p>
+          <form action="/actions/save-roster" method="post">
+            <button class="button" type="submit" {% if not has_token %}disabled{% endif %}>Save Yahoo roster</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Rankings</h2>
+          <p class="status">Saved rankings: {{ rankings_count }}</p>
+          <form action="/actions/refresh-rankings" method="post">
+            <button class="button" type="submit" {% if not has_token %}disabled{% endif %}>Refresh Yahoo rankings</button>
+          </form>
+          <p class="status">Or upload rankings from a CSV or PDF file.</p>
+          <form action="/actions/import-rankings-csv" method="post" enctype="multipart/form-data">
+            <p><input type="file" name="rankings_csv" accept=".csv,text/csv"></p>
+            <p><input type="text" name="source" placeholder="Source label (optional)"></p>
+            <button class="button" type="submit">Import rankings CSV</button>
+          </form>
+          <form action="/actions/import-rankings-pdf" method="post" enctype="multipart/form-data">
+            <p><input type="file" name="rankings_pdf" accept=".pdf,application/pdf"></p>
+            <p><input type="text" name="source" placeholder="Source label (optional)"></p>
+            <button class="button" type="submit">Import rankings PDF</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Token status</h2>
+          <p class="status">{{ 'Saved' if has_token else 'Not available' }}</p>
+          {% if not has_token %}
+          <p>Run <code>python3 -m python_app.cli auth-server</code> and then <code>python3 -m python_app.cli token &lt;code&gt;</code>.</p>
+          {% endif %}
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Your keeper insight</h2>
+        {% if keeper_insight %}
+        <table class="table">
+          <thead><tr><th>Player</th><th>Last year's round</th><th>Expected</th><th>Years left</th><th>Eligible</th><th>Note</th></tr></thead>
+          <tbody>
+            {% for row in keeper_insight %}
+            <tr>
+              <td>{{ row.playerName }} ({{ row.position }})</td>
+              <td>{{ row.keeperRound or 'N/A' }}</td>
+              <td>{{ row.expectedRound or 'N/A' }}</td>
+              <td>{{ row.keeperYearsRemaining if row.keeperYearsRemaining is not none else 'N/A' }}</td>
+              <td>{{ 'Yes' if row.keeperEligible == True else ('No' if row.keeperEligible == False else 'Unknown') }}</td>
+              <td class="wrap note-col">{{ row.note }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="status">No roster or rankings data available yet.</p>
+        {% endif %}
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Likely opponent keepers</h2>
+          <p class="status">Real per-team eligibility applied (round 1/2 excluded, consecutive-season cap enforced) — this is not just "top ranked players not on my roster".</p>
+          {% if likely_keepers %}
+          <ol>
+            {% for player in likely_keepers %}
+            <li>{{ player.playerName }} ({{ player.posRank or player.position }}) — rank {{ player.ranking }} — kept by {{ player.team }}</li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <p class="status">No forecast data available. Need a saved league roster snapshot (<code>scrape-league-rosters</code>) and saved rankings.</p>
+          {% endif %}
+        </section>
+
+        <section class="card">
+          <h2>Top available players</h2>
+          {% if top_available %}
+          <ol>
+            {% for player in top_available[:10] %}
+            <li>{{ player.playerName }} ({{ player.posRank or player.position }}) — ranking {{ player.ranking }}</li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <p class="status">No available ranking data available.</p>
+          {% endif %}
+        </section>
+      </div>
+{% endblock %}

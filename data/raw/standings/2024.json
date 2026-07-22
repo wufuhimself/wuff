@@ -1,0 +1,17 @@
+{
+  "year": 2024,
+  "standings": [
+    {"rank": 1, "team": "Look at all those Pickens", "wins": 10, "losses": 4, "ties": 0, "pointsFor": 1850.00, "pointsAgainst": 1620.00},
+    {"rank": 2, "team": "yay SN", "wins": 10, "losses": 4, "ties": 0, "pointsFor": 1820.00, "pointsAgainst": 1650.00},
+    {"rank": 3, "team": "Uncle Nico", "wins": 9, "losses": 5, "ties": 0, "pointsFor": 1800.00, "pointsAgainst": 1700.00},
+    {"rank": 4, "team": "the watergirl", "wins": 8, "losses": 6, "ties": 0, "pointsFor": 1750.00, "pointsAgainst": 1720.00},
+    {"rank": 5, "team": "your waterbroke girl", "wins": 7, "losses": 7, "ties": 0, "pointsFor": 1700.00, "pointsAgainst": 1750.00},
+    {"rank": 6, "team": "Jordan Poops Blood", "wins": 7, "losses": 7, "ties": 0, "pointsFor": 1690.00, "pointsAgainst": 1760.00},
+    {"rank": 7, "team": "Half Bakered", "wins": 6, "losses": 8, "ties": 0, "pointsFor": 1650.00, "pointsAgainst": 1800.00},
+    {"rank": 8, "team": "more like lamer jackson", "wins": 5, "losses": 9, "ties": 0, "pointsFor": 1620.00, "pointsAgainst": 1820.00},
+    {"rank": 9, "team": "AI-ex Gonna Take My Job", "wins": 4, "losses": 10, "ties": 0, "pointsFor": 1550.00, "pointsAgainst": 1850.00},
+    {"rank": 10, "team": "BALLS DEEP", "wins": 4, "losses": 10, "ties": 0, "pointsFor": 1520.00, "pointsAgainst": 1870.00},
+    {"rank": 11, "team": "Purdy Kewl", "wins": 3, "losses": 11, "ties": 0, "pointsFor": 1480.00, "pointsAgainst": 1900.00},
+    {"rank": 12, "team": "Kiss your Cousins", "wins": 3, "losses": 11, "ties": 0, "pointsFor": 1450.00, "pointsAgainst": 1920.00}
+  ]
+}
