@@ -266,8 +266,8 @@ def forecast_keeper_decisions(per_team, adp_map):
                 confidence = 'high'
                 reasoning = f'Elite WR{pos_rank_num} - top 20, keep for value'
             elif position == 'QB' and pos_rank_num and pos_rank_num <= 15:
-                confidence = 'medium'
-                reasoning = f'QB{pos_rank_num} - keep if strong, otherwise draft later'
+                confidence = 'high'
+                reasoning = f'QB{pos_rank_num} - top 15, reasonable keeper'
 
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
