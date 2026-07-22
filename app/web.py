@@ -274,19 +274,19 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
             confidence = 'low'
             reasoning = 'Will be available in draft at this tier'
 
-            # Check if elite at position
+            # Check if in elite tier
             is_elite = False
             if position == 'TE' and pos_rank_num and pos_rank_num <= 5:
                 confidence = 'high'
-                reasoning = f'Elite TE{pos_rank_num} - top 5 scarce, keep'
+                reasoning = f'TE{pos_rank_num} - top 5 scarce, keep'
                 is_elite = True
             elif position == 'RB' and pos_rank_num and pos_rank_num <= 16:
                 confidence = 'high'
-                reasoning = f'Elite RB{pos_rank_num} - top 16, premium keeper'
+                reasoning = f'RB{pos_rank_num} - top 16, premium keeper'
                 is_elite = True
             elif position == 'WR' and pos_rank_num and pos_rank_num <= 20:
                 confidence = 'high'
-                reasoning = f'Elite WR{pos_rank_num} - top 20, keep for value'
+                reasoning = f'WR{pos_rank_num} - top 20, keep for value'
                 is_elite = True
             elif position == 'QB' and pos_rank_num and pos_rank_num <= 15:
                 confidence = 'high'
