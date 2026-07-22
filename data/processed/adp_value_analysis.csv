@@ -12,6 +12,7 @@ Germie Bernard,WR,PIT,173,249.0,76.0,undervalued,3
 Bo Nix,QB,DEN,26,100.0,74.0,undervalued,3
 Brock Purdy,QB,SF,29,102.0,73.0,undervalued,3
 Tyler Shough,QB,NO,57,130.0,73.0,undervalued,3
+Patrick Mahomes II,QB,KC,25,97.0,72.0,undervalued,1
 Matthew Stafford,QB,LAR,32,104.0,72.0,undervalued,3
 Tua Tagovailoa,QB,ATL,166,238.0,72.0,undervalued,3
 Troy Franklin,WR,DEN,175,245.0,70.0,undervalued,1
@@ -27,6 +28,7 @@ Baker Mayfield,QB,TB,69,129.0,60.0,undervalued,3
 Jayden Daniels,QB,WAS,3,60.0,57.0,undervalued,3
 Cam Ward,QB,TEN,93,150.0,57.0,undervalued,3
 Justin Fields,QB,KC,265,321.0,56.0,undervalued,3
+Ted Hurst III,WR,TB,217,272.0,55.0,undervalued,1
 Jaylin Noel,WR,HOU,196,250.0,54.0,undervalued,3
 Jalen Hurts,QB,PHI,10,63.0,53.0,undervalued,3
 C.J. Stroud,QB,HOU,91,144.0,53.0,undervalued,3
@@ -83,6 +85,7 @@ Mike Gesicki,TE,CIN,286,301.0,15.0,undervalued,3
 Jalen Coker,WR,CAR,142,156.0,14.0,undervalued,3
 Max Klare,TE,LAR,289,303.0,14.0,undervalued,1
 Jarquez Hunter,RB,LAR,280,292.0,12.0,undervalued,1
+Chris Brazzell II,WR,CAR,245,256.0,11.0,undervalued,3
 Wan'Dale Robinson,WR,TEN,103,113.0,10.0,undervalued,3
 Aaron Jones Sr.,RB,MIN,106,116.0,10.0,undervalued,3
 Pat Bryant,WR,DEN,242,252.0,10.0,undervalued,3
@@ -179,9 +182,11 @@ Jordan Mason,RB,MIN,135,119.0,-16.0,overvalued,3
 Tank Dell,WR,HOU,227,211.0,-16.0,overvalued,3
 Malachi Fields,WR,NYG,232,216.0,-16.0,overvalued,1
 Jaydon Blue,RB,DAL,247,231.0,-16.0,overvalued,3
+James Cook III,RB,BUF,26,9.0,-17.0,overvalued,3
 Jadarian Price,RB,SEA,79,62.0,-17.0,overvalued,3
 Ashton Jeanty,RB,LV,28,10.0,-18.0,overvalued,3
 Omarion Hampton,RB,LAC,33,15.0,-18.0,overvalued,3
+Luther Burden III,WR,CHI,67,48.0,-19.0,overvalued,3
 Rhamondre Stevenson,RB,NE,93,74.0,-19.0,overvalued,3
 Michael Wilson,WR,ARI,108,89.0,-19.0,overvalued,3
 Makai Lemon,WR,PHI,109,90.0,-19.0,overvalued,3
@@ -215,6 +220,7 @@ Bucky Irving,RB,TB,65,41.0,-24.0,overvalued,3
 David Montgomery,RB,HOU,79,54.0,-25.0,overvalued,3
 Chuba Hubbard,RB,CAR,97,72.0,-25.0,overvalued,3
 Zachariah Branch,WR,ATL,232,207.0,-25.0,overvalued,3
+Kenneth Walker III,RB,KC,44,18.0,-26.0,overvalued,3
 Travis Etienne Jr.,RB,NO,60,34.0,-26.0,overvalued,3
 TreVeyon Henderson,RB,NE,73,47.0,-26.0,overvalued,3
 Mike Evans,WR,SF,87,61.0,-26.0,overvalued,3
@@ -230,6 +236,7 @@ Chris Godwin Jr.,WR,TB,124,91.0,-33.0,overvalued,3
 Eli Stowers,TE,PHI,233,197.0,-36.0,overvalued,1
 Kyle Monangai,RB,CHI,122,85.0,-37.0,overvalued,3
 Blake Corum,RB,LAR,130,93.0,-37.0,overvalued,3
+Oronde Gadsden II,TE,LAC,158,121.0,-37.0,overvalued,1
 Tucker Kraft,TE,GB,106,66.0,-40.0,overvalued,3
 Theo Johnson,TE,NYG,239,199.0,-40.0,overvalued,1
 Greg Dulcich,TE,MIA,262,222.0,-40.0,overvalued,3

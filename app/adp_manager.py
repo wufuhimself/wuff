@@ -21,8 +21,12 @@ def normalize_player_name(name: str) -> str:
     Handles: 'Player Name', 'Player Name (Bye)', 'Player Name Team'."""
     # Remove bye week in parens
     name = name.split('(')[0].strip()
-    # Remove team abbrev (usually 3 caps at end)
+    # Remove team abbrev (2-3 caps at end), but preserve Roman numerals (I, II, III, IV, V)
     import re
+    # Check if ends with Roman numeral - if so, don't remove it
+    if re.search(r'\s+(I{1,3}|IV|VI{0,3}|IX)\s*$', name):
+        return name.lower()
+    # Otherwise remove trailing team abbrev
     name = re.sub(r'\s+[A-Z]{2,3}\s*$', '', name).strip()
     return name.lower()
 
