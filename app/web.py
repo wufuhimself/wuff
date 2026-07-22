@@ -155,6 +155,30 @@ def team_pick_numbers(
     return picks
 
 
+def load_adp_map() -> dict:
+    """Load ADP data as dict keyed by normalized player name."""
+    from .adp_manager import normalize_player_name
+    adp_csv = PROCESSED_DIR / 'adp_value_analysis.csv'
+    if not adp_csv.exists():
+        return {}
+
+    adp_map = {}
+    with open(adp_csv, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = normalize_player_name(row['playerName'])
+            adp_map[name] = float(row['adp'])
+    return adp_map
+
+
+def enrich_with_adp(player_list, adp_map):
+    """Add ADP value to player objects."""
+    from .adp_manager import normalize_player_name
+    for player in player_list:
+        player_name = normalize_player_name(player.get('playerName', ''))
+        player['adp'] = adp_map.get(player_name)
+
+
 @app.route('/keepers-board')
 def keepers_board_view():
     try:
@@ -176,12 +200,20 @@ def keepers_board_view():
     per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
     remaining_board = remaining_board[:100]
 
+    # Load ADP and enrich player data
+    adp_map = load_adp_map()
     for team_entry in per_team:
         for chosen in team_entry.get('chosen', []):
             pos_rank = chosen.get('positionRank')
             if pos_rank:
                 position = chosen.get('position', 'UNK')
                 chosen['posRank'] = f'{position}{pos_rank}'
+            enrich_with_adp([chosen], adp_map)
+        for alternate in team_entry.get('alternates', []):
+            enrich_with_adp([alternate], adp_map)
+
+    for row in remaining_board:
+        enrich_with_adp([row], adp_map)
 
     teams = league_format.teams if league_format else 12
     live_rounds = 13

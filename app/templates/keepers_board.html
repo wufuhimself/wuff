@@ -17,13 +17,14 @@
         </div>
 
         <table class="table">
-          <thead><tr><th>Team</th><th>Keeper 1</th><th>Keeper 2</th><th>Alt 1</th><th>Alt 2</th></tr></thead>
+          <thead><tr><th>Team</th><th>Keeper 1</th><th>ADP</th><th>Keeper 2</th><th>ADP</th><th>Alt 1</th><th>Alt 2</th></tr></thead>
           <tbody>
             {% for entry in per_team %}
             <tr>
               <td>{{ entry.team }}</td>
               {% for c in entry.chosen %}
               <td class="wrap">{{ c.playerName }}<br><span class="pill pos-{{ c.position.lower() }}">{{ c.posRank or c.position }}</span>{% if c.keeperYearsRemaining is not none %} <span class="pill">{{ c.keeperYearsRemaining }}yr</span>{% endif %}</td>
+              <td class="number">{% if c.adp %}{{ "%.1f"|format(c.adp) }}{% else %}-{% endif %}</td>
               {% endfor %}
               {% for a in entry.alternates[:2] %}
               <td class="wrap">{{ a.playerName }}<br><span class="pill pos-{{ a.position.lower() }}">{{ a.posRank or a.position }}</span>{% if a.keeperYearsRemaining is not none %} <span class="pill">{{ a.keeperYearsRemaining }}yr</span>{% endif %}</td>
@@ -46,16 +47,18 @@
           <span class="status">Real picks (accounts for saved trades) at that team's actual draft slot.</span>
         </form>
         <table class="table">
-          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th></tr></thead>
+          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>Rank</th><th>ADP</th></tr></thead>
           <tbody>
             {% for round_number, rows in remaining_board|groupby('round') %}
-            <tr class="round-divider"><td colspan="4">Round {{ round_number }}</td></tr>
+            <tr class="round-divider"><td colspan="6">Round {{ round_number }}</td></tr>
             {% for row in rows %}
             <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
               <td>{{ row.draftOrder }}{% if row.isMyPick %} <span class="pill">your pick</span>{% endif %}</td>
               <td>{{ row.playerName }}</td>
               <td>{{ row.posRank or row.position }}</td>
               <td>{{ row.team }}</td>
+              <td class="number">{{ row.ranking or '-' }}</td>
+              <td class="number">{% if row.adp %}{{ "%.1f"|format(row.adp) }}{% else %}-{% endif %}</td>
             </tr>
             {% endfor %}
             {% endfor %}
