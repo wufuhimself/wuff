@@ -202,6 +202,12 @@ def keepers_board_view():
 
     # Load ADP and enrich player data
     adp_map = load_adp_map()
+    # Build ranking map by player name for quick lookup
+    rank_map = {}
+    for r in rankings:
+        name_key = r.get('playerName', '').lower()
+        rank_map[name_key] = r.get('ranking')
+
     for team_entry in per_team:
         for chosen in team_entry.get('chosen', []):
             pos_rank = chosen.get('positionRank')
@@ -209,8 +215,13 @@ def keepers_board_view():
                 position = chosen.get('position', 'UNK')
                 chosen['posRank'] = f'{position}{pos_rank}'
             enrich_with_adp([chosen], adp_map)
+            # Add ranking
+            player_key = chosen.get('playerName', '').lower()
+            chosen['ranking'] = rank_map.get(player_key)
         for alternate in team_entry.get('alternates', []):
             enrich_with_adp([alternate], adp_map)
+            player_key = alternate.get('playerName', '').lower()
+            alternate['ranking'] = rank_map.get(player_key)
 
     for row in remaining_board:
         enrich_with_adp([row], adp_map)
