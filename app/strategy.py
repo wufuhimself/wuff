@@ -390,6 +390,7 @@ def select_best_keepers(
     insight: List[Dict[str, Any]],
     keeper_count: int = 2,
     league_format: Optional[LeagueFormat] = None,
+    preferred_keeper_names: Optional[List[str]] = None,
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     locked = [item for item in insight if item.get('keeperLocked') is True]
     eligible = [
@@ -436,7 +437,25 @@ def select_best_keepers(
 
     chosen = locked[:keeper_count]
     remaining_slots = max(0, keeper_count - len(chosen))
-    chosen.extend(eligible[:remaining_slots])
+
+    # If preferred keepers specified, use those to fill remaining slots
+    if preferred_keeper_names and remaining_slots > 0:
+        preferred_set = {name.strip().lower() for name in preferred_keeper_names}
+        preferred_matches = [
+            item for item in eligible
+            if ' '.join(item.get('playerName', '').lower().split()) in preferred_set
+            and item.get('playerId') not in {c.get('playerId') for c in chosen}
+        ]
+        chosen.extend(preferred_matches[:remaining_slots])
+        remaining_slots = max(0, remaining_slots - len(preferred_matches))
+
+    # Fill remaining slots from eligible (auto-selected)
+    if remaining_slots > 0:
+        auto_selected = [
+            item for item in eligible
+            if item.get('playerId') not in {c.get('playerId') for c in chosen}
+        ]
+        chosen.extend(auto_selected[:remaining_slots])
 
     alternates = [
         item for item in eligible
@@ -481,6 +500,12 @@ def league_keeper_board(
     def normalize(name: str) -> str:
         return ' '.join(name.strip().lower().split())
 
+    # Load keeper preferences
+    keeper_prefs_file = Path(__file__).parent.parent / 'data' / 'config' / 'keeper_preferences.json'
+    keeper_prefs = {}
+    if keeper_prefs_file.exists():
+        keeper_prefs = json.load(open(keeper_prefs_file))
+
     per_team = []
     chosen_names: set = set()
     for team in league_rosters:
@@ -507,7 +532,8 @@ def league_keeper_board(
             if isinstance(p, dict)
         ]
         insight = roster_keeper_insight(players, rankings, teams=league_format.teams, league_format=league_format)
-        chosen, alternates = select_best_keepers(insight, keeper_count=keeper_count, league_format=league_format)
+        preferred_names = keeper_prefs.get(team_name)
+        chosen, alternates = select_best_keepers(insight, keeper_count=keeper_count, league_format=league_format, preferred_keeper_names=preferred_names)
         per_team.append({'team': team_name, 'chosen': chosen, 'alternates': alternates})
         chosen_names.update(normalize(c['playerName']) for c in chosen)
 

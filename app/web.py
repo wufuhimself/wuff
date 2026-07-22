@@ -224,19 +224,34 @@ def calculate_keeper_impact(keeper_forecasts, rankings):
     return sorted(impact, key=lambda x: x['pct_kept'], reverse=True)
 
 
-def forecast_keeper_decisions(per_team, adp_map):
+def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
     """Forecast which keepers each team will likely keep based on position scarcity.
 
     Position scarcity is the key driver of keeper value - elite players at
     scarce positions (TE, RB) are worth keeping; everyone else is likely available
     in the draft at their positional tier.
+
+    If league_rosters provided, also shows whether teams are "forced" to keep a player
+    (limited eligible roster options) vs. "chosen" (good selection available).
     """
     import re
+
+    # Build roster eligibility map if provided
+    roster_eligibility = {}
+    if league_rosters:
+        for team_roster in league_rosters:
+            team_name = str(team_roster.get('teamName', '')).split(' - ')[-1]
+            positions = {}
+            for player in team_roster.get('players', []):
+                pos = player.get('position', 'UNK').upper()
+                positions.setdefault(pos, []).append(player.get('playerName', ''))
+            roster_eligibility[team_name] = positions
 
     forecasts = []
     for team_entry in per_team:
         team_name = team_entry['team']
         chosen = team_entry.get('chosen', [])
+        roster_positions = roster_eligibility.get(team_name, {}) if league_rosters else {}
 
         forecast_keepers = []
         for keeper in chosen:
@@ -269,13 +284,22 @@ def forecast_keeper_decisions(per_team, adp_map):
                 confidence = 'high'
                 reasoning = f'QB{pos_rank_num} - top 15, reasonable keeper'
 
+            # Add roster constraint note if limited options
+            constraint_note = ''
+            if league_rosters and position in roster_positions:
+                position_count = len(roster_positions[position])
+                if position_count <= 2:
+                    constraint_note = ' (forced - limited roster options)'
+                elif position_count <= 3:
+                    constraint_note = ' (limited options)'
+
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
                 'position': position,
                 'rank': rank,
                 'posRank': pos_rank,
                 'confidence': confidence,
-                'reasoning': reasoning,
+                'reasoning': reasoning + constraint_note,
             })
 
         forecasts.append({
@@ -370,7 +394,7 @@ def keepers_board_view():
     board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
 
     # Forecast opponent keeper decisions based on position scarcity
-    keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
+    keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
 
     # Calculate keeper impact by position
     keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
