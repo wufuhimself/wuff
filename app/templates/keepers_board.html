@@ -75,10 +75,11 @@
           <h2>By Expert Rank</h2>
           <span class="status">Experts' consensus best available.</span>
           <table class="table compact">
-            <thead><tr><th>Rank</th><th>Player</th><th>Pos</th><th>ADP</th><th>Δ</th></tr></thead>
+            <thead><tr><th>Pick</th><th>Rank</th><th>Player</th><th>Pos</th><th>ADP</th><th>Δ</th></tr></thead>
             <tbody>
               {% for row in board_by_rank %}
               <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
+                <td class="number">{{ row.draftPositionRank }}</td>
                 <td class="number">{{ row.ranking or '-' }}</td>
                 <td class="playerName">{{ row.playerName }}</td>
                 <td>{{ row.posRank or row.position }}</td>
@@ -99,10 +100,11 @@
           <h2>By Market ADP</h2>
           <span class="status">Where players actually go in drafts.</span>
           <table class="table compact">
-            <thead><tr><th>ADP</th><th>Player</th><th>Pos</th><th>Rank</th><th>Δ</th></tr></thead>
+            <thead><tr><th>Pick</th><th>ADP</th><th>Player</th><th>Pos</th><th>Rank</th><th>Δ</th></tr></thead>
             <tbody>
               {% for row in board_by_adp %}
               <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
+                <td class="number">{{ row.draftPositionRank }}</td>
                 <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
                 <td class="playerName">{{ row.playerName }}</td>
                 <td>{{ row.posRank or row.position }}</td>
