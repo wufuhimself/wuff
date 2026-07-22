@@ -17,10 +17,10 @@ run: cli
 
 # Web server targets
 web: install
-	FLASK_APP=app.web $(PYTHON) -m flask run
+	FLASK_APP=app.web $(PYTHON) -m flask run --port 5001
 
 web-debug: install
-	FLASK_APP=app.web FLASK_ENV=development $(PYTHON) -m flask run --reload
+	FLASK_APP=app.web FLASK_ENV=development $(PYTHON) -m flask run --port 5001 --reload
 
 # Alias for backwards compatibility
 gems: web-debug
