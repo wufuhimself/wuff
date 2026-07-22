@@ -179,6 +179,63 @@ def enrich_with_adp(player_list, adp_map):
         player['adp'] = adp_map.get(player_name)
 
 
+def forecast_keeper_decisions(per_team, adp_map):
+    """Forecast which keepers each team will likely keep based on ADP value.
+
+    Teams are more likely to keep players who are undervalued (positive delta).
+    Returns forecasts with confidence levels.
+    """
+    from .adp_manager import normalize_player_name
+
+    forecasts = []
+    for team_entry in per_team:
+        team_name = team_entry['team']
+        chosen = team_entry.get('chosen', [])
+
+        forecast_keepers = []
+        for keeper in chosen:
+            player_name = normalize_player_name(keeper.get('playerName', ''))
+            adp = adp_map.get(player_name)
+            rank = keeper.get('ranking')
+
+            # Calculate value and confidence
+            if rank and adp:
+                delta = adp - rank
+                if delta > 20:
+                    confidence = 'high'
+                    reasoning = 'Great value - big undervalued gem'
+                elif delta > 5:
+                    confidence = 'high'
+                    reasoning = 'Good value - will fall in draft'
+                elif delta > -10:
+                    confidence = 'medium'
+                    reasoning = 'Fair value - slight discount or premium'
+                else:
+                    confidence = 'low'
+                    reasoning = 'Overvalued - better to grab in draft'
+            else:
+                confidence = 'medium'
+                delta = None
+                reasoning = 'No ADP data'
+
+            forecast_keepers.append({
+                'playerName': keeper.get('playerName'),
+                'position': keeper.get('position'),
+                'rank': rank,
+                'adp': adp,
+                'delta': delta,
+                'confidence': confidence,
+                'reasoning': reasoning,
+            })
+
+        forecasts.append({
+            'team': team_name,
+            'keepers': forecast_keepers,
+        })
+
+    return forecasts
+
+
 @app.route('/keepers-board')
 def keepers_board_view():
     try:
@@ -262,8 +319,12 @@ def keepers_board_view():
     board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
     board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
 
+    # Forecast opponent keeper decisions based on ADP value
+    keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
+
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
+        keeper_forecasts=keeper_forecasts,
         board_by_rank=board_by_rank, board_by_adp=board_by_adp,
         my_team=my_team, team_names=team_names, error=None,
     )
