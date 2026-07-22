@@ -188,10 +188,10 @@ def calculate_keeper_impact(keeper_forecasts, rankings):
 
     # Define elite tier sizes (how many top players per position matter for strategy)
     elite_tiers = {
-        'TE': 12,   # How many elite TEs will be drafted
-        'RB': 20,   # How many elite RBs
-        'WR': 25,   # How many elite WRs
-        'QB': 15,   # How many elite QBs
+        'TE': 5,    # Top 5 elite TEs (scarce)
+        'RB': 8,    # Top 8 elite RBs
+        'WR': 10,   # Top 10 elite WRs
+        'QB': 2,    # Top 2 elite QBs
     }
 
     # Count HIGH confidence keepers by position
@@ -256,18 +256,18 @@ def forecast_keeper_decisions(per_team, adp_map):
             confidence = 'low'
             reasoning = 'Will be available in draft at this tier'
 
-            if position == 'TE' and pos_rank_num and pos_rank_num <= 4:
+            if position == 'TE' and pos_rank_num and pos_rank_num <= 5:
                 confidence = 'high'
-                reasoning = f'Elite TE{pos_rank_num} - top 4 scarce, keep'
-            elif position == 'RB' and pos_rank_num and pos_rank_num <= 3:
+                reasoning = f'Elite TE{pos_rank_num} - top 5 scarce, keep'
+            elif position == 'RB' and pos_rank_num and pos_rank_num <= 8:
                 confidence = 'high'
-                reasoning = f'Elite RB{pos_rank_num} - top 3 scarce, keep'
-            elif position == 'WR' and pos_rank_num and pos_rank_num <= 5:
-                confidence = 'medium'
-                reasoning = f'WR{pos_rank_num} - decent, depends on league depth'
+                reasoning = f'Elite RB{pos_rank_num} - top 8 scarce, keep'
+            elif position == 'WR' and pos_rank_num and pos_rank_num <= 10:
+                confidence = 'high'
+                reasoning = f'Elite WR{pos_rank_num} - top 10, premium keeper'
             elif position == 'QB' and pos_rank_num and pos_rank_num <= 2:
                 confidence = 'medium'
-                reasoning = f'QB{pos_rank_num} - elite but replaceable in draft'
+                reasoning = f'QB{pos_rank_num} - elite but deep in draft'
 
             forecast_keepers.append({
                 'playerName': keeper.get('playerName'),
