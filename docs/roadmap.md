@@ -1,6 +1,6 @@
 # wuff Roadmap
 
-Feature development plan for the Yahoo Fantasy Football Analyst.
+Feature development plan for the Yahoo fantasy football assistant GM.
 
 ## Near-term: Extend existing capability
 

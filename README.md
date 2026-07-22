@@ -1,6 +1,6 @@
-# Yahoo Fantasy Football Analyst
+# Yahoo fantasy football assistant GM
 
-A Python-based Yahoo Fantasy Football analyst for the Frank Gore Memorial League. It
+A Python-based Yahoo fantasy football assistant GM for the Frank Gore Memorial League. It
 helps Wuf analyze and optimize this stuff:
 
 - aggregates player rankings from multiple sources,
