@@ -14,6 +14,11 @@ localhost+2-key.pem
 nfl_stats/
 data/raw/
 
+# Generated keeper/draft exports
+data/processed/keeper_exports/
+data/processed/draft_board_exports/
+data/processed/rankings_snapshots/
+
 # Virtual environment
 venv/
 env/
