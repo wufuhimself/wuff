@@ -63,7 +63,7 @@
           <h2>Undervalued (Rank > ADP)</h2>
           <p class="status">Experts like them, market undervalues them. Best value picks.</p>
           {% if adp_analysis %}
-            {% set undervalued = adp_analysis | selectattr('delta', '>', 5) | list %}
+            {% set undervalued = adp_analysis | selectattr('delta', '>', 5) | selectattr('adp', '<=', 180) | list %}
             {% if undervalued %}
             <table class="table compact">
               <thead><tr><th>Player</th><th>Pos</th><th>Rank</th><th>ADP</th><th>+Value</th></tr></thead>
@@ -91,7 +91,7 @@
           <h2>Overvalued (ADP > Rank)</h2>
           <p class="status">Market overvalues them, avoid the hype. Watch out for reaches.</p>
           {% if adp_analysis %}
-            {% set overvalued = adp_analysis | selectattr('delta', '<', -5) | list | reverse | list %}
+            {% set overvalued = adp_analysis | selectattr('delta', '<', -5) | selectattr('adp', '<=', 180) | list | reverse | list %}
             {% if overvalued %}
             <table class="table compact">
               <thead><tr><th>Player</th><th>Pos</th><th>Rank</th><th>ADP</th><th>-Value</th></tr></thead>
