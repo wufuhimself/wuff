@@ -2,7 +2,7 @@ VENV ?= .venv
 PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip
 
-.PHONY: install clean auth-server auth token run cli web web-debug gems
+.PHONY: install clean auth-server auth token run cli web web-debug web-network gems
 
 install:
 	python3 -m venv $(VENV)
@@ -21,6 +21,9 @@ web: install
 
 web-debug: install
 	FLASK_APP=app.web FLASK_ENV=development $(PYTHON) -m flask run --port 5001 --reload
+
+web-network: install
+	FLASK_APP=app.web FLASK_ENV=development $(PYTHON) -m flask run --host 0.0.0.0 --port 5001 --reload
 
 # Alias for backwards compatibility
 gems: web-debug
