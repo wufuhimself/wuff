@@ -1,58 +1,99 @@
 # wuff — Frank Gore Memorial League GM tool
 
-Keepers. Draft board. Rankings. All in one place.
+Keeper recommendations, draft board rankings, and strategic analysis for Yahoo Fantasy Football.
 
-## Setup
-
-Requires Python 3.13+, Firefox, geckodriver.
+## Quick start
 
 ```bash
-brew install python@3.13 geckodriver firefox
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # fill in Yahoo OAuth creds — never commit this
+# Install dependencies (creates .venv, installs Python packages)
+make install
+
+# Set up credentials (copy template and add OAuth tokens)
+cp .env.example .env
+
+# Run web dashboard
+make web
+# Opens at http://localhost:5001
 ```
 
-## Key commands
+## Common workflows
 
+### **Keeper board & analysis**
 ```bash
-# Who to keep (all 12 teams + post-keepers draft board)
-python3 -m app keepers-board-export
-
-# Your roster's keeper options
-python3 -m app keeper-insight
-python3 -m app best-keepers
-
-# Update league rosters (paste Yahoo roster text when prompted)
+# Parse league rosters from Yahoo (copy-paste text when prompted)
 python3 -m app parse-rosters
 
-# Rankings
-python3 -m app combine-rankings          # merge all sources in data/raw/rankings/
-python3 -m app refresh-yahoo-rankings    # pull live from Yahoo
+# Generate keeper recommendations for all teams
+python3 -m app keepers-board-export
 
-# Draft history + order
-python3 -m app draft-history 2025 --live-only
-python3 -m app draft-order 2025
-
-# Web dashboard (http://127.0.0.1:8000)
+# View keeper board in web dashboard
 make web
 ```
 
-Full command list: `python3 -m app --help`
+### **Rankings & draft prep**
+```bash
+# Combine multiple ranking sources
+python3 -m app combine-rankings
+
+# Pull fresh rankings from Yahoo
+python3 -m app refresh-yahoo-rankings
+
+# Analyze rank vs ADP to find value plays
+python3 -m app adp-value-analysis --export data/processed/analysis.csv
+```
+
+### **Draft history & league trends**
+```bash
+# Analyze historical draft data
+python3 -m app draft-history 2025 --live-only
+python3 -m app draft-order 2025
+```
+
+## Web dashboard
+
+Run `make web` or `make web-debug` for hot-reload during development.
+
+**Routes:**
+- `/` — Dashboard with keeper impact + ADP analysis
+- `/keepers-board` — Team keeper picks + draft board
+- `/draft-history` — Historical draft results by year
+- `/standings` — League standings and performance
+
+## Setup details
+
+**Requirements:** Python 3.9+
+
+**Installation:**
+```bash
+make install          # Create venv + install dependencies
+make clean           # Remove venv
+```
+
+**Yahoo OAuth:**
+Register callback at `https://localhost:3000/oauth/callback` in Yahoo app settings, then:
+```bash
+make auth-server     # Start local HTTPS server for OAuth flow
+```
+
+## Architecture
+
+**Configuration:** `data/config/league_rules.json` — keeper rules, file mappings, code ownership
+
+**Key data:**
+- `data/raw/rosters/` — League roster snapshots
+- `data/raw/rankings/` — Multi-source rankings (Yahoo, ESPN, FantasyPros, etc.)
+- `data/raw/draft_history/` — Historical picks by season
+- `data/processed/keeper_exports/` — Keeper board CSV exports (timestamped by method)
+
+**Keeper logic:** `app/strategy.py` — eligibility, scoring, and selection
+
+**Full command reference:** `python3 -m app --help`
 
 ## Keeper rules
 
-- 2 keepers per team, no round cost (occupy last 2 rounds)
-- Round 1 or 2 pick from last draft = ineligible
-- 2-consecutive-season cap enforced automatically
-- Scoring: rank first, positional scarcity + years remaining as tiebreaks
+- **Cost:** 2 keepers per team, no round cost (occupy last 2 rounds)
+- **Eligibility:** Round 1 or 2 pick from last draft ineligible
+- **Duration:** Max 2 consecutive seasons as keeper
+- **Scoring:** Rank-first, with positional scarcity + multi-year tenure as tiebreaks
 
-Full rules: `data/config/league_rules.json`
-
-## OAuth
-
-Yahoo needs HTTPS for local OAuth. Register `https://localhost:3000/oauth/callback`, then:
-
-```bash
-python3 -m app auth-server   # follow browser prompt, accept cert warning
-```
+Details: `data/config/league_rules.json` + `CLAUDE.md`
