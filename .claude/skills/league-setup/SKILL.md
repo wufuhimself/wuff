@@ -13,7 +13,7 @@ Automate league configuration without asking.
 ### Set league format
 
 ```bash
-python3 -m app.cli set-league-format --teams 12 --qb 1 --rb 2 --wr 3 --te 1 --superflex 1 --defense 1 --kicker 0
+python3 -m app set-league-format --teams 12 --qb 1 --rb 2 --wr 3 --te 1 --superflex 1 --defense 1 --kicker 0
 ```
 
 **Flags (all optional):**
@@ -32,7 +32,7 @@ Persists to: `data/config/league_settings.json`
 ### View league format
 
 ```bash
-python3 -m app.cli show-league-format
+python3 -m app show-league-format
 ```
 
 Displays currently saved league format.
@@ -40,8 +40,8 @@ Displays currently saved league format.
 ### Fetch and save standings
 
 ```bash
-python3 -m app.cli fetch-standings 2025
-python3 -m app.cli fetch-standings 2025 --league-id 123456
+python3 -m app fetch-standings 2025
+python3 -m app fetch-standings 2025 --league-id 123456
 ```
 
 Fetches final standings from Yahoo API and saves to `data/raw/standings/{year}.json`.
@@ -55,8 +55,8 @@ Requires: Yahoo OAuth access token
 ### Scrape standings
 
 ```bash
-python3 -m app.cli scrape-standings 2025
-python3 -m app.cli scrape-standings 2025 --email user@yahoo.com --password pw --headless
+python3 -m app scrape-standings 2025
+python3 -m app scrape-standings 2025 --email user@yahoo.com --password pw --headless
 ```
 
 Web scrape standings (if API is unavailable). Requires Yahoo credentials.
@@ -70,7 +70,7 @@ Web scrape standings (if API is unavailable). Requires Yahoo credentials.
 ### Backfill standings
 
 ```bash
-python3 -m app.cli backfill-standings --start 2022 --end 2025
+python3 -m app backfill-standings --start 2022 --end 2025
 ```
 
 Fetch or scrape standings for multiple years at once.

@@ -45,40 +45,36 @@ Autonomous keeper agent recommends best 2 keepers for each team, ranks remaining
 
 ### Keeper board versioning (CSV-driven)
 
-Keeper recommendations are exported as timestamped, method-tagged CSVs in `data/processed/keeper_exports/`. The keeper board web page loads these CSVs and renders interactive versions—allows comparing recommendations across ranking methods and roster snapshots.
+Keeper recommendations are exported as timestamped CSVs in `data/processed/keeper_exports/`. Export includes two files per snapshot: keeper picks + alternates, and post-keepers draft board. Flask auto-discovers all CSVs and allows comparing recommendations across roster snapshots.
 
-**CSV format:** `keepers_YYYYMMDD_METHOD.csv`
-- **Columns:** Team, Keeper1, K1_Pos, K1_ADP, Keeper2, K2_Pos, K2_ADP, Method, Locked
-- **Method:** scoring method used (e.g., `rank-first`, `adp`, `vor-only`)
-- **Locked:** boolean; true if keeper was manually locked by user (overrides algorithm)
-- **Example:** `keepers_20260722_adp.csv` — ADP-based picks from July 22, 2026
+**Keepers CSV format:** `keepers_YYYYMMDD_HHMM.csv`
+- **Columns:** Team, PlayerName, Position, Ranking, Status, KeeperYearsRemaining, ValueOverReplacementRounds
+- **Status:** `Keeper 1`, `Keeper 2`, `Alt 1`, `Alt 2`, or `Alt 3` (top 2 keepers + 3 alternates per team)
+- **Example row:** Team=Wuf, PlayerName=Josh Allen, Position=QB, Ranking=2, Status=Keeper 1, KeeperYearsRemaining=2, ValueOverReplacementRounds=3
+
+**Draft board CSV format:** `draft_board_YYYYMMDD_HHMM.csv`
+- **Columns:** DraftOrder, PlayerName, Position, Ranking, PosRank, Team
+- **DraftOrder:** pick number in full 15-round draft (1–180 for 12-team league)
+- **Contains:** all players ranked after keepers are removed from the board
 
 **Workflow:**
-1. Generate keeper export: script runs keeper selection algorithm, outputs CSV to `keeper_exports/`
-2. Board page auto-discovers all CSVs in `keeper_exports/`, lists them by (date, method)
-3. User selects version to view; board renders table + shows alternates from rosters
-4. Side-by-side compare: pick two versions to see how recommendations changed
+1. Generate keeper export: `python3 -m app.cli keepers-board-export` → outputs two CSVs to `keeper_exports/`
+2. Visit `/keepers-board` route in Flask web app
+3. Dropdown auto-discovers all `keepers_*.csv` files, sorted newest-first by timestamp
+4. Select version to view keeper recommendations + draft board
+5. Compare snapshots across dates/rankings to see how recommendations changed
 
 **Why versioning matters:**
-- Rankings update (new sources added, old ones refreshed) → ADP shifts → keepers change
+- Rankings update (new sources added, old ones refreshed) → keepers change
 - Rosters shift (trades, roster moves) → eligibility changes → selections change
-- Multiple methods (rank-first vs ADP vs VOR-only) → different picks for same team
-- Historical snapshots let you forecast vs actual keeper decisions after draft
-
-**Workflow: Export → View**
-
-1. Generate keeper export via Python script or CLI → outputs CSV to `keeper_exports/`
-   - Filename must follow pattern: `keepers_YYYYMMDD_METHOD.csv` or `keepers_YYYYMMDD_HHMM.csv`
-   - Example: `keepers_20260722_adp.csv`, `keepers_20260722_rank-first.csv`, `keepers_20260722_0128.csv`
-2. Visit `/keepers-board` route in Flask web app
-3. Dropdown auto-discovers all keeper CSVs in `keeper_exports/`, sorted newest-first
-4. Select version to view keeper board + compare across methods/dates
+- Historical snapshots let you forecast which keepers teams will actually keep
+- Multiple exports from same day (different ranking sources) show sensitivity to input data
 
 **Integration details (in `app/web.py`):**
-- `list_keeper_exports()` — scans keeper_exports/, parses filename for date/method
-- `load_keeper_export(filename)` — loads CSV, groups keepers by team
-- `/keepers-board` route — queries `?version=` param, loads selected export, passes to template
-- Template shows version dropdown + keeper table + forecast + draft board
+- `list_keeper_exports()` — scans keeper_exports/, parses filename for date/timestamp, returns sorted list
+- `load_keeper_export(filename)` — loads keeper CSV, groups rows by team (multiple rows per team: keepers + alternates)
+- `/keepers-board` route — queries `?version=` param, loads selected export, computes keeper impact analysis
+- Template shows version dropdown + keeper table + draft board view
 
 No manual sync needed; Flask auto-discovers CSVs on each page load.
 

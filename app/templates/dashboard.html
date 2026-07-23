@@ -1,7 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Yahoo Fantasy{% endblock %}
 {% block content %}
-      <div class="grid-two">
+      {% if keeper_forecasts %}
+      <section class="card" style="margin-bottom: 2rem; background: #f9f5f0;">
+        <h2>Forecasted Keepers (Removed from Board)</h2>
+        <p class="status">These players are predicted to be kept and won't appear in the draft. <a href="/keepers-board" style="color: #0066cc;">View keeper board</a> to verify or update predictions.</p>
+        <table class="table compact">
+          <thead><tr><th>Team</th><th>Keeper 1</th><th>Pos</th><th>Rank</th><th>Keeper 2</th><th>Pos</th><th>Rank</th></tr></thead>
+          <tbody>
+            {% for forecast in keeper_forecasts %}
+            <tr>
+              <td style="font-weight: 600;">{{ forecast.team }}</td>
+              <td>
+                {% if forecast.keepers[0] %}
+                  {{ forecast.keepers[0].playerName }}
+                {% else %}-{% endif %}
+              </td>
+              <td>{% if forecast.keepers[0] %}{{ forecast.keepers[0].position }}{% endif %}</td>
+              <td class="number">{% if forecast.keepers[0] %}{{ forecast.keepers[0].rank or '-' }}{% endif %}</td>
+              <td>
+                {% if forecast.keepers[1] %}
+                  {{ forecast.keepers[1].playerName }}
+                {% else %}-{% endif %}
+              </td>
+              <td>{% if forecast.keepers[1] %}{{ forecast.keepers[1].position }}{% endif %}</td>
+              <td class="number">{% if forecast.keepers[1] %}{{ forecast.keepers[1].rank or '-' }}{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+
+      {% if team_names %}
+      <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+        <label for="team-filter" style="margin: 0; font-weight: 600;">Show picks for:</label>
+        <select id="team-filter" onchange="location.href='/?team=' + this.value;" style="padding: 0.5rem;">
+          {% for team in team_names %}
+          <option value="{{ team }}" {% if team == selected_team %}selected{% endif %}>{{ team }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="grid">
         <section class="card">
           <h2>By Expert Rank</h2>
           <span class="status">Experts' consensus best available.</span>
@@ -15,31 +57,6 @@
                 <td class="playerName">{{ row.playerName }}</td>
                 <td>{{ row.posRank or row.position }}</td>
                 <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
-                <td class="number">
-                  {% if row.ranking and row.adp %}
-                    {% set delta = row.adp - row.ranking %}
-                    <span class="{% if delta > 10 %}positive{% elif delta < -10 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
-                  {% else %}-{% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </section>
-
-        <section class="card">
-          <h2>By Market ADP</h2>
-          <span class="status">Where players actually go in drafts.</span>
-          <table class="table compact">
-            <thead><tr><th>Pick</th><th>ADP</th><th>Player</th><th>Pos</th><th>Rank</th><th>Δ</th></tr></thead>
-            <tbody>
-              {% for row in board_by_adp %}
-              <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
-                <td class="number">{{ loop.index }}</td>
-                <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
-                <td class="playerName">{{ row.playerName }}</td>
-                <td>{{ row.posRank or row.position }}</td>
-                <td class="number">{{ row.ranking or '-' }}</td>
                 <td class="number">
                   {% if row.ranking and row.adp %}
                     {% set delta = row.adp - row.ranking %}

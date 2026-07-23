@@ -89,14 +89,66 @@ def index():
             enrich_with_adp([row], adp_map)
 
         teams = league_format.teams if league_format else 12
+
+        # Load draft order for team dropdown
+        standings_years = sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True) if RAW_STANDINGS_DIR.exists() else []
+        team_names = []
+        round1_order = []
+        origins_by_team = None
+        selected_team_picks = set()
+
+        if standings_years:
+            standings = load_standings(standings_years[0])
+            if standings:
+                aliases = current_team_names(standings)
+                round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
+                team_names = round1_order
+
+                # Load draft picks for traded picks info (next season after standings year)
+                origins_by_team = load_draft_pick_origins(standings_years[0] + 1)
+
+        # Get selected team from query param or config default
+        selected_team = request.args.get('team')
+        if not selected_team and team_names:
+            # Default to my team from config (try current year first, fall back to any key)
+            my_team_config = {}
+            if LEAGUE_RULES_FILE.exists():
+                try:
+                    my_team_config = json.loads(LEAGUE_RULES_FILE.read_text()).get('myTeam', {})
+                except (json.JSONDecodeError, IOError):
+                    pass
+
+            # Try displayName keys in order (current year first, then 2025, then any)
+            from datetime import datetime
+            current_year = datetime.now().year
+            selected_team = (
+                my_team_config.get(f'displayName{current_year}')
+                or my_team_config.get('displayName2025')
+                or next((v for k, v in my_team_config.items() if k.startswith('displayName')), None)
+                or team_names[0]
+            )
+
+        # Calculate picks for selected team
+        if selected_team and round1_order:
+            selected_team_picks = team_pick_numbers(selected_team, round1_order, 13, teams, origins_by_team)
+
+        # Mark selected team picks and add draft order info
         for row in remaining_board:
-            row['isMyPick'] = False
+            row['isMyPick'] = row.get('draftOrder') in selected_team_picks
+            row['round'] = ((row.get('draftOrder', 1) - 1) // teams) + 1
 
         board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
         board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
 
+        # Calculate keeper forecasts to show which players are removed
+        adp_map = load_adp_map()
+        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
+
         state['board_by_rank'] = board_by_rank
         state['board_by_adp'] = board_by_adp
+        state['team_names'] = team_names
+        state['selected_team'] = selected_team
+        state['keeper_forecasts'] = keeper_forecasts
 
     return render_template('dashboard.html', message=request.args.get('message', ''), active='dashboard', **state)
 
@@ -252,16 +304,20 @@ def forecast_from_keeper_export(keeper_export_data, rankings=None):
 
     Args:
         keeper_export_data: dict of {team: [row1, row2, ...]} from load_keeper_export
+                           Rows from keepers_YYYYMMDD_HHMM.csv with Status column (Keeper 1, Keeper 2, Alt 1, etc)
         rankings: optional list of ranking dicts to look up positionRank
     """
     import re
 
-    # Build ranking lookup for position rank
+    # Build ranking lookup for position rank and ADP
     rank_map = {}
+    adp_map = {}
     if rankings:
         for r in rankings:
             name_key = r.get('playerName', '').lower()
             rank_map[name_key] = r.get('posRank', '')
+            if r.get('adp'):
+                adp_map[name_key] = r.get('adp')
 
     forecasts = []
 
@@ -269,56 +325,51 @@ def forecast_from_keeper_export(keeper_export_data, rankings=None):
         if not keeper_rows:
             continue
 
-        # Each team has only one row with both keepers
-        keeper_row = keeper_rows[0]
+        # Separate keepers from alternates based on Status column
+        keepers = []
+        alternates = []
+        for row in keeper_rows:
+            status = row.get('Status', '').lower()
+            player_name = row.get('PlayerName', '')
+            position = row.get('Position', '?').upper()
+            ranking = row.get('Ranking')
 
-        # Build keeper list from export
-        forecast_keepers = []
-
-        # Keeper 1
-        if keeper_row.get('Keeper1'):
-            k1_name = keeper_row.get('Keeper1', '').lower()
-            full_pos_rank = rank_map.get(k1_name, '')
-            # Extract just the number from posRank (e.g., "QB7" -> "7")
+            # Extract position rank from ranking/posRank lookup
+            name_key = player_name.lower()
+            full_pos_rank = rank_map.get(name_key, '')
             pos_rank_num = ''
             if full_pos_rank:
                 match = re.search(r'(\d+)', str(full_pos_rank))
                 if match:
                     pos_rank_num = match.group(1)
-            forecast_keepers.append({
-                'playerName': keeper_row.get('Keeper1'),
-                'position': keeper_row.get('K1_Pos', '?').upper(),
-                'rank': None,
-                'posRank': pos_rank_num,
-                'confidence': 'high' if keeper_row.get('Locked') == 'true' else 'medium',
-                'reasoning': 'From keeper export (locked)' if keeper_row.get('Locked') == 'true' else 'From keeper export',
-                'adp': float(keeper_row.get('K1_ADP')) if keeper_row.get('K1_ADP') else None,
-            })
 
-        # Keeper 2
-        if keeper_row.get('Keeper2'):
-            k2_name = keeper_row.get('Keeper2', '').lower()
-            full_pos_rank = rank_map.get(k2_name, '')
-            # Extract just the number from posRank (e.g., "QB7" -> "7")
-            pos_rank_num = ''
-            if full_pos_rank:
-                match = re.search(r'(\d+)', str(full_pos_rank))
-                if match:
-                    pos_rank_num = match.group(1)
-            forecast_keepers.append({
-                'playerName': keeper_row.get('Keeper2'),
-                'position': keeper_row.get('K2_Pos', '?').upper(),
-                'rank': None,
+            # Get ADP
+            adp = adp_map.get(name_key)
+            try:
+                if adp:
+                    adp = float(adp)
+            except (ValueError, TypeError):
+                adp = None
+
+            player_data = {
+                'playerName': player_name,
+                'position': position,
+                'rank': ranking,
                 'posRank': pos_rank_num,
-                'confidence': 'high' if keeper_row.get('Locked') == 'true' else 'medium',
-                'reasoning': 'From keeper export (locked)' if keeper_row.get('Locked') == 'true' else 'From keeper export',
-                'adp': float(keeper_row.get('K2_ADP')) if keeper_row.get('K2_ADP') else None,
-            })
+                'confidence': 'high',  # Export is authoritative
+                'reasoning': f'From keeper export ({status})',
+                'adp': adp,
+            }
+
+            if status.startswith('keeper'):
+                keepers.append(player_data)
+            elif status.startswith('alt'):
+                alternates.append(player_data)
 
         forecasts.append({
             'team': team,
-            'keepers': forecast_keepers,
-            'alternates': [],  # Export doesn't include alternates currently
+            'keepers': keepers,
+            'alternates': alternates,
         })
 
     return forecasts

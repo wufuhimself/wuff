@@ -14,10 +14,10 @@ Automate draft analysis without asking.
 ### View draft history
 
 ```bash
-python3 -m app.cli draft-history 2025
-python3 -m app.cli draft-history 2025 --round 1
-python3 -m app.cli draft-history 2025 --live-only
-python3 -m app.cli draft-history 2025 --keepers-only
+python3 -m app draft-history 2025
+python3 -m app draft-history 2025 --round 1
+python3 -m app draft-history 2025 --live-only
+python3 -m app draft-history 2025 --keepers-only
 ```
 
 **Flags:**
@@ -31,8 +31,8 @@ Mixing them understates how early players actually go in live draft.
 ### View draft order
 
 ```bash
-python3 -m app.cli draft-order 2025
-python3 -m app.cli draft-order 2025 --rounds 3
+python3 -m app draft-order 2025
+python3 -m app draft-order 2025 --rounds 3
 ```
 
 Derives next season's snake draft order from final standings. First team's worst record picks #1.
@@ -43,8 +43,8 @@ Derives next season's snake draft order from final standings. First team's worst
 ### View pick ownership
 
 ```bash
-python3 -m app.cli draft-picks 2026
-python3 -m app.cli draft-picks 2026 --team Wuf
+python3 -m app draft-picks 2026
+python3 -m app draft-picks 2026 --team Wuf
 ```
 
 Who owns which pick in each round (accounts for trades).
@@ -54,8 +54,8 @@ Reads: `data/raw/draft_picks/{year}.json`
 ### Analyze draft slot outcomes
 
 ```bash
-python3 -m app.cli draft-slot-outcomes
-python3 -m app.cli draft-slot-outcomes --export-csv data/draft_slot_analysis.csv
+python3 -m app draft-slot-outcomes
+python3 -m app draft-slot-outcomes --export-csv data/draft_slot_analysis.csv
 ```
 
 Correlates draft slot (1–12) with final league finish. Shows:
@@ -70,7 +70,7 @@ Correlates draft slot (1–12) with final league finish. Shows:
 ### View standings
 
 ```bash
-python3 -m app.cli standings 2025
+python3 -m app standings 2025
 ```
 
 Final standings for a season (wins, losses, ties, points). Used to derive next season's draft order.

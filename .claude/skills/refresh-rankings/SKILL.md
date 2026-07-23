@@ -14,28 +14,28 @@ Automate ranking updates without asking.
 **Refresh Yahoo rankings** (requires Yahoo OAuth access token):
 
 ```bash
-python3 -m app.cli refresh-yahoo-rankings
-python3 -m app.cli refresh-yahoo-rankings --count 300
+python3 -m app refresh-yahoo-rankings
+python3 -m app refresh-yahoo-rankings --count 300
 ```
 
 **Import rankings from CSV** (e.g., FantasyPros, ESPN):
 
 ```bash
-python3 -m app.cli import-rankings-csv ./rankings.csv
-python3 -m app.cli import-rankings-csv ./rankings.csv --source FantasyPros
+python3 -m app import-rankings-csv ./rankings.csv
+python3 -m app import-rankings-csv ./rankings.csv --source FantasyPros
 ```
 
 **Import rankings from PDF**:
 
 ```bash
-python3 -m app.cli import-rankings-pdf ./rankings.pdf
-python3 -m app.cli import-rankings-pdf ./rankings.pdf --source "FantasyPros"
+python3 -m app import-rankings-pdf ./rankings.pdf
+python3 -m app import-rankings-pdf ./rankings.pdf --source "FantasyPros"
 ```
 
 **Combine all ranking sources** into a consensus file:
 
 ```bash
-python3 -m app.cli combine-rankings
+python3 -m app combine-rankings
 ```
 
 This reads all CSV/JSON/PDF files from `data/raw/rankings/` (except `rankings_combined.json`),

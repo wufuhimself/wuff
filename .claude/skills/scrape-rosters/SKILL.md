@@ -13,8 +13,8 @@ Automate roster scraping and export without asking.
 ### Your own roster
 
 ```bash
-python3 -m app.cli save-roster
-python3 -m app.cli saved-roster
+python3 -m app save-roster
+python3 -m app saved-roster
 ```
 
 **save-roster:** Fetches your current Yahoo roster and stores locally to `data/raw/rosters/yahoo_roster.json`.
@@ -24,8 +24,8 @@ python3 -m app.cli saved-roster
 ### Entire league rosters
 
 ```bash
-python3 -m app.cli scrape-league-rosters
-python3 -m app.cli scrape-league-rosters --teams 12 --headless
+python3 -m app scrape-league-rosters
+python3 -m app scrape-league-rosters --teams 12 --headless
 ```
 
 Scrapes every team's roster in the league and saves a full snapshot to:
@@ -39,8 +39,8 @@ Scrapes every team's roster in the league and saves a full snapshot to:
 ### Export league rosters to CSV
 
 ```bash
-python3 -m app.cli export-league-rosters-csv
-python3 -m app.cli export-league-rosters-csv --input data/raw/rosters/yahoo_league_rosters.json --output data/processed/rosters/yahoo_league_rosters.csv
+python3 -m app export-league-rosters-csv
+python3 -m app export-league-rosters-csv --input data/raw/rosters/yahoo_league_rosters.json --output data/processed/rosters/yahoo_league_rosters.csv
 ```
 
 Converts saved JSON snapshot to clean CSV format for analysis.
@@ -50,9 +50,9 @@ Converts saved JSON snapshot to clean CSV format for analysis.
 For API-based roster fetch (if you have OAuth access token):
 
 ```bash
-python3 -m app.cli yahoo-roster <accessToken>
-python3 -m app.cli yahoo-keepers <accessToken>
-python3 -m app.cli roster-raw <accessToken>
+python3 -m app yahoo-roster <accessToken>
+python3 -m app yahoo-keepers <accessToken>
+python3 -m app roster-raw <accessToken>
 ```
 
 ## Prerequisites
@@ -78,7 +78,7 @@ Output files:
 Default shows Firefox browser during scraping. Use `--headless` for background execution:
 
 ```bash
-python3 -m app.cli scrape-league-rosters --headless
+python3 -m app scrape-league-rosters --headless
 ```
 
 ## Auto-triggers

@@ -24,26 +24,35 @@
                 <th>Team</th>
                 <th>Keeper 1</th>
                 <th>Pos</th>
-                <th>ADP</th>
+                <th>Rank</th>
                 <th>Keeper 2</th>
                 <th>Pos</th>
-                <th>ADP</th>
-                <th>Method</th>
+                <th>Rank</th>
+                <th>Alternates</th>
               </tr>
             </thead>
             <tbody>
               {% for team, keeper_rows in keeper_export_data.items() %}
               {% if keeper_rows %}
-              {% set row = keeper_rows[0] %}
+              {% set keepers = [r for r in keeper_rows if r.Status.startswith('Keeper')] %}
+              {% set alternates = [r for r in keeper_rows if r.Status.startswith('Alt')] %}
               <tr {% if team == 'Wuf' %}style="background: rgba(76, 175, 80, 0.1);"{% endif %}>
                 <td style="font-weight: 600;">{{ team }}</td>
-                <td>{{ row.Keeper1 or '—' }}</td>
-                <td>{{ row.K1_Pos or '—' }}</td>
-                <td style="text-align: right;">{{ row.K1_ADP or '—' }}</td>
-                <td>{{ row.Keeper2 or '—' }}</td>
-                <td>{{ row.K2_Pos or '—' }}</td>
-                <td style="text-align: right;">{{ row.K2_ADP or '—' }}</td>
-                <td>{{ row.Method or '—' }}</td>
+                {% if keepers|length > 0 %}
+                  <td>{{ keepers[0].PlayerName or '—' }}</td>
+                  <td>{{ keepers[0].Position or '—' }}</td>
+                  <td style="text-align: right;">{{ keepers[0].Ranking or '—' }}</td>
+                {% else %}
+                  <td>—</td><td>—</td><td>—</td>
+                {% endif %}
+                {% if keepers|length > 1 %}
+                  <td>{{ keepers[1].PlayerName or '—' }}</td>
+                  <td>{{ keepers[1].Position or '—' }}</td>
+                  <td style="text-align: right;">{{ keepers[1].Ranking or '—' }}</td>
+                {% else %}
+                  <td>—</td><td>—</td><td>—</td>
+                {% endif %}
+                <td>{% for alt in alternates[:2] %}{{ alt.PlayerName }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
               </tr>
               {% endif %}
               {% endfor %}
