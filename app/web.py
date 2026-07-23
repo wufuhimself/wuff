@@ -72,6 +72,33 @@ def load_dashboard_state():
 @app.route('/')
 def index():
     state = load_dashboard_state()
+
+    # Load draft board data for post-keeper tables
+    try:
+        league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
+    except FileNotFoundError:
+        league_rosters = []
+
+    rankings = load_yahoo_rankings()
+    if rankings:
+        league_format = load_league_format()
+        per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
+        remaining_board = remaining_board[:100]
+
+        adp_map = load_adp_map()
+        for row in remaining_board:
+            enrich_with_adp([row], adp_map)
+
+        teams = league_format.teams if league_format else 12
+        for row in remaining_board:
+            row['isMyPick'] = False
+
+        board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
+        board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
+
+        state['board_by_rank'] = board_by_rank
+        state['board_by_adp'] = board_by_adp
+
     return render_template('dashboard.html', message=request.args.get('message', ''), active='dashboard', **state)
 
 
@@ -466,9 +493,15 @@ def keepers_board_view():
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
         keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
-        board_by_rank=board_by_rank, board_by_adp=board_by_adp,
+        keeper_insight=keeper_insight,
         my_team=my_team, team_names=team_names, error=None,
     )
+
+
+@app.route('/settings')
+def settings():
+    state = load_dashboard_state()
+    return render_template('settings.html', active='settings', **state)
 
 
 @app.route('/draft-history')

@@ -1,62 +1,57 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Yahoo Fantasy{% endblock %}
 {% block content %}
-      <div class="grid">
+      <div class="grid-two">
         <section class="card">
-          <h2>Roster</h2>
-          <p class="status">Saved roster players: {{ roster | length }}</p>
-          <form action="/actions/save-roster" method="post">
-            <button class="button" type="submit" {% if not has_token %}disabled{% endif %}>Save Yahoo roster</button>
-          </form>
+          <h2>By Expert Rank</h2>
+          <span class="status">Experts' consensus best available.</span>
+          <table class="table compact">
+            <thead><tr><th>Pick</th><th>Rank</th><th>Player</th><th>Pos</th><th>ADP</th><th>Δ</th></tr></thead>
+            <tbody>
+              {% for row in board_by_rank %}
+              <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
+                <td class="number">{{ loop.index }}</td>
+                <td class="number">{{ row.ranking or '-' }}</td>
+                <td class="playerName">{{ row.playerName }}</td>
+                <td>{{ row.posRank or row.position }}</td>
+                <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
+                <td class="number">
+                  {% if row.ranking and row.adp %}
+                    {% set delta = row.adp - row.ranking %}
+                    <span class="{% if delta > 10 %}positive{% elif delta < -10 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
+                  {% else %}-{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </section>
 
         <section class="card">
-          <h2>Rankings</h2>
-          <p class="status">Saved rankings: {{ rankings_count }}</p>
-          <form action="/actions/refresh-rankings" method="post">
-            <button class="button" type="submit" {% if not has_token %}disabled{% endif %}>Refresh Yahoo rankings</button>
-          </form>
-          <p class="status">Or upload rankings from a CSV or PDF file.</p>
-          <form action="/actions/import-rankings-csv" method="post" enctype="multipart/form-data">
-            <p><input type="file" name="rankings_csv" accept=".csv,text/csv"></p>
-            <p><input type="text" name="source" placeholder="Source label (optional)"></p>
-            <button class="button" type="submit">Import rankings CSV</button>
-          </form>
-          <form action="/actions/import-rankings-pdf" method="post" enctype="multipart/form-data">
-            <p><input type="file" name="rankings_pdf" accept=".pdf,application/pdf"></p>
-            <p><input type="text" name="source" placeholder="Source label (optional)"></p>
-            <button class="button" type="submit">Import rankings PDF</button>
-          </form>
-        </section>
-
-        <section class="card">
-          <h2>Token status</h2>
-          <p class="status">{{ 'Saved' if has_token else 'Not available' }}</p>
+          <h2>By Market ADP</h2>
+          <span class="status">Where players actually go in drafts.</span>
+          <table class="table compact">
+            <thead><tr><th>Pick</th><th>ADP</th><th>Player</th><th>Pos</th><th>Rank</th><th>Δ</th></tr></thead>
+            <tbody>
+              {% for row in board_by_adp %}
+              <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
+                <td class="number">{{ loop.index }}</td>
+                <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
+                <td class="playerName">{{ row.playerName }}</td>
+                <td>{{ row.posRank or row.position }}</td>
+                <td class="number">{{ row.ranking or '-' }}</td>
+                <td class="number">
+                  {% if row.ranking and row.adp %}
+                    {% set delta = row.adp - row.ranking %}
+                    <span class="{% if delta > 10 %}positive{% elif delta < -10 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
+                  {% else %}-{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </section>
       </div>
-
-      <section class="card">
-        <h2>Your keeper insight</h2>
-        {% if keeper_insight %}
-        <table class="table">
-          <thead><tr><th>Player</th><th>Last year's round</th><th>Expected</th><th>Years left</th><th>Eligible</th><th>Note</th></tr></thead>
-          <tbody>
-            {% for row in keeper_insight %}
-            <tr>
-              <td>{{ row.playerName }} ({{ row.position }})</td>
-              <td>{{ row.keeperRound or 'N/A' }}</td>
-              <td>{{ row.expectedRound or 'N/A' }}</td>
-              <td>{{ row.keeperYearsRemaining if row.keeperYearsRemaining is not none else 'N/A' }}</td>
-              <td>{{ 'Yes' if row.keeperEligible == True else ('No' if row.keeperEligible == False else 'Unknown') }}</td>
-              <td class="wrap note-col">{{ row.note }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <p class="status">No roster or rankings data available yet.</p>
-        {% endif %}
-      </section>
 
       <div class="grid">
         <section class="card">

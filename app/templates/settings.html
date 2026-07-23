@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Settings — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <div class="grid">
+        <section class="card">
+          <h2>Roster</h2>
+          <p class="status">Saved roster players: {{ roster | length }}</p>
+          <form action="/actions/save-roster" method="post">
+            <button class="button" type="submit" {% if not has_token %}disabled{% endif %}>Save Yahoo roster</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Rankings</h2>
+          <p class="status">Saved rankings: {{ rankings_count }}</p>
+          <form action="/actions/refresh-rankings" method="post">
+            <button class="button" type="submit" {% if not has_token %}disabled{% endif %}>Refresh Yahoo rankings</button>
+          </form>
+          <p class="status">Or upload rankings from a CSV or PDF file.</p>
+          <form action="/actions/import-rankings-csv" method="post" enctype="multipart/form-data">
+            <p><input type="file" name="rankings_csv" accept=".csv,text/csv"></p>
+            <p><input type="text" name="source" placeholder="Source label (optional)"></p>
+            <button class="button" type="submit">Import rankings CSV</button>
+          </form>
+          <form action="/actions/import-rankings-pdf" method="post" enctype="multipart/form-data">
+            <p><input type="file" name="rankings_pdf" accept=".pdf,application/pdf"></p>
+            <p><input type="text" name="source" placeholder="Source label (optional)"></p>
+            <button class="button" type="submit">Import rankings PDF</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Token status</h2>
+          <p class="status">{{ 'Saved' if has_token else 'Not available' }}</p>
+        </section>
+      </div>
+{% endblock %}

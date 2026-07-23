@@ -76,67 +76,26 @@
       </section>
 
       <section class="card">
-        <form method="get" style="margin-bottom: 1rem;">
-          <label for="team">Highlight picks owned by:</label>
-          <select name="team" id="team" onchange="this.form.submit()">
-            {% for t in team_names %}
-            <option value="{{ t }}" {% if t == my_team %}selected{% endif %}>{{ t }}</option>
+        <h2>Your keeper insight</h2>
+        {% if keeper_insight %}
+        <table class="table">
+          <thead><tr><th>Player</th><th>Last year's round</th><th>Expected</th><th>Years left</th><th>Eligible</th><th>Note</th></tr></thead>
+          <tbody>
+            {% for row in keeper_insight %}
+            <tr>
+              <td>{{ row.playerName }} ({{ row.position }})</td>
+              <td>{{ row.keeperRound or 'N/A' }}</td>
+              <td>{{ row.expectedRound or 'N/A' }}</td>
+              <td>{{ row.keeperYearsRemaining if row.keeperYearsRemaining is not none else 'N/A' }}</td>
+              <td>{{ 'Yes' if row.keeperEligible == True else ('No' if row.keeperEligible == False else 'Unknown') }}</td>
+              <td class="wrap note-col">{{ row.note }}</td>
+            </tr>
             {% endfor %}
-          </select>
-          <span class="status">Real picks (accounts for saved trades) at that team's actual draft slot.</span>
-        </form>
+          </tbody>
+        </table>
+        {% else %}
+        <p class="status">No roster or rankings data available yet.</p>
+        {% endif %}
       </section>
-
-      <div class="grid-two">
-        <section class="card">
-          <h2>By Expert Rank</h2>
-          <span class="status">Experts' consensus best available.</span>
-          <table class="table compact">
-            <thead><tr><th>Pick</th><th>Rank</th><th>Player</th><th>Pos</th><th>ADP</th><th>Δ</th></tr></thead>
-            <tbody>
-              {% for row in board_by_rank %}
-              <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
-                <td class="number">{{ loop.index }}</td>
-                <td class="number">{{ row.ranking or '-' }}</td>
-                <td class="playerName">{{ row.playerName }}</td>
-                <td>{{ row.posRank or row.position }}</td>
-                <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
-                <td class="number">
-                  {% if row.ranking and row.adp %}
-                    {% set delta = row.adp - row.ranking %}
-                    <span class="{% if delta > 10 %}positive{% elif delta < -10 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
-                  {% else %}-{% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </section>
-
-        <section class="card">
-          <h2>By Market ADP</h2>
-          <span class="status">Where players actually go in drafts.</span>
-          <table class="table compact">
-            <thead><tr><th>Pick</th><th>ADP</th><th>Player</th><th>Pos</th><th>Rank</th><th>Δ</th></tr></thead>
-            <tbody>
-              {% for row in board_by_adp %}
-              <tr class="{{ 'my-pick' if row.isMyPick else '' }}">
-                <td class="number">{{ loop.index }}</td>
-                <td class="number">{% if row.adp %}{{ "%.0f"|format(row.adp) }}{% else %}-{% endif %}</td>
-                <td class="playerName">{{ row.playerName }}</td>
-                <td>{{ row.posRank or row.position }}</td>
-                <td class="number">{{ row.ranking or '-' }}</td>
-                <td class="number">
-                  {% if row.ranking and row.adp %}
-                    {% set delta = row.adp - row.ranking %}
-                    <span class="{% if delta > 10 %}positive{% elif delta < -10 %}negative{% endif %}">{{ "%.0f"|format(delta) }}</span>
-                  {% else %}-{% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </section>
-      </div>
       {% endif %}
 {% endblock %}
