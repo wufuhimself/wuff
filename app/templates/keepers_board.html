@@ -7,21 +7,21 @@
         <span class="status">How many elite players will be locked up as keepers (top 12 teams × 2 keepers each).</span>
 
         {% if keeper_impact %}
-        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-top: 1rem;">
+        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); margin-top: 1rem;">
           {% for impact in keeper_impact %}
-          <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1.5rem; background: #fafbfc; text-align: center;">
-            <div style="font-size: 2rem; font-weight: 700; color: #0a2f5c; margin-bottom: 0.5rem;">
-              <span class="pill pos-{{ impact.position.lower() }}" style="font-size: 1.2rem; padding: 0.4rem 0.8rem;">{{ impact.position }}</span>
+          <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc; text-align: center;">
+            <div style="font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 700; color: #0a2f5c; margin-bottom: 0.5rem;">
+              <span class="pill pos-{{ impact.position.lower() }}" style="font-size: clamp(0.9rem, 3vw, 1.1rem); padding: 0.4rem 0.7rem;">{{ impact.position }}</span>
             </div>
-            <div style="font-size: 1.3rem; margin-bottom: 0.5rem;">
+            <div style="font-size: clamp(1rem, 3vw, 1.3rem); margin-bottom: 0.5rem;">
               <span style="color: #15803d; font-weight: 600;">{{ impact.kept }}</span>
               <span style="color: #667085;">of {{ impact.elite_tier }}</span>
               kept
             </div>
-            <div style="font-size: 1rem; color: #0a2f5c; font-weight: 600; margin-bottom: 0.3rem;">
+            <div style="font-size: clamp(0.9rem, 2.5vw, 1rem); color: #0a2f5c; font-weight: 600; margin-bottom: 0.3rem;">
               {{ impact.available }} available
             </div>
-            <div style="font-size: 0.85rem; color: #667085;">
+            <div style="font-size: clamp(0.75rem, 2vw, 0.85rem); color: #667085;">
               {{ impact.pct_kept }}% locked via keepers
             </div>
           </div>
@@ -35,10 +35,10 @@
         <span class="status">Based on position tier scarcity. Cards colored by position.</span>
 
         {% if keeper_forecasts %}
-        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 1rem;">
+        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); margin-top: 1rem;">
           {% for forecast in keeper_forecasts %}
           <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc;">
-            <h3 style="margin: 0 0 0.75rem 0; font-size: 1rem;">{{ forecast.team }}</h3>
+            <h3 style="margin: 0 0 0.75rem 0; font-size: clamp(0.95rem, 3vw, 1.1rem);">{{ forecast.team }}</h3>
             {% for keeper in forecast.keepers %}
             {% set pos_bg = {'QB': '#dbeafe', 'RB': '#dcfce7', 'WR': '#f3e8ff', 'TE': '#fed7aa', 'K': '#fef3c7', 'DEF': '#fecaca'} %}
             {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
