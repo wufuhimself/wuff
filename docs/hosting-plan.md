@@ -23,7 +23,7 @@ downstream phases.
 
 ### Option A: Read-only shared views (recommended)
 - **What teammates see:** The computed keepers board, draft history,
-  standings, gem analysis — all read-only pages
+  standings — all read-only pages
 - **Who runs the ingestion:** You, locally or on a schedule (via a cron job
   or GitHub Action)
 - **Teammate interaction:** None — they just visit the site

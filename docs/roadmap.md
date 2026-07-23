@@ -4,21 +4,7 @@ Feature development plan for the Yahoo fantasy football assistant GM.
 
 ## Near-term: Extend existing capability
 
-### 1. Enhance gems & busts analysis
-**Status:** Partially built (`app/gem_finder.py`, `/gems` page exists)
-
-- Surface `rank_vs_adp` trends by position — which positions have the most
-  overrated/underrated players historically
-- Flag repeat-gem players across seasons — find the sleepers who keep
-  outperforming their draft slot
-- Add a "confidence" metric per gem/bust based on how many seasons they've
-  repeated the pattern
-
-**Why:** `feature_table.csv` (draft_history + nfl_stats + rankings + rosters)
-is already built and joined; this just adds SQL/pandas aggregations over
-existing columns.
-
-### 2. Trade analyzer
+### 1. Trade analyzer
 **Status:** Zero — but high reuse potential**
 
 - Given two rosters, compute the VOR (value-over-replacement) impact of a
@@ -31,7 +17,7 @@ existing columns.
 **Why:** The scoring logic exists; just needs a rosters-as-input view and a
 trade math layer on top.
 
-### 3. Draft-day live mode
+### 2. Draft-day live mode
 **Status:** Zero — complex, pulls in multi-user considerations**
 
 - A web page that updates the keeper board / draft order as picks come in
@@ -63,20 +49,7 @@ you'd be running the ingestion.
 draft_analysis.py; just need to reshape the aggregations to per-manager
 and persist them as a viewable report.
 
-### 2. Waiver-wire gem alerts
-**Status:** Zero — extends gem_finder.py to weekly data**
-
-- Flag current-season breakouts using weekly `nfl_stats` — find the waiver
-  pickups who are outperforming their ADP in-season
-- Extend `gem_finder.py` (which works on full-season stats) to sliding
-  windows: gems through week 4, week 8, week 12, etc.
-- Useful for mid-season trade deadlines or when people are scanning
-  available players
-
-**Why:** `nfl_stats/weekly/` data already exists; gem_finder logic (rank vs
-points) just needs a window parameter.
-
-### 3. ML model: predicting breakout seasons
+### 2. ML model: predicting breakout seasons
 **Status:** Zero — but feature_table.csv is ready-made**
 
 - Train a simple model on feature_table.csv to predict `fantasy_points`
@@ -105,10 +78,9 @@ Start with correlation analysis before committing to a model.
 
 ## Prioritization
 
-1. **Highest signal:** Manager report card + gems by position — these tell
-   stories about your league and are immediately fun to read.
-2. **Next:** Trade analyzer and waiver gem alerts — high utility during
-   active season play.
+1. **Highest signal:** Manager report card — tells stories about your league
+   and is immediately fun to read.
+2. **Next:** Trade analyzer — high utility during active season play.
 3. **Model:** Once feature table is well-validated (report card + gems prove
    the data is clean), build the ML piece.
 4. **Discord:** Nice-to-have after the web app is hosted and stable.
