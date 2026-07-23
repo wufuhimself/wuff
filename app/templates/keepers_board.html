@@ -1,6 +1,59 @@
 {% extends "base.html" %}
 {% block title %}Keepers board — Yahoo Fantasy{% endblock %}
 {% block content %}
+      {% if keeper_versions %}
+      <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #0066cc;">
+        <label for="keeper-version" style="font-size: 0.9rem; font-weight: 500; display: block; margin-bottom: 0.5rem;">Keeper Export Version</label>
+        <select id="keeper-version" name="version" style="padding: 0.5rem 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" onchange="window.location.href='?version=' + this.value">
+          {% for version in keeper_versions %}
+          <option value="{{ version.file }}" {% if version.file == selected_version %}selected{% endif %}>
+            {{ version.label }} ({{ version.method }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% if keeper_export_data %}
+      <section class="card">
+        <h2>Keeper Board ({{ selected_version }})</h2>
+        <span class="status">From keeper export {{ selected_version }}</span>
+        <div style="overflow-x: auto; margin-top: 1rem;">
+          <table class="table" style="font-size: 0.9rem;">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Keeper 1</th>
+                <th>Pos</th>
+                <th>ADP</th>
+                <th>Keeper 2</th>
+                <th>Pos</th>
+                <th>ADP</th>
+                <th>Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for team, keeper_rows in keeper_export_data.items() %}
+              {% if keeper_rows %}
+              {% set row = keeper_rows[0] %}
+              <tr {% if team == 'Wuf' %}style="background: rgba(76, 175, 80, 0.1);"{% endif %}>
+                <td style="font-weight: 600;">{{ team }}</td>
+                <td>{{ row.Keeper1 or '—' }}</td>
+                <td>{{ row.K1_Pos or '—' }}</td>
+                <td style="text-align: right;">{{ row.K1_ADP or '—' }}</td>
+                <td>{{ row.Keeper2 or '—' }}</td>
+                <td>{{ row.K2_Pos or '—' }}</td>
+                <td style="text-align: right;">{{ row.K2_ADP or '—' }}</td>
+                <td>{{ row.Method or '—' }}</td>
+              </tr>
+              {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+      {% endif %}
+
       {% if per_team %}
       <section class="card">
         <h2>Keeper impact by position</h2>
@@ -32,7 +85,13 @@
 
       <section class="card">
         <h2>Keeper forecast by team</h2>
-        <span class="status">Based on position tier scarcity. Cards colored by position.</span>
+        <span class="status">
+          {% if keeper_export_data %}
+            From keeper export ({{ selected_version }})
+          {% else %}
+            Based on position tier scarcity
+          {% endif %}
+        </span>
 
         {% if keeper_forecasts %}
         <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); margin-top: 1rem;">

@@ -14,6 +14,9 @@ Key files:
 - `data/raw/rankings/rankings_combined.json` — combined multi-source rankings (created via combine-rankings)
 - `data/raw/draft_history/{year}.json` — past draft results, one file per season
 - `data/raw/draft_picks/{year}.json` — pick ownership by round for a draft year
+- `data/processed/keeper_exports/` — timestamped keeper recommendation CSVs (source for keeper board)
+- `data/processed/keeper_board.html` — interactive keeper board viewer (load in browser)
+- `scripts/sync_keeper_board.js` — auto-syncs keeper exports to keeper board HTML
 - `app/strategy.py` — keeper eligibility/selection logic
 
 ## Keeper-picking agent (autonomous recommendations)
@@ -39,6 +42,45 @@ Autonomous keeper agent recommends best 2 keepers for each team, ranks remaining
 - Tiebreak 1: value over replacement rounds (positional scarcity for this league's roster shape)
 - Tiebreak 2: keeper years remaining (players with multi-year runway preferred)
 - Never: rank-based QB bypass (non-rushing QBs stay lower than WR2/WR3 tier even if ranked higher)
+
+### Keeper board versioning (CSV-driven)
+
+Keeper recommendations are exported as timestamped, method-tagged CSVs in `data/processed/keeper_exports/`. The keeper board web page loads these CSVs and renders interactive versions—allows comparing recommendations across ranking methods and roster snapshots.
+
+**CSV format:** `keepers_YYYYMMDD_METHOD.csv`
+- **Columns:** Team, Keeper1, K1_Pos, K1_ADP, Keeper2, K2_Pos, K2_ADP, Method, Locked
+- **Method:** scoring method used (e.g., `rank-first`, `adp`, `vor-only`)
+- **Locked:** boolean; true if keeper was manually locked by user (overrides algorithm)
+- **Example:** `keepers_20260722_adp.csv` — ADP-based picks from July 22, 2026
+
+**Workflow:**
+1. Generate keeper export: script runs keeper selection algorithm, outputs CSV to `keeper_exports/`
+2. Board page auto-discovers all CSVs in `keeper_exports/`, lists them by (date, method)
+3. User selects version to view; board renders table + shows alternates from rosters
+4. Side-by-side compare: pick two versions to see how recommendations changed
+
+**Why versioning matters:**
+- Rankings update (new sources added, old ones refreshed) → ADP shifts → keepers change
+- Rosters shift (trades, roster moves) → eligibility changes → selections change
+- Multiple methods (rank-first vs ADP vs VOR-only) → different picks for same team
+- Historical snapshots let you forecast vs actual keeper decisions after draft
+
+**Workflow: Export → View**
+
+1. Generate keeper export via Python script or CLI → outputs CSV to `keeper_exports/`
+   - Filename must follow pattern: `keepers_YYYYMMDD_METHOD.csv` or `keepers_YYYYMMDD_HHMM.csv`
+   - Example: `keepers_20260722_adp.csv`, `keepers_20260722_rank-first.csv`, `keepers_20260722_0128.csv`
+2. Visit `/keepers-board` route in Flask web app
+3. Dropdown auto-discovers all keeper CSVs in `keeper_exports/`, sorted newest-first
+4. Select version to view keeper board + compare across methods/dates
+
+**Integration details (in `app/web.py`):**
+- `list_keeper_exports()` — scans keeper_exports/, parses filename for date/method
+- `load_keeper_export(filename)` — loads CSV, groups keepers by team
+- `/keepers-board` route — queries `?version=` param, loads selected export, passes to template
+- Template shows version dropdown + keeper table + forecast + draft board
+
+No manual sync needed; Flask auto-discovers CSVs on each page load.
 
 ## Multi-source rankings + ML feature pipeline (2026)
 

@@ -24,7 +24,6 @@ from .strategy import (
 )
 from .token_store import get_valid_token
 from .yahoo_client import fetch_yahoo_rankings, fetch_yahoo_roster_players
-from .gem_finder import load_and_analyze
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -204,6 +203,125 @@ def enrich_with_adp(player_list, adp_map):
     for player in player_list:
         player_name = normalize_player_name(player.get('playerName', ''))
         player['adp'] = adp_map.get(player_name)
+
+
+def list_keeper_exports():
+    """Auto-discover keeper export CSVs in keeper_exports/ directory."""
+    import re
+    exports_dir = PROCESSED_DIR / 'keeper_exports'
+    if not exports_dir.exists():
+        return []
+
+    versions = []
+    for csv_file in sorted(exports_dir.glob('keepers_*.csv'), reverse=True):
+        match = re.match(r'keepers_(\d{8})_([a-z0-9-]+)\.csv', csv_file.name, re.I)
+        if match:
+            date, method = match.groups()
+            versions.append({
+                'file': csv_file.name,
+                'date': date,
+                'method': method,
+                'label': f"{date[4:6]}/{date[6:8]} - {method}"
+            })
+
+    return versions
+
+
+def load_keeper_export(filename: str):
+    """Load keeper export CSV by filename. Returns list of dicts."""
+    exports_dir = PROCESSED_DIR / 'keeper_exports'
+    csv_path = exports_dir / filename
+
+    if not csv_path.exists():
+        return []
+
+    keepers_by_team = {}
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            team = row.get('Team')
+            if team not in keepers_by_team:
+                keepers_by_team[team] = []
+            keepers_by_team[team].append(row)
+
+    return keepers_by_team
+
+
+def forecast_from_keeper_export(keeper_export_data, rankings=None):
+    """Convert keeper export data into forecast format matching keeper_forecasts structure.
+
+    Args:
+        keeper_export_data: dict of {team: [row1, row2, ...]} from load_keeper_export
+        rankings: optional list of ranking dicts to look up positionRank
+    """
+    import re
+
+    # Build ranking lookup for position rank
+    rank_map = {}
+    if rankings:
+        for r in rankings:
+            name_key = r.get('playerName', '').lower()
+            rank_map[name_key] = r.get('posRank', '')
+
+    forecasts = []
+
+    for team, keeper_rows in sorted(keeper_export_data.items()):
+        if not keeper_rows:
+            continue
+
+        # Each team has only one row with both keepers
+        keeper_row = keeper_rows[0]
+
+        # Build keeper list from export
+        forecast_keepers = []
+
+        # Keeper 1
+        if keeper_row.get('Keeper1'):
+            k1_name = keeper_row.get('Keeper1', '').lower()
+            full_pos_rank = rank_map.get(k1_name, '')
+            # Extract just the number from posRank (e.g., "QB7" -> "7")
+            pos_rank_num = ''
+            if full_pos_rank:
+                match = re.search(r'(\d+)', str(full_pos_rank))
+                if match:
+                    pos_rank_num = match.group(1)
+            forecast_keepers.append({
+                'playerName': keeper_row.get('Keeper1'),
+                'position': keeper_row.get('K1_Pos', '?').upper(),
+                'rank': None,
+                'posRank': pos_rank_num,
+                'confidence': 'high' if keeper_row.get('Locked') == 'true' else 'medium',
+                'reasoning': 'From keeper export (locked)' if keeper_row.get('Locked') == 'true' else 'From keeper export',
+                'adp': float(keeper_row.get('K1_ADP')) if keeper_row.get('K1_ADP') else None,
+            })
+
+        # Keeper 2
+        if keeper_row.get('Keeper2'):
+            k2_name = keeper_row.get('Keeper2', '').lower()
+            full_pos_rank = rank_map.get(k2_name, '')
+            # Extract just the number from posRank (e.g., "QB7" -> "7")
+            pos_rank_num = ''
+            if full_pos_rank:
+                match = re.search(r'(\d+)', str(full_pos_rank))
+                if match:
+                    pos_rank_num = match.group(1)
+            forecast_keepers.append({
+                'playerName': keeper_row.get('Keeper2'),
+                'position': keeper_row.get('K2_Pos', '?').upper(),
+                'rank': None,
+                'posRank': pos_rank_num,
+                'confidence': 'high' if keeper_row.get('Locked') == 'true' else 'medium',
+                'reasoning': 'From keeper export (locked)' if keeper_row.get('Locked') == 'true' else 'From keeper export',
+                'adp': float(keeper_row.get('K2_ADP')) if keeper_row.get('K2_ADP') else None,
+            })
+
+        forecasts.append({
+            'team': team,
+            'keepers': forecast_keepers,
+            'alternates': [],  # Export doesn't include alternates currently
+        })
+
+    return forecasts
 
 
 def calculate_keeper_impact(keeper_forecasts, rankings):
@@ -403,10 +521,21 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
 
 @app.route('/keepers-board')
 def keepers_board_view():
+    # Get available keeper export versions
+    keeper_versions = list_keeper_exports()
+    selected_version = request.args.get('version') or (keeper_versions[0]['file'] if keeper_versions else None)
+
+    # If keeper export available, load it instead of computing
+    keeper_export_data = None
+    if selected_version:
+        keeper_export_data = load_keeper_export(selected_version)
+
     try:
         league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
     except FileNotFoundError:
-        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], keeper_insight=[], error=(
+        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], keeper_insight=[],
+                             keeper_versions=keeper_versions, selected_version=selected_version,
+                             keeper_export_data=keeper_export_data, error=(
             f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. '
             'Run `python3 -m app.cli scrape-league-rosters` first.'
         ))
@@ -488,17 +617,21 @@ def keepers_board_view():
     board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
     board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
 
-    # Forecast opponent keeper decisions based on position scarcity
-    keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
-
-    # Calculate keeper impact by position
-    keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
+    # Use export-derived forecast if keeper export is loaded, otherwise compute from per_team
+    if keeper_export_data:
+        keeper_forecasts = forecast_from_keeper_export(keeper_export_data, rankings=rankings)
+        keeper_impact = []  # Don't calculate impact from export (no confidence data)
+    else:
+        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
+        keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
 
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
         keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
         keeper_insight=keeper_insight,
         my_team=my_team, team_names=team_names, error=None,
+        keeper_versions=keeper_versions, selected_version=selected_version,
+        keeper_export_data=keeper_export_data,
     )
 
 
@@ -626,28 +759,6 @@ def draft_order_board_view(standings_year: int):
 
     return render_template(
         'draft_order_board.html', active='standings', standings_year=standings_year, teams=picks_by_team, error=None,
-    )
-
-
-@app.route('/gems')
-def gems_analysis():
-    season = request.args.get('season', type=int) or 2025
-    analysis = load_and_analyze(season)
-
-    if 'error' in analysis:
-        return render_template('gems.html', active='gems', error=analysis['error'])
-
-    return render_template(
-        'gems.html',
-        active='gems',
-        season=season,
-        gems=analysis.get('gems', []),
-        gems_by_pos=analysis.get('gems_by_pos', {}),
-        busts=analysis.get('busts', []),
-        busts_by_pos=analysis.get('busts_by_pos', {}),
-        positions=analysis.get('positions', {}),
-        totalPlayers=analysis.get('totalPlayers', 0),
-        error=None,
     )
 
 
