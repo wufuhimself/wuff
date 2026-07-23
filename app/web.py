@@ -406,20 +406,24 @@ def keepers_board_view():
     try:
         league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
     except FileNotFoundError:
-        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], error=(
+        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], keeper_insight=[], error=(
             f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. '
             'Run `python3 -m app.cli scrape-league-rosters` first.'
         ))
 
     rankings = load_yahoo_rankings()
     if not rankings:
-        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], error=(
+        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], keeper_insight=[], error=(
             'No saved rankings. Run `python3 -m app.cli refresh-yahoo-rankings` or '
             '`import-rankings-csv` first.'
         ))
 
     league_format = load_league_format()
     per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
+
+    # Load keeper insight for your team
+    roster = load_roster()
+    keeper_insight = roster_keeper_insight(roster, rankings, league_format=league_format) if roster and rankings else []
     remaining_board = remaining_board[:100]
 
     # Load ADP and enrich player data
