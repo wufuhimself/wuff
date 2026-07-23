@@ -39,16 +39,34 @@
           {% for forecast in keeper_forecasts %}
           <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc;">
             <h3 style="margin: 0 0 0.75rem 0; font-size: clamp(0.95rem, 3vw, 1.1rem);">{{ forecast.team }}</h3>
-            {% for keeper in forecast.keepers %}
-            {% set pos_bg = {'QB': '#dbeafe', 'RB': '#dcfce7', 'WR': '#f3e8ff', 'TE': '#fed7aa', 'K': '#fef3c7', 'DEF': '#fecaca'} %}
-            {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
-            <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: {{ pos_bg.get(keeper.position, '#f0f0f0') }}; border-radius: 6px;">
-              <div style="font-weight: 600; margin-bottom: 0.25rem; color: {{ pos_color.get(keeper.position, '#333') }};">{{ keeper.playerName }} <span class="pill pos-{{ keeper.position.lower() }}">{{ keeper.position }}{{ keeper.posRank }}</span></div>
-              <div style="font-size: 0.8rem; color: {{ pos_color.get(keeper.position, '#333') }}; margin-top: 0.35rem;">
-                {% if keeper.adp %}ADP {{ "%.0f"|format(keeper.adp) }}{% else %}No ADP{% endif %} · {{ keeper.reasoning }}
+            <div style="margin-bottom: 0.5rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #667085; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Keepers</div>
+              {% for keeper in forecast.keepers %}
+              {% set pos_bg = {'QB': '#dbeafe', 'RB': '#dcfce7', 'WR': '#f3e8ff', 'TE': '#fed7aa', 'K': '#fef3c7', 'DEF': '#fecaca'} %}
+              {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
+              <div style="margin-bottom: 0.5rem; padding: 0.6rem; background: {{ pos_bg.get(keeper.position, '#f0f0f0') }}; border-radius: 6px;">
+                <div style="font-weight: 600; margin-bottom: 0.2rem; color: {{ pos_color.get(keeper.position, '#333') }}; font-size: 0.95rem;">{{ keeper.playerName }} <span class="pill pos-{{ keeper.position.lower() }}">{{ keeper.position }}{{ keeper.posRank }}</span></div>
+                <div style="font-size: 0.75rem; color: {{ pos_color.get(keeper.position, '#333') }}; margin-top: 0.25rem;">
+                  {% if keeper.adp %}ADP {{ "%.0f"|format(keeper.adp) }}{% else %}No ADP{% endif %} · {{ keeper.reasoning }}
+                </div>
               </div>
+              {% endfor %}
             </div>
-            {% endfor %}
+            {% if forecast.alternates %}
+            <div style="border-top: 1px solid #e6e8ee; padding-top: 0.5rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #999; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Next options</div>
+              {% for alt in forecast.alternates %}
+              {% set pos_bg = {'QB': '#e6f0ff', 'RB': '#e8f8e8', 'WR': '#f9f0ff', 'TE': '#ffe8d4', 'K': '#fffff0', 'DEF': '#ffe8e8'} %}
+              {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
+              <div style="margin-bottom: 0.5rem; padding: 0.6rem; background: {{ pos_bg.get(alt.position, '#f5f5f5') }}; border-radius: 6px; opacity: 0.85;">
+                <div style="font-weight: 600; margin-bottom: 0.2rem; color: {{ pos_color.get(alt.position, '#666') }}; font-size: 0.9rem;">{{ alt.playerName }} <span class="pill pos-{{ alt.position.lower() }}" style="opacity: 0.8;">{{ alt.position }}{{ alt.posRank }}</span></div>
+                <div style="font-size: 0.75rem; color: {{ pos_color.get(alt.position, '#666') }}; margin-top: 0.25rem;">
+                  {% if alt.adp %}ADP {{ "%.0f"|format(alt.adp) }}{% else %}No ADP{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
           </div>
           {% endfor %}
         </div>

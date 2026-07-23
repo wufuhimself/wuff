@@ -337,9 +337,38 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
                 'adp': adp,
             })
 
+        # Add top 2 alternates for comparison
+        top_alternates = []
+        for alt in alternates[:2]:
+            alt_position = alt.get('position', '').upper()
+            alt_rank = alt.get('ranking')
+            alt_pos_rank = alt.get('positionRank', '')
+
+            # Extract positional rank
+            alt_pos_rank_num = None
+            if alt_pos_rank:
+                match = re.search(r'(\d+)', str(alt_pos_rank))
+                if match:
+                    alt_pos_rank_num = int(match.group(1))
+
+            # Look up ADP
+            from .adp_manager import normalize_player_name
+            normalized_alt_name = normalize_player_name(alt.get('playerName', ''))
+            alt_adp = adp_map.get(normalized_alt_name) if adp_map else None
+
+            top_alternates.append({
+                'playerName': alt.get('playerName'),
+                'position': alt_position,
+                'rank': alt_rank,
+                'posRank': alt_pos_rank,
+                'adp': alt_adp,
+                'reasoning': 'Next option considered',
+            })
+
         forecasts.append({
             'team': team_name,
             'keepers': forecast_keepers,
+            'alternates': top_alternates,
         })
 
     return forecasts
