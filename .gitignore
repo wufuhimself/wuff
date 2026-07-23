@@ -20,6 +20,7 @@ data/processed/draft_board_exports/
 data/processed/rankings_snapshots/
 
 # Virtual environment
+.venv/
 venv/
 env/
 ENV/
