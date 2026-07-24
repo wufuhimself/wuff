@@ -16,7 +16,32 @@ def load_year_data(year):
     managers = json.loads((data_dir / f"managers/{year}.json").read_text())
     return standings, draft_history, managers
 
+_nfl_rosters_cache = {}
 _rankings_cache = None
+
+def load_nfl_rosters_csv():
+    """Load all NFL rosters CSVs into memory for position lookup"""
+    global _nfl_rosters_cache
+    if _nfl_rosters_cache:
+        return _nfl_rosters_cache
+
+    for year in range(2022, 2026):
+        try:
+            csv_file = data_dir / f"nfl_stats/rosters/{year}.csv"
+            if csv_file.exists():
+                with open(csv_file) as f:
+                    lines = f.readlines()
+                    for line in lines[1:]:  # Skip header
+                        parts = line.strip().split(',')
+                        if len(parts) >= 7:
+                            full_name = parts[6]  # Column 6 is full_name
+                            position = parts[2]   # Column 2 is position
+                            if full_name and position:
+                                _nfl_rosters_cache[full_name.lower()] = position
+        except Exception as e:
+            print(f"Warning: Could not load NFL rosters for {year}: {e}")
+
+    return _nfl_rosters_cache
 
 def load_combined_rankings():
     """Load combined rankings once"""
@@ -29,11 +54,18 @@ def load_combined_rankings():
     return _rankings_cache
 
 def get_player_position(player_name: str) -> str:
-    """Look up player position from combined rankings"""
+    """Look up player position from NFL stats rosters (primary) or rankings (fallback)"""
+    # Try NFL rosters first (complete coverage)
+    nfl_rosters = load_nfl_rosters_csv()
+    if player_name.lower() in nfl_rosters:
+        return nfl_rosters[player_name.lower()]
+
+    # Fallback to combined rankings
     rankings = load_combined_rankings()
     for player in rankings:
         if player.get("playerName", "").lower() == player_name.lower():
             return player.get("position", "UNK")
+
     return "UNK"
 
 def build_manager_timeline():
