@@ -88,6 +88,7 @@ from .mcp_client import (
     get_sync_standings,
     get_sync_league_teams,
     get_sync_all_team_rosters,
+    get_sync_standings_for_year,
 )
 from .yahoo_scraper import scrape_roster, scrape_league_rosters, scrape_standings
 from .config import config
@@ -253,6 +254,10 @@ def parse_args() -> argparse.Namespace:
     keeper_strategy_parser.add_argument('team', help='Team name (e.g., "Wuf")')
 
     map_teams_parser = subparsers.add_parser('map-teams', help='Build owner identity mapping from draft slot consistency')
+
+    backfill_standings_mcp_parser = subparsers.add_parser('backfill-standings-mcp', help='Fetch historical standings (2020-current) via MCP and save locally')
+    backfill_standings_mcp_parser.add_argument('--start-year', type=int, default=2020, help='Start year (default: 2020)')
+    backfill_standings_mcp_parser.add_argument('--end-year', type=int, default=2025, help='End year (default: 2025)')
 
     fantasypros_rankings_parser = subparsers.add_parser('fantasypros-rankings', help='Fetch consensus rankings from FantasyPros API (requires FANTASYPROS_API_KEY env var)')
     fantasypros_rankings_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
@@ -1307,6 +1312,45 @@ def main() -> None:
                     print(f'    {year}: {name}')
         except Exception as e:
             print(f'Error mapping teams: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'backfill-standings-mcp':
+        try:
+            from .standings import RAW_STANDINGS_DIR
+            leagues = get_sync_leagues()
+            if not leagues:
+                print('No leagues found. Make sure MCP server is running', file=sys.stderr)
+                sys.exit(1)
+
+            league_id = leagues[0]['id']
+            print(f'Fetching standings for league {league_id} ({args.start_year}-{args.end_year})...')
+
+            saved_count = 0
+            for year in range(args.start_year, args.end_year + 1):
+                try:
+                    standings = get_sync_standings_for_year(league_id, year)
+                    if standings:
+                        output_file = RAW_STANDINGS_DIR / f'{year}.json'
+                        output_file.parent.mkdir(parents=True, exist_ok=True)
+                        with open(output_file, 'w') as f:
+                            json.dump({
+                                'year': year,
+                                'standings': standings,
+                            }, f, indent=2)
+                        print(f'  {year}: saved {len(standings)} standings')
+                        saved_count += 1
+                    else:
+                        print(f'  {year}: no data found')
+                except Exception as e:
+                    print(f'  {year}: error - {e}')
+
+            print(f'\nBackfilled {saved_count} years of standings to {RAW_STANDINGS_DIR}')
+        except Exception as e:
+            print(f'Error backfilling standings: {e}', file=sys.stderr)
+            print('Make sure MCP server is running', file=sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(1)

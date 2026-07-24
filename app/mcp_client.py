@@ -206,3 +206,34 @@ def get_sync_all_team_rosters(league_id: str) -> Dict[str, tuple[str, List[Yahoo
     except Exception as e:
         logger.error(f"Error fetching all team rosters: {e}")
         raise
+
+
+def get_sync_standings_for_year(league_id: str, year: int) -> List[Dict[str, Any]]:
+    """
+    Get standings for a specific year.
+
+    Args:
+        league_id: Yahoo league ID (format: "123.l.456" where 123 is year)
+        year: Season year to fetch standings for
+
+    Returns:
+        List of standings dictionaries
+    """
+    token = _get_access_token()
+    try:
+        # League key format: "{year}.l.{league_number}"
+        # Extract league number from current league_id and build year-specific key
+        parts = league_id.split('.')
+        if len(parts) >= 3:
+            league_num = parts[2]
+            league_key_for_year = f"{year}.l.{league_num}"
+        else:
+            league_key_for_year = league_id
+
+        standings_data = fetch_standings(token, league_key_for_year)
+        if standings_data:
+            return standings_data.get('standings', [])
+        return []
+    except Exception as e:
+        logger.error(f"Error fetching standings for year {year}: {e}")
+        raise
