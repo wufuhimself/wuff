@@ -25,6 +25,11 @@ from .rankings_pdf import load_rankings_pdf
 from .rankings_aggregator import aggregate_rankings, fetch_rankings_from_site
 from .rankings_manager import combine_and_save_all as combine_rankings_all
 from .ranking_adjustments import adjust_and_export as adjust_rankings
+from .keeper_history import (
+    save_keeper_history,
+    load_keeper_history,
+    get_team_keeper_strategy,
+)
 from .feature_table import build_and_save_feature_table
 from .fantasypros_manager import (
     fetch_and_save_rankings as fantasypros_fetch_rankings,
@@ -235,6 +240,11 @@ def parse_args() -> argparse.Namespace:
 
     adjust_rankings_parser = subparsers.add_parser('adjust-rankings', help='Apply rule-based adjustments to combined rankings (e.g., QB rushing thresholds)')
     adjust_rankings_parser.add_argument('--config', default=None, help='Path to board_adjustments.json config file (default: data/config/board_adjustments.json)')
+
+    extract_keeper_history_parser = subparsers.add_parser('extract-keeper-history', help='Extract historical keeper selections from draft history (2020-2025)')
+
+    keeper_strategy_parser = subparsers.add_parser('keeper-strategy', help='Show a team\'s historical keeper strategy')
+    keeper_strategy_parser.add_argument('team', help='Team name (e.g., "Wuf")')
 
     fantasypros_rankings_parser = subparsers.add_parser('fantasypros-rankings', help='Fetch consensus rankings from FantasyPros API (requires FANTASYPROS_API_KEY env var)')
     fantasypros_rankings_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
@@ -1222,6 +1232,52 @@ def main() -> None:
             print(f'Comparison CSV saved to {csv_path}')
         except Exception as e:
             print(f'Error adjusting rankings: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'extract-keeper-history':
+        try:
+            output_path = save_keeper_history()
+            print(f'Keeper history extracted to {output_path}')
+
+            keeper_history = load_keeper_history(output_path)
+            print(f'\nKeeper history summary:')
+            for team in sorted(keeper_history.keys()):
+                seasons = keeper_history[team]
+                print(f'  {team}: {len(seasons)} seasons')
+                for year in sorted(seasons.keys()):
+                    players = seasons[year]
+                    print(f'    {year}: {", ".join(players)}')
+        except Exception as e:
+            print(f'Error extracting keeper history: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'keeper-strategy':
+        try:
+            keeper_history = load_keeper_history()
+            strategy = get_team_keeper_strategy(keeper_history, args.team)
+
+            if not strategy.get('found'):
+                print(f'No keeper history found for team: {args.team}', file=sys.stderr)
+                print(f'Available teams: {", ".join(sorted(keeper_history.keys()))}', file=sys.stderr)
+                sys.exit(1)
+
+            print(f'Keeper strategy for {strategy["team"]}:')
+            print(f'  Seasons with data: {strategy["seasons_with_data"]}')
+            print(f'  Mode keeper count: {strategy["mode_keeper_count"]}')
+            print(f'  Keeper count by year:')
+            for year, count in sorted(strategy['keeper_counts_by_year'].items()):
+                print(f'    {year}: {count}')
+        except FileNotFoundError:
+            print('Keeper history not found. Run extract-keeper-history first.', file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f'Error analyzing keeper strategy: {e}', file=sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(1)
