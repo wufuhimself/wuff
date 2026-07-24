@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
 from collections import defaultdict
 
-from .paths import PROCESSED_DIR, RAW_STANDINGS_DIR, RAW_DRAFT_HISTORY_DIR, RAW_RANKINGS_DIR
+from .paths import PROCESSED_DIR, RAW_STANDINGS_DIR, RAW_DRAFT_HISTORY_DIR, RAW_RANKINGS_DIR, RAW_DRAFT_PICKS_DIR
 from .standings import draft_order_from_standings, snake_draft_order
 
 
@@ -129,6 +129,76 @@ def get_draft_order_2026(standings_year: int = 2025, current_teams: Optional[Dic
             draft_order.extend(teams)
         else:
             draft_order.extend(reversed(teams))
+
+    return draft_order
+
+
+def get_draft_order_2026_with_trades(standings_year: int = 2025, current_teams: Optional[Dict] = None) -> List[str]:
+    """Build draft order accounting for traded picks.
+    Reads picksByRound from draft_picks.json to determine how many picks each team has each round,
+    then respects snake order from standings."""
+
+    # Load draft picks to see who owns what
+    picks_path = RAW_DRAFT_PICKS_DIR / '2026.json'
+    if not picks_path.exists():
+        # Fallback to standings-based order if no trades file
+        return get_draft_order_2026(standings_year=standings_year, current_teams=current_teams)
+
+    with open(picks_path) as f:
+        picks_data = json.load(f)
+
+    # Get standings order (draft order is reverse standings: worst to best)
+    standings_file = RAW_STANDINGS_DIR / f'{standings_year}.json'
+    if not standings_file.exists():
+        raise FileNotFoundError(f'Standings not found: {standings_file}')
+
+    with open(standings_file) as f:
+        standings_data = json.load(f)
+
+    standings = sorted(standings_data.get('standings', []), key=lambda x: x.get('rank', 0))
+
+    # Build standings team name -> normalized name mapping
+    standings_to_normalized = {}
+    for entry in standings:
+        standings_team = entry.get('team', '')
+        standings_to_normalized[standings_team] = standings_team
+        # Check for rename note
+        note = entry.get('note', '')
+        if 'now displayed as' in note:
+            import re
+            match = re.search(r"displayed as '([^']+)'", note)
+            if match:
+                new_name = match.group(1)
+                standings_to_normalized[standings_team] = new_name
+
+    # Reverse for draft order (worst team picks first)
+    team_order = [standings_to_normalized.get(s.get('team', ''), s.get('team', '')) for s in reversed(standings)]
+
+    # Build lookup: team_name -> picksByRound
+    team_picks = {}
+    for team_entry in picks_data.get('teams', []):
+        team_name = team_entry.get('teamName', '')
+        picks_by_round = {int(k): v for k, v in team_entry.get('picksByRound', {}).items()}
+        team_picks[team_name] = picks_by_round
+
+    # Build actual draft order accounting for traded picks
+    draft_order = []
+
+    # For each round, add teams in snake order, respecting their pick count
+    for round_num in range(1, 16):
+        # Determine team order for this round (snake pattern)
+        if round_num % 2 == 1:
+            # Odd rounds: forward order
+            round_team_order = team_order
+        else:
+            # Even rounds: reverse order
+            round_team_order = list(reversed(team_order))
+
+        # Add teams according to their pick count this round
+        for team in round_team_order:
+            num_picks = team_picks.get(team, {}).get(round_num, 0)
+            for _ in range(num_picks):
+                draft_order.append(team)
 
     return draft_order
 
@@ -310,11 +380,11 @@ def simulate_draft(
 
     mock_picks = []
 
-    # 180 picks total (15 rounds x 12 teams)
+    # 180 picks total (15 rounds x 12 teams, though with trades some teams have multiple per round)
     for pick_num in range(1, 181):
         round_num = (pick_num - 1) // 12 + 1
-        team_idx = (pick_num - 1) % 12
-        team = draft_order[team_idx]
+        # With trades, draft_order is a sequential list, not a repeating 12-team pattern
+        team = draft_order[pick_num - 1]
 
         # Check if this is a keeper round for this team
         is_keeper_round = round_num in [14, 15]
@@ -401,7 +471,8 @@ def run_mock_draft() -> List[Dict[str, Any]]:
     current_teams = load_current_teams()
     keeper_predictions = {team: [v['keeper1'], v['keeper2']] for team, v in current_teams.items()}
     rankings_lookup, rankings_all = load_adjusted_rankings()
-    draft_order = get_draft_order_2026(current_teams=current_teams)
+    # Use trade-aware draft order
+    draft_order = get_draft_order_2026_with_trades(current_teams=current_teams)
     manager_profiles = build_manager_profiles(rankings_lookup)
 
     mock_picks = simulate_draft(keeper_predictions, rankings_lookup, rankings_all, draft_order, manager_profiles)
