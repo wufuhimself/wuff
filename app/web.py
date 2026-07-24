@@ -724,6 +724,16 @@ def keepers_board_view():
         keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
         keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
 
+    # Load custom keeper predictions if available
+    custom_predictions = None
+    try:
+        from .keeper_history import load_custom_keeper_predictions
+        predictions_file = PROCESSED_DIR / 'keeper_predictions_2026.json'
+        if predictions_file.exists():
+            custom_predictions = load_custom_keeper_predictions(predictions_file)
+    except Exception:
+        pass
+
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
         keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
@@ -731,6 +741,7 @@ def keepers_board_view():
         my_team=my_team, team_names=team_names, error=None,
         keeper_versions=keeper_versions, selected_version=selected_version,
         keeper_export_data=organized_keeper_data,
+        custom_predictions=custom_predictions,
     )
 
 
@@ -859,6 +870,29 @@ def draft_order_board_view(standings_year: int):
     return render_template(
         'draft_order_board.html', active='standings', standings_year=standings_year, teams=picks_by_team, error=None,
     )
+
+
+@app.route('/mock-draft')
+def mock_draft_view():
+    from .mock_draft import run_mock_draft
+    try:
+        picks = run_mock_draft()
+        picks_by_round = {}
+        picks_by_team = {}
+        for pick in picks:
+            round_num = pick['round']
+            if round_num not in picks_by_round:
+                picks_by_round[round_num] = []
+            picks_by_round[round_num].append(pick)
+
+            team = pick['team']
+            if team not in picks_by_team:
+                picks_by_team[team] = []
+            picks_by_team[team].append(pick)
+
+        return render_template('mock_draft.html', active='mock-draft', picks=picks, picks_by_round=picks_by_round, picks_by_team=picks_by_team, error=None)
+    except Exception as e:
+        return render_template('mock_draft.html', active='mock-draft', picks=[], picks_by_round={}, picks_by_team={}, error=str(e))
 
 
 if __name__ == '__main__':

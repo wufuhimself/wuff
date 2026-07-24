@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Mock Draft 2026 — Yahoo Fantasy{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>Mock Draft 2026</h2>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        {% if not error %}
+        <p class="status">Forecast based on keeper predictions, adjusted rankings, position needs, and historical team draft patterns.</p>
+        <div style="margin-bottom: 1rem;">
+          <button class="button" onclick="toggleView('by-round')">View by Round</button>
+          <button class="button" onclick="toggleView('by-team')">View by Team</button>
+        </div>
+        {% endif %}
+      </section>
+
+      {% if not error and picks %}
+
+      <div id="by-round-view">
+        {% for round_num in range(1, 16) %}
+        {% set round_picks = picks_by_round.get(round_num, []) %}
+        <section class="card">
+          <h3>Round {{ round_num }} (Picks {{ (round_num - 1) * 12 + 1 }}-{{ round_num * 12 }})</h3>
+          <table class="table compact">
+            <thead><tr><th>Pick</th><th>Team</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th></tr></thead>
+            <tbody>
+              {% for pick in round_picks %}
+              <tr>
+                <td class="number">{{ pick.pick }}</td>
+                <td class="wrap">{{ pick.team }}</td>
+                <td class="playerName">{{ pick.playerName }}</td>
+                <td><span class="pill pos-{{ pick.position|lower }}">{{ pick.position }}</span></td>
+                <td class="number">{{ pick.rank }}</td>
+                <td>{{ pick.nflTeam }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+        {% endfor %}
+      </div>
+
+      <div id="by-team-view" style="display: none;">
+        {% for team in picks_by_team.keys()|sort %}
+        {% set team_picks = picks_by_team.get(team, []) %}
+        <section class="card">
+          <h3>{{ team }}</h3>
+          <table class="table compact">
+            <thead><tr><th>Round</th><th>Overall Pick</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th></tr></thead>
+            <tbody>
+              {% for pick in team_picks %}
+              <tr>
+                <td class="number">{{ pick.round }}</td>
+                <td class="number">{{ pick.pick }}</td>
+                <td class="playerName">{{ pick.playerName }}</td>
+                <td><span class="pill pos-{{ pick.position|lower }}">{{ pick.position }}</span></td>
+                <td class="number">{{ pick.rank }}</td>
+                <td>{{ pick.nflTeam }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+        {% endfor %}
+      </div>
+
+      <script>
+      function toggleView(view) {
+        document.getElementById('by-round-view').style.display = view === 'by-round' ? 'block' : 'none';
+        document.getElementById('by-team-view').style.display = view === 'by-team' ? 'block' : 'none';
+      }
+      </script>
+
+      {% endif %}
+{% endblock %}
