@@ -75,6 +75,8 @@ from .mcp_client import (
     get_sync_roster,
     get_sync_draft_rankings,
     get_sync_standings,
+    get_sync_league_teams,
+    get_sync_all_team_rosters,
 )
 from .yahoo_scraper import scrape_roster, scrape_league_rosters, scrape_standings
 from .config import config
@@ -141,6 +143,9 @@ def parse_args() -> argparse.Namespace:
 
     save_roster_parser = subparsers.add_parser('save-roster', help='Fetch your Yahoo roster and store it locally')
     save_roster_parser.add_argument('access_token', nargs='?', default=None, help='Yahoo OAuth access token (optional when saved locally)')
+
+    fetch_league_rosters_parser = subparsers.add_parser('fetch-league-rosters-mcp', help='Fetch all team rosters in your league via MCP and store as league snapshot')
+    fetch_league_rosters_parser.add_argument('--output', default=str(YAHOO_LEAGUE_ROSTERS_JSON), help='Path to write the league roster snapshot')
 
     scrape_roster_parser = subparsers.add_parser('scrape-roster', help='Web scrape your Yahoo roster using Selenium and store it locally')
     scrape_roster_parser.add_argument('--headless', action='store_true', help='Run browser in headless mode (default: visible browser)')
@@ -759,6 +764,46 @@ def main() -> None:
         except Exception as e:
             print(f'Error saving roster: {e}', file=sys.stderr)
             print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+            sys.exit(1)
+        return
+
+    if args.command == 'fetch-league-rosters-mcp':
+        try:
+            leagues = get_sync_leagues()
+            if not leagues:
+                print('No leagues found. Make sure MCP server is running on localhost:8000', file=sys.stderr)
+                sys.exit(1)
+
+            league_id = leagues[0]['id']
+            print(f'Fetching all team rosters for league {league_id}...')
+            all_rosters = get_sync_all_team_rosters(league_id)
+
+            if not all_rosters:
+                print('No rosters found', file=sys.stderr)
+                sys.exit(1)
+
+            league_rosters = []
+            for team_key, (team_name, roster_players) in all_rosters.items():
+                team_roster = {
+                    'teamName': team_name,
+                    'playerCount': len(roster_players),
+                    'players': [player.__dict__ for player in roster_players],
+                }
+                league_rosters.append(team_roster)
+
+            output_path = Path(args.output)
+            ensure_parent_dir(output_path)
+            with open(output_path, 'w') as f:
+                json.dump(league_rosters, f, indent=2)
+
+            print(f'Saved {len(league_rosters)} team rosters to {args.output}')
+            for team_roster in league_rosters:
+                print(f"  {team_roster['teamName']}: {team_roster['playerCount']} players")
+        except Exception as e:
+            print(f'Error fetching league rosters: {e}', file=sys.stderr)
+            print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
             sys.exit(1)
         return
 

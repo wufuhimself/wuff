@@ -21,6 +21,9 @@ from .yahoo_client import (
     fetch_standings,
     fetch_user_leagues,
     fetch_games,
+    fetch_league_teams,
+    fetch_team_roster,
+    fetch_all_team_rosters,
 )
 
 logger = logging.getLogger(__name__)
@@ -164,4 +167,42 @@ def get_sync_keepers(league_id: str) -> List[YahooRosterPlayer]:
         return keepers or []
     except Exception as e:
         logger.error(f"Error fetching keepers: {e}")
+        raise
+
+
+def get_sync_league_teams(league_id: str) -> List[Dict[str, Any]]:
+    """
+    Get all teams in a league.
+
+    Args:
+        league_id: Yahoo league ID
+
+    Returns:
+        List of team dictionaries with team_key, team_id, name, manager_name
+    """
+    token = _get_access_token()
+    try:
+        teams = fetch_league_teams(token, league_id)
+        return teams or []
+    except Exception as e:
+        logger.error(f"Error fetching league teams: {e}")
+        raise
+
+
+def get_sync_all_team_rosters(league_id: str) -> Dict[str, tuple[str, List[YahooRosterPlayer]]]:
+    """
+    Get rosters for all teams in a league.
+
+    Args:
+        league_id: Yahoo league ID
+
+    Returns:
+        Dict mapping team_key to (team_name, roster_players)
+    """
+    token = _get_access_token()
+    try:
+        rosters = fetch_all_team_rosters(token, league_id)
+        return rosters or {}
+    except Exception as e:
+        logger.error(f"Error fetching all team rosters: {e}")
         raise

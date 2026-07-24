@@ -390,5 +390,59 @@ def fetch_standings(access_token: str, league_key: str) -> Optional[Dict[str, An
     }
 
 
+def fetch_league_teams(access_token: str, league_key: str) -> List[Dict[str, Any]]:
+    """Fetch all teams in a league.
+    Returns: [{'team_key': str, 'team_id': int, 'name': str, 'manager_name': str}, ...]"""
+    request_url = f"{BASE_URL}/league/{league_key}/teams?format=json"
+    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response.raise_for_status()
+    data = response.json()
+
+    teams = []
+    league_data = data.get('fantasy_content', {}).get('league', [])
+    if isinstance(league_data, list) and len(league_data) > 1:
+        teams_data = league_data[1]
+        if isinstance(teams_data, dict):
+            teams_list = teams_data.get('teams', [])
+            if isinstance(teams_list, list):
+                for team_item in teams_list:
+                    if isinstance(team_item, dict) and 'team' in team_item:
+                        team = team_item['team']
+                        teams.append({
+                            'team_key': team.get('team_key'),
+                            'team_id': team.get('team_id'),
+                            'name': team.get('name'),
+                            'manager_name': team.get('managers', [{}])[0].get('manager', {}).get('nickname', ''),
+                        })
+    return teams
+
+
+def fetch_team_roster(access_token: str, team_key: str) -> List[YahooRosterPlayer]:
+    """Fetch roster for a specific team by team_key."""
+    response = requests.get(f"{BASE_URL}/team/{team_key}/roster?format=json", headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response.raise_for_status()
+    return parse_yahoo_roster_players(response.json())
+
+
+def fetch_all_team_rosters(access_token: str, league_key: str) -> Dict[str, tuple[str, List[YahooRosterPlayer]]]:
+    """Fetch rosters for all teams in a league.
+    Returns: {team_key: (team_name, roster_players), ...}"""
+    teams = fetch_league_teams(access_token, league_key)
+    result = {}
+
+    for team in teams:
+        team_key = team.get('team_key')
+        team_name = team.get('name')
+        if team_key:
+            try:
+                roster = fetch_team_roster(access_token, team_key)
+                result[team_key] = (team_name, roster)
+            except Exception as e:
+                print(f"Error fetching roster for {team_name}: {e}", file=__import__('sys').stderr)
+                result[team_key] = (team_name, [])
+
+    return result
+
+
 if __name__ == '__main__':
     print('This module is intended to be imported by app.main')
