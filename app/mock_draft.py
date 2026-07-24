@@ -21,41 +21,28 @@ LEAGUE_STARTERS = {
 SUPERFLEX_ELIGIBLE = {'QB'}
 TOP_DEFENSES = {'SF', 'KC', 'BUF', 'DEN', 'BAL', 'TB'}  # Elite defenses worth drafting
 
-# Team name mappings (old draft history name → keeper prediction name)
-TEAM_NAME_MAPPING = {
-    'more like lamer jackson': 'Wuf',
-    'Balls Deep': 'BALLS DEEP',
-    'Look at all...': 'Look at all those Pickens',
-    'Big Dick Nic...': 'Kiss your Cousins',
-}
 
-
-def normalize_team_name(team: str) -> str:
-    """Map old team names from standings to current keeper prediction names."""
-    return TEAM_NAME_MAPPING.get(team, team)
-
-
-def load_keeper_predictions(filepath: Optional[Path] = None) -> Dict[str, List[str]]:
-    """Load keeper predictions CSV. Returns {team_name: [keeper1, keeper2]}."""
+def load_current_teams(filepath: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
+    """Load keeper predictions as canonical team source.
+    Returns {current_team_name: {manager, keeper1, keeper2}}"""
     if filepath is None:
         filepath = PROCESSED_DIR / 'keeper_predictions_2026.csv'
 
     if not filepath.exists():
-        raise FileNotFoundError(f'Keeper predictions not found: {filepath}')
+        return {}
 
-    keepers = {}
+    teams = {}
     with open(filepath, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
             team = row.get('Team', '').strip()
             if team:
-                keeper_names = [
-                    row.get('Keeper 1', '').strip(),
-                    row.get('Keeper 2', '').strip(),
-                ]
-                keepers[team] = [k for k in keeper_names if k]
-
-    return keepers
+                teams[team] = {
+                    'manager': row.get('Manager', '').strip(),
+                    'keeper1': row.get('Keeper 1', '').strip(),
+                    'keeper2': row.get('Keeper 2', '').strip(),
+                }
+    return teams
 
 
 def load_adjusted_rankings(filepath: Optional[Path] = None) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
@@ -82,11 +69,15 @@ def load_adjusted_rankings(filepath: Optional[Path] = None) -> Tuple[Dict[str, D
     return lookup, rankings
 
 
-def get_draft_order_2026(standings_year: int = 2025) -> List[str]:
-    """Derive 2026 draft order from 2025 standings (inverse, snake)."""
+def get_draft_order_2026(standings_year: int = 2025, current_teams: Optional[Dict] = None) -> List[str]:
+    """Derive 2026 draft order from standings (inverse, snake).
+    Uses current_teams to normalize standing team names to keeper prediction names."""
     standings_path = RAW_STANDINGS_DIR / f'{standings_year}.json'
     if not standings_path.exists():
         raise FileNotFoundError(f'Standings not found: {standings_path}')
+
+    if current_teams is None:
+        current_teams = load_current_teams()
 
     with open(standings_path, 'r') as f:
         data = json.load(f)
@@ -94,8 +85,30 @@ def get_draft_order_2026(standings_year: int = 2025) -> List[str]:
     standings = data.get('standings', [])
     standings = sorted(standings, key=lambda x: x.get('rank', 0))
 
+    # Map standings team names to keeper_predictions team names
+    # Standings may use old names (e.g., "more like lamer jackson" for "Wuf")
+    current_team_names = set(current_teams.keys())
+
+    def normalize_team(standings_team: str) -> str:
+        """Map standings team name to current name. Check standing notes for renames."""
+        if standings_team in current_team_names:
+            return standings_team
+        # Check if standings entry has a note about team rename
+        for entry in standings:
+            if entry.get('team') == standings_team:
+                note = entry.get('note', '')
+                if 'now displayed as' in note:
+                    # Extract new name from note (e.g., "This is the team now displayed as 'Wuf'.")
+                    import re
+                    match = re.search(r"displayed as '([^']+)'", note)
+                    if match:
+                        new_name = match.group(1)
+                        if new_name in current_team_names:
+                            return new_name
+        return standings_team
+
     # Reverse to get worst-first order, normalize team names
-    teams = [normalize_team_name(s.get('team', '')) for s in reversed(standings)]
+    teams = [normalize_team(s.get('team', '')) for s in reversed(standings)]
 
     # Apply snake order (15 rounds)
     draft_order = []
@@ -109,8 +122,9 @@ def get_draft_order_2026(standings_year: int = 2025) -> List[str]:
 
 
 def build_manager_profiles(rankings_lookup: Dict[str, Dict]) -> Dict[str, Dict[str, Dict[int, float]]]:
-    """Build manager personality profiles from historical draft data.
-    Returns {team: {position: {round: frequency}}}"""
+    """Build manager personality profiles from historical draft data (2022-2025).
+    Returns {team_name: {position: {round: frequency}}}
+    Note: profiles keyed by historical team names; caller should match current teams if needed."""
 
     profiles = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
     draft_history_dir = RAW_DRAFT_HISTORY_DIR
@@ -128,13 +142,16 @@ def build_manager_profiles(rankings_lookup: Dict[str, Dict]) -> Dict[str, Dict[s
 
         picks = data.get('picks', [])
         for pick in picks:
-            team = normalize_team_name(pick.get('team', ''))
+            team = pick.get('team', '')
             round_num = pick.get('round', 0)
             player = pick.get('playerName', '').lower().strip()
 
+            if not team:
+                continue
+
             # Look up position from rankings
             player_data = rankings_lookup.get(player)
-            if player_data and team:
+            if player_data:
                 pos = player_data.get('position', 'UNK')
                 if pos != 'UNK':
                     profiles[team][pos][round_num] += 1
@@ -339,9 +356,10 @@ def simulate_draft(
 
 def run_mock_draft() -> List[Dict[str, Any]]:
     """End-to-end: load data, simulate draft, return picks."""
-    keeper_predictions = load_keeper_predictions()
+    current_teams = load_current_teams()
+    keeper_predictions = {team: [v['keeper1'], v['keeper2']] for team, v in current_teams.items()}
     rankings_lookup, rankings_all = load_adjusted_rankings()
-    draft_order = get_draft_order_2026()
+    draft_order = get_draft_order_2026(current_teams=current_teams)
     manager_profiles = build_manager_profiles(rankings_lookup)
 
     mock_picks = simulate_draft(keeper_predictions, rankings_lookup, rankings_all, draft_order, manager_profiles)
