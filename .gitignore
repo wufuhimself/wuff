@@ -15,9 +15,7 @@ nfl_stats/
 data/raw/
 
 # Generated keeper/draft exports
-data/processed/keeper_exports/
-data/processed/draft_board_exports/
-data/processed/rankings_snapshots/
+data/processed/
 
 # Virtual environment
 .venv/

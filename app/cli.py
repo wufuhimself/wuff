@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -254,6 +256,8 @@ def parse_args() -> argparse.Namespace:
     keeper_strategy_parser.add_argument('team', help='Team name (e.g., "Wuf")')
 
     map_teams_parser = subparsers.add_parser('map-teams', help='Build owner identity mapping from draft slot consistency')
+
+    refresh_token_parser = subparsers.add_parser('refresh-oauth-token', help='Refresh expired Yahoo OAuth token using refresh token from .env')
 
     backfill_standings_mcp_parser = subparsers.add_parser('backfill-standings-mcp', help='Fetch historical standings (2020-current) via MCP and save locally')
     backfill_standings_mcp_parser.add_argument('--start-year', type=int, default=2020, help='Start year (default: 2020)')
@@ -1312,6 +1316,49 @@ def main() -> None:
                     print(f'    {year}: {name}')
         except Exception as e:
             print(f'Error mapping teams: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'refresh-oauth-token':
+        try:
+            refresh_tok = os.getenv('YAHOO_REFRESH_TOKEN')
+            if not refresh_tok:
+                print('Error: YAHOO_REFRESH_TOKEN not found in .env', file=sys.stderr)
+                sys.exit(1)
+
+            print('Refreshing Yahoo OAuth token...')
+            new_token = refresh_token(refresh_tok)
+
+            # Update .env file
+            env_file = Path('.env')
+            if env_file.exists():
+                with open(env_file, 'r') as f:
+                    env_content = f.read()
+
+                # Replace token lines
+                env_content = re.sub(
+                    r'YAHOO_ACCESS_TOKEN=.*',
+                    f'YAHOO_ACCESS_TOKEN={new_token.access_token}',
+                    env_content
+                )
+                env_content = re.sub(
+                    r'YAHOO_REFRESH_TOKEN=.*',
+                    f'YAHOO_REFRESH_TOKEN={new_token.refresh_token}',
+                    env_content
+                )
+
+                with open(env_file, 'w') as f:
+                    f.write(env_content)
+
+                print(f'✓ Token refreshed and saved to .env')
+                print(f'  Access token expires in: {new_token.expires_in} seconds')
+            else:
+                print('Error: .env file not found', file=sys.stderr)
+                sys.exit(1)
+        except Exception as e:
+            print(f'Error refreshing token: {e}', file=sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(1)

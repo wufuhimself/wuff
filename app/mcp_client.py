@@ -28,29 +28,21 @@ from .yahoo_client import (
 
 logger = logging.getLogger(__name__)
 
-# Load OAuth credentials from the Fantasy Football MCP server's .env
-MCP_ENV_PATH = Path(__file__).parent.parent.parent / "fantasy-football-mcp-public" / ".env"
-if MCP_ENV_PATH.exists():
-    load_dotenv(MCP_ENV_PATH)
-    YAHOO_ACCESS_TOKEN = os.getenv('YAHOO_ACCESS_TOKEN')
-else:
-    YAHOO_ACCESS_TOKEN = None
-
-if not YAHOO_ACCESS_TOKEN:
-    logger.warning(
-        f"No YAHOO_ACCESS_TOKEN found in {MCP_ENV_PATH}. "
-        "MCP client will not work. Make sure the Fantasy Football MCP server is configured."
-    )
-
-
 def _get_access_token() -> str:
-    """Get the current Yahoo access token."""
-    if not YAHOO_ACCESS_TOKEN:
+    """Get the current Yahoo access token from environment.
+
+    Loads fresh from .env each time to catch token refreshes.
+    """
+    # Reload from .env to catch recent token refreshes
+    load_dotenv(override=True)
+
+    token = os.getenv('YAHOO_ACCESS_TOKEN')
+    if not token:
         raise RuntimeError(
-            f"No Yahoo access token configured. "
-            f"Make sure {MCP_ENV_PATH} exists and has YAHOO_ACCESS_TOKEN set."
+            "No YAHOO_ACCESS_TOKEN found in .env. "
+            "Run 'python -m app refresh-oauth-token' to refresh the token."
         )
-    return YAHOO_ACCESS_TOKEN
+    return token
 
 
 def get_sync_leagues() -> List[Dict[str, Any]]:
@@ -66,13 +58,18 @@ def get_sync_leagues() -> List[Dict[str, Any]]:
     game_key = 'nfl'
 
     try:
-        # Try current year first, then previous year if no leagues found
+        # Try current year first, then previous year, then year before
         current_year = datetime.datetime.now().year
-        games = fetch_games(token, [current_year])
+        years_to_try = [current_year, current_year - 1, current_year - 2]
 
-        if not games:
-            # Try previous year if current year has no leagues
-            games = fetch_games(token, [current_year - 1])
+        games = None
+        for year in years_to_try:
+            try:
+                games = fetch_games(token, [year])
+                if games:
+                    break
+            except Exception:
+                continue
 
         if games:
             game_key = list(games.values())[0]
