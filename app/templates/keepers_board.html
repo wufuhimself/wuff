@@ -25,9 +25,11 @@
                 <th>Keeper 1</th>
                 <th>Pos</th>
                 <th>Rank</th>
+                <th>ADP</th>
                 <th>Keeper 2</th>
                 <th>Pos</th>
                 <th>Rank</th>
+                <th>ADP</th>
                 <th>Alternates</th>
               </tr>
             </thead>
@@ -40,15 +42,17 @@
                   <td>{{ team_data.keeper_1['PlayerName'] or '—' }}</td>
                   <td>{{ team_data.keeper_1['Position'] or '—' }}</td>
                   <td style="text-align: right;">{{ team_data.keeper_1['Ranking'] or '—' }}</td>
+                  <td style="text-align: right;">{% if team_data.keeper_1.get('ADP') %}{{ "%.1f"|format(team_data.keeper_1['ADP']) }}{% else %}—{% endif %}</td>
                 {% else %}
-                  <td>—</td><td>—</td><td>—</td>
+                  <td>—</td><td>—</td><td>—</td><td>—</td>
                 {% endif %}
                 {% if team_data.keeper_2 %}
                   <td>{{ team_data.keeper_2['PlayerName'] or '—' }}</td>
                   <td>{{ team_data.keeper_2['Position'] or '—' }}</td>
                   <td style="text-align: right;">{{ team_data.keeper_2['Ranking'] or '—' }}</td>
+                  <td style="text-align: right;">{% if team_data.keeper_2.get('ADP') %}{{ "%.1f"|format(team_data.keeper_2['ADP']) }}{% else %}—{% endif %}</td>
                 {% else %}
-                  <td>—</td><td>—</td><td>—</td>
+                  <td>—</td><td>—</td><td>—</td><td>—</td>
                 {% endif %}
                 <td>{% for alt in team_data.alternates[:2] %}{{ alt['PlayerName'] }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
               </tr>
@@ -101,7 +105,7 @@
         </span>
 
         {% if keeper_forecasts %}
-        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); margin-top: 1rem;">
+        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); margin-top: 1rem;">
           {% for forecast in keeper_forecasts %}
           <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc;">
             <h3 style="margin: 0 0 0.75rem 0; font-size: clamp(0.95rem, 3vw, 1.1rem);">{{ forecast.team }}</h3>
@@ -113,7 +117,7 @@
               <div style="margin-bottom: 0.5rem; padding: 0.6rem; background: {{ pos_bg.get(keeper.position, '#f0f0f0') }}; border-radius: 6px;">
                 <div style="font-weight: 600; margin-bottom: 0.2rem; color: {{ pos_color.get(keeper.position, '#333') }}; font-size: 0.95rem;">{{ keeper.playerName }} <span class="pill pos-{{ keeper.position.lower() }}">{{ keeper.position }}{{ keeper.posRank }}</span></div>
                 <div style="font-size: 0.75rem; color: {{ pos_color.get(keeper.position, '#333') }}; margin-top: 0.25rem;">
-                  {% if keeper.adp %}ADP {{ "%.0f"|format(keeper.adp) }}{% else %}No ADP{% endif %} · {{ keeper.reasoning }}
+                  {% if keeper.adp %}ADP {{ "%.0f"|format(keeper.adp) }}{% else %}No ADP{% endif %}{% if keeper.reasoning %} · {{ keeper.reasoning }}{% endif %}
                 </div>
               </div>
               {% endfor %}

@@ -386,7 +386,7 @@ def forecast_from_keeper_export(keeper_export_data, rankings=None):
                 'rank': ranking,
                 'posRank': pos_rank_num,
                 'confidence': 'high',  # Export is authoritative
-                'reasoning': f'From keeper export ({status})',
+                'reasoning': '',
                 'adp': adp,
             }
 
@@ -702,7 +702,24 @@ def keepers_board_view():
     if keeper_export_data:
         keeper_forecasts = forecast_from_keeper_export(keeper_export_data, rankings=rankings)
         organized_keeper_data = organize_keeper_export(keeper_export_data)
-        keeper_impact = []  # Don't calculate impact from export (no confidence data)
+        # Enrich keeper data with ADP as fallback (if available)
+        for team_data in organized_keeper_data.values():
+            for player_dict in [team_data.get('keeper_1'), team_data.get('keeper_2')] + team_data.get('alternates', []):
+                if player_dict:
+                    player_name = player_dict.get('PlayerName', '').lower()
+                    if player_name in adp_map:
+                        player_dict['ADP'] = adp_map[player_name]
+        # Also enrich keeper forecasts with ADP
+        for forecast in keeper_forecasts:
+            for keeper in forecast.get('keepers', []):
+                player_name = keeper.get('playerName', '').lower()
+                if player_name in adp_map:
+                    keeper['adp'] = adp_map[player_name]
+            for alt in forecast.get('alternates', []):
+                player_name = alt.get('playerName', '').lower()
+                if player_name in adp_map:
+                    alt['adp'] = adp_map[player_name]
+        keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
     else:
         keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
         keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
