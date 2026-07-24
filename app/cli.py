@@ -24,6 +24,7 @@ from .rankings_csv import load_rankings_csv
 from .rankings_pdf import load_rankings_pdf
 from .rankings_aggregator import aggregate_rankings, fetch_rankings_from_site
 from .rankings_manager import combine_and_save_all as combine_rankings_all
+from .ranking_adjustments import adjust_and_export as adjust_rankings
 from .feature_table import build_and_save_feature_table
 from .fantasypros_manager import (
     fetch_and_save_rankings as fantasypros_fetch_rankings,
@@ -68,6 +69,12 @@ from .yahoo_client import (
     get_yahoo_auth_url,
     refresh_token,
     set_lineup,
+)
+from .mcp_client import (
+    get_sync_leagues,
+    get_sync_roster,
+    get_sync_draft_rankings,
+    get_sync_standings,
 )
 from .yahoo_scraper import scrape_roster, scrape_league_rosters, scrape_standings
 from .config import config
@@ -221,6 +228,9 @@ def parse_args() -> argparse.Namespace:
     combine_rankings_parser = subparsers.add_parser('combine-rankings', help='Merge all ranking sources (CSV/JSON) into a single normalized file')
     combine_rankings_parser.add_argument('--output', default=None, help='Output file path (default: data/raw/rankings/rankings_combined.json)')
 
+    adjust_rankings_parser = subparsers.add_parser('adjust-rankings', help='Apply rule-based adjustments to combined rankings (e.g., QB rushing thresholds)')
+    adjust_rankings_parser.add_argument('--config', default=None, help='Path to board_adjustments.json config file (default: data/config/board_adjustments.json)')
+
     fantasypros_rankings_parser = subparsers.add_parser('fantasypros-rankings', help='Fetch consensus rankings from FantasyPros API (requires FANTASYPROS_API_KEY env var)')
     fantasypros_rankings_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
     fantasypros_rankings_parser.add_argument('--sport', default='NFL', help='Sport (NFL, MLB, NBA, NHL, PGA, NCAAF; default: NFL)')
@@ -283,9 +293,20 @@ def load_saved_or_api_roster(access_token: str | None) -> tuple[List[YahooRoster
     if roster_players:
         return roster_players, True
 
-    access_token = resolve_access_token(access_token)
-    roster_players = fetch_yahoo_roster_players(access_token)
-    return roster_players, False
+    # Use MCP client to fetch roster (no access_token needed)
+    try:
+        leagues = get_sync_leagues()
+        if not leagues:
+            print('No leagues found. Make sure MCP server is running on localhost:8000', file=sys.stderr)
+            sys.exit(1)
+
+        league_id = leagues[0]['id']
+        roster_players = get_sync_roster(league_id)
+        return roster_players, False
+    except Exception as e:
+        print(f'Error fetching roster from MCP server: {e}', file=sys.stderr)
+        print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+        sys.exit(1)
 
 
 def parse_lineup_json(lineup_json: str) -> List[Dict[str, str]]:
@@ -561,17 +582,37 @@ def main() -> None:
 
     if args.command == 'yahoo-rankings':
         keepers = build_keepers(args.keeper)
-        access_token = resolve_access_token(args.access_token)
-        yahoo_rankings = fetch_yahoo_rankings(access_token)
-        aggregated = aggregate_rankings(yahoo_rankings, keepers)
-        print(json.dumps(aggregated[:100], indent=2))
+        try:
+            leagues = get_sync_leagues()
+            if not leagues:
+                print('No leagues found. Make sure MCP server is running on localhost:8000', file=sys.stderr)
+                sys.exit(1)
+
+            league_id = leagues[0]['id']
+            yahoo_rankings = get_sync_draft_rankings(league_id)
+            aggregated = aggregate_rankings(yahoo_rankings, keepers)
+            print(json.dumps(aggregated[:100], indent=2))
+        except Exception as e:
+            print(f'Error fetching Yahoo rankings: {e}', file=sys.stderr)
+            print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+            sys.exit(1)
         return
 
     if args.command == 'refresh-yahoo-rankings':
-        access_token = resolve_access_token(None)
-        rankings = fetch_yahoo_rankings(access_token, count=args.count)
-        save_yahoo_rankings(rankings)
-        print(f'Saved {len(rankings)} Yahoo rankings to data/raw/rankings/yahoo_rankings.json')
+        try:
+            leagues = get_sync_leagues()
+            if not leagues:
+                print('No leagues found. Make sure MCP server is running on localhost:8000', file=sys.stderr)
+                sys.exit(1)
+
+            league_id = leagues[0]['id']
+            rankings = get_sync_draft_rankings(league_id)
+            save_yahoo_rankings(rankings)
+            print(f'Saved {len(rankings)} Yahoo rankings to data/raw/rankings/yahoo_rankings.json')
+        except Exception as e:
+            print(f'Error refreshing Yahoo rankings: {e}', file=sys.stderr)
+            print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+            sys.exit(1)
         return
 
     if args.command == 'import-rankings-csv':
@@ -689,16 +730,36 @@ def main() -> None:
         return
 
     if args.command == 'yahoo-roster':
-        access_token = resolve_access_token(args.access_token)
-        roster_players = fetch_yahoo_roster_players(access_token)
-        print(json.dumps([player.__dict__ for player in roster_players], indent=2))
+        try:
+            leagues = get_sync_leagues()
+            if not leagues:
+                print('No leagues found. Make sure MCP server is running on localhost:8000', file=sys.stderr)
+                sys.exit(1)
+
+            league_id = leagues[0]['id']
+            roster_players = get_sync_roster(league_id)
+            print(json.dumps([player.__dict__ for player in roster_players], indent=2))
+        except Exception as e:
+            print(f'Error fetching roster: {e}', file=sys.stderr)
+            print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+            sys.exit(1)
         return
 
     if args.command == 'save-roster':
-        access_token = resolve_access_token(args.access_token)
-        roster_players = fetch_yahoo_roster_players(access_token)
-        save_roster([player.__dict__ for player in roster_players])
-        print(f'Saved {len(roster_players)} roster players to data/raw/rosters/yahoo_roster.json')
+        try:
+            leagues = get_sync_leagues()
+            if not leagues:
+                print('No leagues found. Make sure MCP server is running on localhost:8000', file=sys.stderr)
+                sys.exit(1)
+
+            league_id = leagues[0]['id']
+            roster_players = get_sync_roster(league_id)
+            save_roster([player.__dict__ for player in roster_players])
+            print(f'Saved {len(roster_players)} roster players to data/raw/rosters/yahoo_roster.json')
+        except Exception as e:
+            print(f'Error saving roster: {e}', file=sys.stderr)
+            print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+            sys.exit(1)
         return
 
     if args.command == 'scrape-roster':
@@ -748,9 +809,21 @@ def main() -> None:
         return
 
     if args.command == 'yahoo-keepers':
-        access_token = resolve_access_token(args.access_token)
-        keepers = fetch_yahoo_keepers(access_token)
-        print(json.dumps([player.__dict__ for player in keepers], indent=2))
+        try:
+            leagues = get_sync_leagues()
+            if not leagues:
+                print('No leagues found. Make sure MCP server is running on localhost:8000', file=sys.stderr)
+                sys.exit(1)
+
+            league_id = leagues[0]['id']
+            roster = get_sync_roster(league_id)
+            # Filter to keeper-eligible players
+            keepers = [p for p in roster if p.keeperEligibleOverride is not False]
+            print(json.dumps([player.__dict__ for player in keepers], indent=2))
+        except Exception as e:
+            print(f'Error fetching keepers: {e}', file=sys.stderr)
+            print('Make sure FastMCP server is running: python3 fastmcp_server.py', file=sys.stderr)
+            sys.exit(1)
         return
 
     if args.command == 'roster-raw':
@@ -1091,6 +1164,19 @@ def main() -> None:
                 print(f'Also copied to {args.output}')
         except Exception as e:
             print(f'Error combining rankings: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'adjust-rankings':
+        try:
+            config_path = Path(args.config) if args.config else None
+            json_path, csv_path = adjust_rankings(config_path)
+            print(f'Adjusted rankings saved to {json_path}')
+            print(f'Comparison CSV saved to {csv_path}')
+        except Exception as e:
+            print(f'Error adjusting rankings: {e}', file=sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(1)

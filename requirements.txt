@@ -5,3 +5,4 @@ beautifulsoup4
 cryptography
 nflreadpy
 pdfplumber
+httpx
