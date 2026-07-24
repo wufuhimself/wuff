@@ -21,6 +21,16 @@ LEAGUE_STARTERS = {
 SUPERFLEX_ELIGIBLE = {'QB'}
 TOP_DEFENSES = {'SF', 'KC', 'BUF', 'DEN', 'BAL', 'TB'}  # Elite defenses worth drafting
 
+# Draft position limits (soft caps with scoring penalties)
+POSITION_LIMITS = {
+    'QB': 3,
+    'RB': 7,  # No strict limit, but penalized heavily past this
+    'WR': 7,  # No strict limit, but penalized heavily past this
+    'TE': 2,
+    'DST': 1,
+    'K': 0,   # Never draft kicker
+}
+
 
 def load_current_teams(filepath: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
     """Load keeper predictions as canonical team source.
@@ -214,6 +224,7 @@ def score_pick(
     manager_profiles: Dict[str, Dict[str, Dict[int, float]]],
     te_taken_by_team: bool,
     def_ranking: int,
+    position_counts: Dict[str, int],
 ) -> float:
     """Score a player for this team/round. Higher = better pick."""
 
@@ -234,16 +245,34 @@ def score_pick(
     # Tiebreak 3: TE enforcement (if no TE yet by round 6, boost TE heavily)
     te_boost = 0
     if round_num <= 6 and not te_taken_by_team and pos == 'TE':
-        te_boost = 15.0  # Significant boost to force TE pick
+        te_boost = 15.0
 
     # Tiebreak 4: Elite defenses in late rounds (round 12+)
     def_boost = 0
     if round_num >= 12 and pos == 'DST':
         nfl_team = player.get('team', '')
         if nfl_team in TOP_DEFENSES:
-            def_boost = 8.0  # Boost for elite defenses late
+            def_boost = 8.0
 
-    composite = rank_score + (pos_need * 2.0) + (team_pref * 3.0) + te_boost + def_boost
+    # Position limit penalties: reduce score if team has reached limit
+    position_penalty = 0
+    pos_limit = POSITION_LIMITS.get(pos, 999)
+    pos_count = position_counts.get(pos, 0)
+
+    if pos == 'K':
+        # Never draft kicker
+        position_penalty = -1000
+    elif pos_count >= pos_limit:
+        # Heavy penalty if at or over limit (rare exceptions allowed)
+        position_penalty = -80 - (pos_count - pos_limit) * 30
+    elif pos_count == pos_limit - 1:
+        # Medium penalty at limit-1
+        position_penalty = -25
+    elif pos_count >= pos_limit - 2 and pos in ['QB', 'TE']:
+        # Soft penalty approaching limit for key positions
+        position_penalty = -5
+
+    composite = rank_score + (pos_need * 2.0) + (team_pref * 3.0) + te_boost + def_boost + position_penalty
     return composite
 
 
@@ -260,6 +289,7 @@ def simulate_draft(
     taken_players = set()
     taken_by_team = defaultdict(list)
     te_taken_by_team = defaultdict(bool)
+    position_counts = defaultdict(lambda: defaultdict(int))  # {team: {position: count}}
 
     # Seed taken players with keepers (will be in rounds 14-15, but block early drafting)
     keepers_to_add = {}
@@ -291,19 +321,23 @@ def simulate_draft(
             taken_players.add(player_key)
             taken_by_team[team].append(player_key)
 
+            keeper_pos = keeper.get('position', 'UNK')
             mock_picks.append({
                 'round': round_num,
                 'pick': pick_num,
                 'pickInRound': (pick_num - 1) % 12 + 1,
                 'team': team,
                 'playerName': keeper.get('playerName', ''),
-                'position': keeper.get('position', 'UNK'),
+                'position': keeper_pos,
                 'rank': keeper.get('adjustedRank', keeper.get('ranking', 0)),
                 'nflTeam': keeper.get('team', ''),
                 'isKeeper': True,
             })
 
-            if keeper.get('position') == 'TE':
+            if keeper_pos != 'UNK':
+                position_counts[team][keeper_pos] += 1
+
+            if keeper_pos == 'TE':
                 te_taken_by_team[team] = True
 
             continue
@@ -324,7 +358,7 @@ def simulate_draft(
 
             def_ranking = player.get('ranking', 999)
             score = score_pick(player, team, round_num, position_needs, manager_profiles,
-                              te_taken_by_team[team], def_ranking)
+                              te_taken_by_team[team], def_ranking, position_counts[team])
 
             if score > best_score:
                 best_score = score
@@ -336,6 +370,10 @@ def simulate_draft(
             taken_by_team[team].append(player_key)
 
             pos = best_player.get('position', 'UNK')
+
+            if pos != 'UNK':
+                position_counts[team][pos] += 1
+
             if pos == 'TE':
                 te_taken_by_team[team] = True
 
