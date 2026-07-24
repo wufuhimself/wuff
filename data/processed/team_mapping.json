@@ -1,0 +1,130 @@
+{
+  "owner_mapping": {
+    "owner_01": {
+      "standing_position": 1,
+      "names_by_year": {
+        "2024": "Look at all those Pickens",
+        "2025": "Look at all those Pickens"
+      },
+      "all_names": [
+        "Look at all those Pickens"
+      ]
+    },
+    "owner_02": {
+      "standing_position": 2,
+      "names_by_year": {
+        "2024": "yay SN",
+        "2025": "yay SN"
+      },
+      "all_names": [
+        "yay SN"
+      ]
+    },
+    "owner_03": {
+      "standing_position": 3,
+      "names_by_year": {
+        "2024": "Uncle Nico",
+        "2025": "Uncle Nico"
+      },
+      "all_names": [
+        "Uncle Nico"
+      ]
+    },
+    "owner_04": {
+      "standing_position": 4,
+      "names_by_year": {
+        "2024": "the watergirl",
+        "2025": "the watergirl"
+      },
+      "all_names": [
+        "the watergirl"
+      ]
+    },
+    "owner_05": {
+      "standing_position": 5,
+      "names_by_year": {
+        "2024": "your waterbroke girl",
+        "2025": "your waterbroke girl"
+      },
+      "all_names": [
+        "your waterbroke girl"
+      ]
+    },
+    "owner_06": {
+      "standing_position": 6,
+      "names_by_year": {
+        "2024": "Jordan Poops Blood",
+        "2025": "Jordan Poops Blood"
+      },
+      "all_names": [
+        "Jordan Poops Blood"
+      ]
+    },
+    "owner_07": {
+      "standing_position": 7,
+      "names_by_year": {
+        "2024": "Half Bakered",
+        "2025": "more like lamer jackson"
+      },
+      "all_names": [
+        "Half Bakered",
+        "more like lamer jackson"
+      ]
+    },
+    "owner_08": {
+      "standing_position": 8,
+      "names_by_year": {
+        "2024": "more like lamer jackson",
+        "2025": "AI-ex Gonna Take My Job"
+      },
+      "all_names": [
+        "AI-ex Gonna Take My Job",
+        "more like lamer jackson"
+      ]
+    },
+    "owner_09": {
+      "standing_position": 9,
+      "names_by_year": {
+        "2024": "AI-ex Gonna Take My Job",
+        "2025": "Half Bakered"
+      },
+      "all_names": [
+        "AI-ex Gonna Take My Job",
+        "Half Bakered"
+      ]
+    },
+    "owner_10": {
+      "standing_position": 10,
+      "names_by_year": {
+        "2024": "BALLS DEEP",
+        "2025": "Kiss your Cousins"
+      },
+      "all_names": [
+        "BALLS DEEP",
+        "Kiss your Cousins"
+      ]
+    },
+    "owner_11": {
+      "standing_position": 11,
+      "names_by_year": {
+        "2024": "Purdy Kewl",
+        "2025": "Purdy Kewl"
+      },
+      "all_names": [
+        "Purdy Kewl"
+      ]
+    },
+    "owner_12": {
+      "standing_position": 12,
+      "names_by_year": {
+        "2024": "Kiss your Cousins",
+        "2025": "BALLS DEEP"
+      },
+      "all_names": [
+        "BALLS DEEP",
+        "Kiss your Cousins"
+      ]
+    }
+  },
+  "notes": "Team names by owner/standing position. Same standing position = same owner across years."
+}

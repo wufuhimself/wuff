@@ -30,6 +30,12 @@ from .keeper_history import (
     load_keeper_history,
     get_team_keeper_strategy,
 )
+from .team_mapper import (
+    save_team_mapping,
+    load_team_mapping,
+    get_owner_by_team_name,
+    get_team_names_for_owner,
+)
 from .feature_table import build_and_save_feature_table
 from .fantasypros_manager import (
     fetch_and_save_rankings as fantasypros_fetch_rankings,
@@ -245,6 +251,8 @@ def parse_args() -> argparse.Namespace:
 
     keeper_strategy_parser = subparsers.add_parser('keeper-strategy', help='Show a team\'s historical keeper strategy')
     keeper_strategy_parser.add_argument('team', help='Team name (e.g., "Wuf")')
+
+    map_teams_parser = subparsers.add_parser('map-teams', help='Build owner identity mapping from draft slot consistency')
 
     fantasypros_rankings_parser = subparsers.add_parser('fantasypros-rankings', help='Fetch consensus rankings from FantasyPros API (requires FANTASYPROS_API_KEY env var)')
     fantasypros_rankings_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
@@ -1278,6 +1286,27 @@ def main() -> None:
             sys.exit(1)
         except Exception as e:
             print(f'Error analyzing keeper strategy: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'map-teams':
+        try:
+            output_path = save_team_mapping()
+            print(f'Team mapping saved to {output_path}')
+
+            mapping = load_team_mapping(output_path)
+            print(f'\nTeam identity mapping ({len(mapping)} owners):')
+            for owner_id in sorted(mapping.keys()):
+                owner_data = mapping[owner_id]
+                names = owner_data.get('all_names', [])
+                print(f'  {owner_id} (slot {owner_data.get("standing_position")}):')
+                for year in sorted(owner_data.get('names_by_year', {}).keys()):
+                    name = owner_data['names_by_year'][year]
+                    print(f'    {year}: {name}')
+        except Exception as e:
+            print(f'Error mapping teams: {e}', file=sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(1)
