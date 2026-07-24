@@ -280,12 +280,12 @@ def list_keeper_exports():
 
 
 def load_keeper_export(filename: str):
-    """Load keeper export CSV by filename. Returns list of dicts."""
+    """Load keeper export CSV by filename. Returns dict of team -> list of dicts."""
     exports_dir = PROCESSED_DIR / 'keeper_exports'
     csv_path = exports_dir / filename
 
     if not csv_path.exists():
-        return []
+        return {}
 
     keepers_by_team = {}
     with open(csv_path, 'r') as f:
@@ -297,6 +297,35 @@ def load_keeper_export(filename: str):
             keepers_by_team[team].append(row)
 
     return keepers_by_team
+
+
+def organize_keeper_export(keeper_export_data):
+    """Organize keeper export into structured format for template display.
+
+    Returns: dict of team -> {'keeper_1': row, 'keeper_2': row, 'alternates': [rows]}
+    """
+    organized = {}
+    for team, rows in keeper_export_data.items():
+        keeper_1 = None
+        keeper_2 = None
+        alternates = []
+
+        for row in rows:
+            status = row.get('Status', '')
+            if status == 'Keeper 1':
+                keeper_1 = row
+            elif status == 'Keeper 2':
+                keeper_2 = row
+            elif status.startswith('Alt'):
+                alternates.append(row)
+
+        organized[team] = {
+            'keeper_1': keeper_1,
+            'keeper_2': keeper_2,
+            'alternates': alternates,
+        }
+
+    return organized
 
 
 def forecast_from_keeper_export(keeper_export_data, rankings=None):
@@ -669,8 +698,10 @@ def keepers_board_view():
     board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
 
     # Use export-derived forecast if keeper export is loaded, otherwise compute from per_team
+    organized_keeper_data = None
     if keeper_export_data:
         keeper_forecasts = forecast_from_keeper_export(keeper_export_data, rankings=rankings)
+        organized_keeper_data = organize_keeper_export(keeper_export_data)
         keeper_impact = []  # Don't calculate impact from export (no confidence data)
     else:
         keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
@@ -682,7 +713,7 @@ def keepers_board_view():
         keeper_insight=keeper_insight,
         my_team=my_team, team_names=team_names, error=None,
         keeper_versions=keeper_versions, selected_version=selected_version,
-        keeper_export_data=keeper_export_data,
+        keeper_export_data=organized_keeper_data,
     )
 
 
