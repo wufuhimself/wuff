@@ -31,6 +31,7 @@ from .keeper_history import (
     save_keeper_history,
     load_keeper_history,
     get_team_keeper_strategy,
+    save_manager_profiles_with_keepers,
 )
 from .team_mapper import (
     save_team_mapping,
@@ -251,6 +252,8 @@ def parse_args() -> argparse.Namespace:
     adjust_rankings_parser.add_argument('--config', default=None, help='Path to board_adjustments.json config file (default: data/config/board_adjustments.json)')
 
     extract_keeper_history_parser = subparsers.add_parser('extract-keeper-history', help='Extract historical keeper selections from draft history (2020-2025)')
+
+    manager_profiles_parser = subparsers.add_parser('manager-keeper-history', help='Generate manager profiles with historical keeper data by comparing rosters year-to-year')
 
     keeper_strategy_parser = subparsers.add_parser('keeper-strategy', help='Show a team\'s historical keeper strategy')
     keeper_strategy_parser.add_argument('team', help='Team name (e.g., "Wuf")')
@@ -1269,6 +1272,27 @@ def main() -> None:
                     print(f'    {year}: {", ".join(players)}')
         except Exception as e:
             print(f'Error extracting keeper history: {e}', file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+        return
+
+    if args.command == 'manager-keeper-history':
+        try:
+            output_path = save_manager_profiles_with_keepers()
+            print(f'Manager profiles with keeper history saved to {output_path}')
+
+            with open(output_path) as f:
+                profiles = json.load(f)
+
+            # Show summary
+            print(f'\nGenerated profiles for {sum(len(p) for p in profiles.values())} manager-years')
+            for year in sorted(profiles.keys(), reverse=True):
+                year_profiles = profiles[year]
+                keepers_count = sum(1 for p in year_profiles if 'keepers_by_year' in p)
+                print(f'  {year}: {len(year_profiles)} teams, {keepers_count} with keeper history')
+        except Exception as e:
+            print(f'Error generating manager profiles: {e}', file=sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(1)
