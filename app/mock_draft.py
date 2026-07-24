@@ -21,14 +21,16 @@ LEAGUE_STARTERS = {
 SUPERFLEX_ELIGIBLE = {'QB'}
 TOP_DEFENSES = {'SF', 'KC', 'BUF', 'DEN', 'BAL', 'TB'}  # Elite defenses worth drafting
 
-# Draft position limits (soft caps with scoring penalties)
+# Draft position limits: teams won't exceed these, but still draft BPA (best player available)
+# If a team hits a position limit, that position's players get heavy scoring penalty,
+# making the next-best available player (different position) more attractive.
 POSITION_LIMITS = {
-    'QB': 3,
-    'RB': 7,  # No strict limit, but penalized heavily past this
-    'WR': 7,  # No strict limit, but penalized heavily past this
-    'TE': 2,
-    'DST': 1,
-    'K': 0,   # Never draft kicker
+    'QB': 3,   # Cover starter + SUPERFLEX depth
+    'RB': 7,   # No hard limit (but penalized past 7)
+    'WR': 7,   # No hard limit (but penalized past 7)
+    'TE': 2,   # Cover starter + backup
+    'DST': 1,  # Defense starter only
+    'K': 0,    # Never draft kicker (league dropped K in 2024)
 }
 
 
@@ -254,22 +256,24 @@ def score_pick(
         if nfl_team in TOP_DEFENSES:
             def_boost = 8.0
 
-    # Position limit penalties: reduce score if team has reached limit
+    # Position limit penalties: penalize positions team has maxed out.
+    # This makes maxed-out positions unattractive, so BPA shifts to available positions.
+    # E.g., if team at 3 QBs, a rank-10 QB gets -80 penalty → rank-20 RB looks better.
     position_penalty = 0
     pos_limit = POSITION_LIMITS.get(pos, 999)
     pos_count = position_counts.get(pos, 0)
 
     if pos == 'K':
-        # Never draft kicker
+        # Never draft kicker (league has no K slot)
         position_penalty = -1000
     elif pos_count >= pos_limit:
-        # Heavy penalty if at or over limit (rare exceptions allowed)
+        # Team at or over limit: heavy penalty (discourages this position)
         position_penalty = -80 - (pos_count - pos_limit) * 30
     elif pos_count == pos_limit - 1:
-        # Medium penalty at limit-1
+        # Team at limit-1: medium penalty (warns away from this position)
         position_penalty = -25
     elif pos_count >= pos_limit - 2 and pos in ['QB', 'TE']:
-        # Soft penalty approaching limit for key positions
+        # Key positions: soft penalty approaching limit
         position_penalty = -5
 
     composite = rank_score + (pos_need * 2.0) + (team_pref * 3.0) + te_boost + def_boost + position_penalty
