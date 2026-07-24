@@ -5,7 +5,7 @@
         <h2>Mock Draft 2026</h2>
         {% if error %}<p class="error">{{ error }}</p>{% endif %}
         {% if not error %}
-        <p class="status">Forecast based on keeper predictions, adjusted rankings, position needs, and historical team draft patterns.</p>
+        <p class="status">Forecast based on keeper predictions, adjusted rankings, position needs, manager tendencies (2022-2025), and TE/DEF strategy.</p>
         <div style="margin-bottom: 1rem;">
           <button class="button" onclick="toggleView('by-round')">View by Round</button>
           <button class="button" onclick="toggleView('by-team')">View by Team</button>
@@ -19,18 +19,19 @@
         {% for round_num in range(1, 16) %}
         {% set round_picks = picks_by_round.get(round_num, []) %}
         <section class="card">
-          <h3>Round {{ round_num }} (Picks {{ (round_num - 1) * 12 + 1 }}-{{ round_num * 12 }})</h3>
+          <h3>Round {{ round_num }} (Picks {{ (round_num - 1) * 12 + 1 }}-{{ round_num * 12 }}){% if round_num >= 14 %} — Keeper Slots{% endif %}</h3>
           <table class="table compact">
-            <thead><tr><th>Pick</th><th>Team</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th></tr></thead>
+            <thead><tr><th>Pick</th><th>Team</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
             <tbody>
               {% for pick in round_picks %}
-              <tr>
+              <tr{% if pick.isKeeper %} class="my-pick"{% endif %}>
                 <td class="number">{{ pick.pick }}</td>
                 <td class="wrap">{{ pick.team }}</td>
                 <td class="playerName">{{ pick.playerName }}</td>
                 <td><span class="pill pos-{{ pick.position|lower }}">{{ pick.position }}</span></td>
                 <td class="number">{{ pick.rank }}</td>
                 <td>{{ pick.nflTeam }}</td>
+                <td><span class="pill">{% if pick.isKeeper %}Keeper{% else %}Draft{% endif %}</span></td>
               </tr>
               {% endfor %}
             </tbody>
@@ -45,16 +46,17 @@
         <section class="card">
           <h3>{{ team }}</h3>
           <table class="table compact">
-            <thead><tr><th>Round</th><th>Overall Pick</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th></tr></thead>
+            <thead><tr><th>Round</th><th>Overall Pick</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
             <tbody>
               {% for pick in team_picks %}
-              <tr>
+              <tr{% if pick.isKeeper %} class="my-pick"{% endif %}>
                 <td class="number">{{ pick.round }}</td>
                 <td class="number">{{ pick.pick }}</td>
                 <td class="playerName">{{ pick.playerName }}</td>
                 <td><span class="pill pos-{{ pick.position|lower }}">{{ pick.position }}</span></td>
                 <td class="number">{{ pick.rank }}</td>
                 <td>{{ pick.nflTeam }}</td>
+                <td><span class="pill">{% if pick.isKeeper %}Keeper{% else %}Draft{% endif %}</span></td>
               </tr>
               {% endfor %}
             </tbody>
