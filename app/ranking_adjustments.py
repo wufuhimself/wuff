@@ -79,8 +79,8 @@ def normalize_name(name: str) -> str:
 def apply_name_rule(
     player: Dict[str, Any],
     rule: Dict[str, Any],
-    qb_rushing: Dict[str, int],
-    rookie_qbs: Set[str],
+    _qb_rushing: Dict[str, int],
+    _rookie_qbs: Set[str],
 ) -> Optional[int]:
     """Apply player_name rule if matches."""
     if rule.get('type') != 'player_name':
@@ -124,7 +124,7 @@ def apply_position_and_rushing_rule(
     player: Dict[str, Any],
     rule: Dict[str, Any],
     qb_rushing: Dict[str, int],
-    rookie_qbs: Set[str],
+    _rookie_qbs: Set[str],
 ) -> Optional[int]:
     """Apply position_and_rushing rule if matches."""
     if rule.get('type') != 'position_and_rushing':

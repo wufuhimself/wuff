@@ -71,8 +71,8 @@ def build_owner_identity_map() -> Dict[str, Dict[str, any]]:
             pass
 
     # Convert sets to sorted lists
-    for owner_id in owner_map:
-        owner_map[owner_id]['all_names'] = sorted(list(owner_map[owner_id]['all_names']))
+    for owner_data in owner_map.values():
+        owner_data['all_names'] = sorted(owner_data['all_names'])
 
     return owner_map
 

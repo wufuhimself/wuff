@@ -11,7 +11,7 @@ def _clean_player_name(raw_name: str) -> str:
     return cleaned
 
 
-def _extract_nfl_team(player_name: str, position: str, rankings: List[Dict[str, Any]]) -> str:
+def _extract_nfl_team(player_name: str, rankings: List[Dict[str, Any]]) -> str:
     """Look up player in rankings to find NFL team, fallback to 'UNK'."""
     normalized_name = ' '.join(player_name.strip().lower().split())
     for item in rankings:
@@ -50,7 +50,8 @@ def parse_yahoo_text_rosters(text: str, rankings: Optional[List[Dict[str, Any]]]
             continue
 
         # Detect team header (lines that look like team names, not "Pos" or "Player")
-        if line and not line.startswith('Pos') and not line.startswith('Player') and not line.startswith('Cost') and not line.startswith('Final'):
+        skip_prefixes = ('Pos', 'Player', 'Cost', 'Final')
+        if line and not line.startswith(skip_prefixes):
             # Check if this might be a team name (next non-empty line should be "Pos")
             j = i + 1
             while j < len(lines) and not lines[j].strip():
@@ -94,7 +95,7 @@ def parse_yahoo_text_rosters(text: str, rankings: Optional[List[Dict[str, Any]]]
                 display_pos = position
 
             # Look up NFL team
-            nfl_team = _extract_nfl_team(player_name, display_pos, rankings)
+            nfl_team = _extract_nfl_team(player_name, rankings)
 
             current_players.append({
                 'playerId': player_name,

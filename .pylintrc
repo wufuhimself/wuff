@@ -16,6 +16,8 @@ disable=
     broad-exception-caught,
     import-outside-toplevel,
     duplicate-code,
+    too-many-instance-attributes,
+    too-many-lines,
 
 [FORMAT]
 max-line-length=140

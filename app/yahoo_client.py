@@ -39,7 +39,7 @@ class YahooRosterPlayer:  # pylint: disable=invalid-name
 
 
 @dataclass
-class LineupSlot:
+class LineupSlot:  # pylint: disable=invalid-name
     position: str
     playerId: str
     playerName: str
@@ -78,6 +78,19 @@ def find_players_array(node: Any) -> Optional[List[Any]]:
     return None
 
 
+def _parse_numeric_from_dict(node: Dict[Any, Any], field_names: List[str]) -> Optional[int]:
+    for key, value in node.items():
+        normalized = key.lower()
+        if any(field_name in normalized for field_name in field_names):
+            candidate = parse_numeric_field(value, field_names)
+            if candidate is not None:
+                return candidate
+        nested = parse_numeric_field(value, field_names)
+        if nested is not None:
+            return nested
+    return None
+
+
 def parse_numeric_field(node: Any, field_names: List[str]) -> Optional[int]:
     if node is None:
         return None
@@ -92,15 +105,7 @@ def parse_numeric_field(node: Any, field_names: List[str]) -> Optional[int]:
             if result is not None:
                 return result
     if isinstance(node, dict):
-        for key, value in node.items():
-            normalized = key.lower()
-            if any(field_name in normalized for field_name in field_names):
-                candidate = parse_numeric_field(value, field_names)
-                if candidate is not None:
-                    return candidate
-            nested = parse_numeric_field(value, field_names)
-            if nested is not None:
-                return nested
+        return _parse_numeric_from_dict(node, field_names)
 
     return None
 
@@ -190,6 +195,10 @@ def parse_yahoo_players(data: Any) -> List[Dict[str, Any]]:
     return parsed
 
 
+def _auth_headers(access_token: str) -> Dict[str, str]:
+    return {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
+
+
 def get_yahoo_auth_url() -> str:
     params = {
         'client_id': config.yahoo_client_id,
@@ -208,7 +217,12 @@ def exchange_code_for_token(code: str) -> YahooToken:
         'client_id': config.yahoo_client_id,
         'client_secret': config.yahoo_client_secret,
     }
-    response = requests.post('https://api.login.yahoo.com/oauth2/get_token', data=payload, headers={'Content-Type': 'application/x-www-form-urlencoded'}, timeout=30)
+    response = requests.post(
+        'https://api.login.yahoo.com/oauth2/get_token',
+        data=payload,
+        headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        timeout=30,
+    )
     response.raise_for_status()
     token_data = response.json()
     token_data['expires_at'] = int(time.time()) + int(token_data.get('expires_in', 0))
@@ -228,7 +242,12 @@ def refresh_token(refresh_token_value: str) -> YahooToken:
         'client_id': config.yahoo_client_id,
         'client_secret': config.yahoo_client_secret,
     }
-    response = requests.post('https://api.login.yahoo.com/oauth2/get_token', data=payload, headers={'Content-Type': 'application/x-www-form-urlencoded'}, timeout=30)
+    response = requests.post(
+        'https://api.login.yahoo.com/oauth2/get_token',
+        data=payload,
+        headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        timeout=30,
+    )
     response.raise_for_status()
     token_data = response.json()
     token_data['expires_at'] = int(time.time()) + int(token_data.get('expires_in', 0))
@@ -243,7 +262,7 @@ def refresh_token(refresh_token_value: str) -> YahooToken:
 
 def fetch_yahoo_rankings(access_token: str, count: int = 200) -> List[Dict[str, Any]]:
     request_url = f"{BASE_URL}/league/{config.yahoo_league_id}/players;status=ALL;sort=rank;count={count}?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
+    response = requests.get(request_url, headers=_auth_headers(access_token), timeout=30)
     response.raise_for_status()
     players = parse_yahoo_players(response.json())
     return [
@@ -257,7 +276,7 @@ def fetch_yahoo_rankings(access_token: str, count: int = 200) -> List[Dict[str, 
 
 
 def get_roster(access_token: str) -> Any:
-    response = requests.get(f"{BASE_URL}/team/{config.yahoo_team_key}/roster?format=json", headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
+    response = requests.get(f"{BASE_URL}/team/{config.yahoo_team_key}/roster?format=json", headers=_auth_headers(access_token), timeout=30)
     response.raise_for_status()
     return response.json()
 
@@ -278,7 +297,12 @@ def set_lineup(access_token: str, lineup: List[Dict[str, str]]) -> Any:
 
     encoded = urllib.parse.urlencode(values)
     url = f"{BASE_URL}/team/{config.yahoo_team_key}/roster;{encoded}"
-    response = requests.put(url, data=None, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/xml'}, timeout=30)
+    response = requests.put(
+        url,
+        data=None,
+        headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/xml'},
+        timeout=30,
+    )
     response.raise_for_status()
     return response.json()
 
@@ -288,7 +312,7 @@ def fetch_games(access_token: str, seasons: List[int]) -> Dict[int, str]:
     Returns: {season: game_key}"""
     seasons_str = ','.join(str(s) for s in seasons)
     request_url = f"{BASE_URL}/games;seasons={seasons_str}?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
+    response = requests.get(request_url, headers=_auth_headers(access_token), timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -306,46 +330,63 @@ def fetch_games(access_token: str, seasons: List[int]) -> Dict[int, str]:
     return result
 
 
+def _leagues_from_game(game: Dict[str, Any]) -> Dict[str, Any]:
+    result = {}
+    leagues_list = game.get('leagues', [])
+    if not isinstance(leagues_list, list):
+        return result
+
+    for league_item in leagues_list:
+        if not (isinstance(league_item, dict) and 'league' in league_item):
+            continue
+        league = league_item['league']
+        league_id = league.get('league_id')
+        if league_id:
+            result[str(league_id)] = {
+                'league_key': league.get('league_key'),
+                'name': league.get('name'),
+                'league_id': league_id,
+            }
+
+    return result
+
+
+def _leagues_from_games(games: Any) -> Dict[str, Any]:
+    result = {}
+    if not isinstance(games, list):
+        return result
+
+    for item in games:
+        if isinstance(item, dict) and 'game' in item:
+            result.update(_leagues_from_game(item['game']))
+
+    return result
+
+
 def fetch_user_leagues(access_token: str, game_key: str) -> Dict[str, Any]:
     """Fetch user's league(s) for a given game_key.
     Returns: {league_id: {name, team_key, ...}}"""
     request_url = f"{BASE_URL}/users;use_login=1/games/{game_key}/leagues?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
+    response = requests.get(request_url, headers=_auth_headers(access_token), timeout=30)
     response.raise_for_status()
     data = response.json()
 
-    result = {}
     user_data = data.get('fantasy_content', {}).get('users', [])
-    if isinstance(user_data, list) and len(user_data) > 0:
-        user = user_data[0].get('user', [])
-        if isinstance(user, list) and len(user) > 1:
-            games = user[1].get('games', [])
-            if isinstance(games, list):
-                for item in games:
-                    if isinstance(item, dict) and 'game' in item:
-                        game = item['game']
-                        leagues_list = game.get('leagues', [])
-                        if isinstance(leagues_list, list):
-                            for league_item in leagues_list:
-                                if isinstance(league_item, dict) and 'league' in league_item:
-                                    league = league_item['league']
-                                    league_id = league.get('league_id')
-                                    if league_id:
-                                        league_key = league.get('league_key')
-                                        result[str(league_id)] = {
-                                            'league_key': league_key,
-                                            'name': league.get('name'),
-                                            'league_id': league_id,
-                                        }
+    if not (isinstance(user_data, list) and len(user_data) > 0):
+        return {}
 
-    return result
+    user = user_data[0].get('user', [])
+    if not (isinstance(user, list) and len(user) > 1):
+        return {}
+
+    return _leagues_from_games(user[1].get('games', []))
 
 
 def fetch_standings(access_token: str, league_key: str) -> Optional[Dict[str, Any]]:
     """Fetch league standings for a given league_key.
     Returns: {year, standings: []}"""
     request_url = f"{BASE_URL}/league/{league_key}/standings?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
+    response = requests.get(request_url, headers=_auth_headers(access_token), timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -394,7 +435,7 @@ def fetch_league_teams(access_token: str, league_key: str) -> List[Dict[str, Any
     """Fetch all teams in a league.
     Returns: [{'team_key': str, 'team_id': int, 'name': str, 'manager_name': str}, ...]"""
     request_url = f"{BASE_URL}/league/{league_key}/teams?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
+    response = requests.get(request_url, headers=_auth_headers(access_token), timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -419,7 +460,7 @@ def fetch_league_teams(access_token: str, league_key: str) -> List[Dict[str, Any
 
 def fetch_team_roster(access_token: str, team_key: str) -> List[YahooRosterPlayer]:
     """Fetch roster for a specific team by team_key."""
-    response = requests.get(f"{BASE_URL}/team/{team_key}/roster?format=json", headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
+    response = requests.get(f"{BASE_URL}/team/{team_key}/roster?format=json", headers=_auth_headers(access_token), timeout=30)
     response.raise_for_status()
     return parse_yahoo_roster_players(response.json())
 

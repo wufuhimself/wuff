@@ -84,7 +84,7 @@ def fetch_projections(
     """Fetch player projections from FantasyPros API.
 
     Args:
-        sport: NFL only for now
+        sport: NFL, MLB, NBA, NHL, PGA, NCAAF
         season: YYYY
         position: QB, RB, WR, TE, K, DEF, etc
         week: specific week or None (preseason is week=0)
@@ -96,7 +96,7 @@ def fetch_projections(
     if api_key is None:
         api_key = get_api_key()
 
-    url = f"{FANTASYPROS_API_BASE}/nfl/{season}/projections"
+    url = f"{FANTASYPROS_API_BASE}/{sport}/{season}/projections"
     headers = {"x-api-key": api_key}
     params = {"position": position}
     if week is not None:
@@ -208,7 +208,7 @@ def fetch_and_save_rankings(
         if e.response.status_code == 401:
             raise ValueError(
                 "API key invalid or expired. Check FANTASYPROS_API_KEY env var."
-            )
+            ) from e
         raise
 
     print("Normalizing to combined format...")
@@ -243,7 +243,7 @@ def fetch_and_save_projections(
         if e.response.status_code == 401:
             raise ValueError(
                 "API key invalid or expired. Check FANTASYPROS_API_KEY env var."
-            )
+            ) from e
         raise
 
     print(f"Total: {len(all_players)} players")

@@ -23,7 +23,7 @@ DEFAULT_PORT = 3000
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
     server_version = 'YahooOAuthCallback/1.0'
 
-    def do_GET(self) -> None:
+    def do_GET(self) -> None:  # pylint: disable=invalid-name
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path != '/oauth/callback':
             self.send_response(404)
@@ -52,7 +52,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
         threading.Thread(target=self.server.shutdown, daemon=True).start()
 
-    def log_message(self, format: str, *args: object) -> None:
+    def log_message(self, format: str, *args: object) -> None:  # pylint: disable=redefined-builtin,unused-argument
         return
 
 
@@ -96,7 +96,7 @@ def load_cert_paths() -> tuple[Path, Path, Optional[tempfile.TemporaryDirectory]
             None,
         )
 
-    temp_dir = tempfile.TemporaryDirectory(prefix='yahoo_oauth_cert_')
+    temp_dir = tempfile.TemporaryDirectory(prefix='yahoo_oauth_cert_')  # pylint: disable=consider-using-with
     path = Path(temp_dir.name)
     key_path, cert_path = generate_self_signed_cert(path)
     return key_path, cert_path, temp_dir

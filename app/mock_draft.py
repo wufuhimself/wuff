@@ -248,7 +248,7 @@ def build_manager_profiles(rankings_lookup: Dict[str, Dict]) -> Dict[str, Dict[s
     return dict(profiles)
 
 
-def build_position_need_scores(team: str, keeper_names: List[str], rankings_lookup: Dict,
+def build_position_need_scores(keeper_names: List[str], rankings_lookup: Dict,
                                  taken_this_round: List[str]) -> Dict[str, float]:
     """Score position needs: higher score = more need. Used as tiebreak."""
     keeper_positions = defaultdict(int)
@@ -292,9 +292,9 @@ def score_pick(
     team: str,
     round_num: int,
     position_needs: Dict[str, float],
+    *,
     manager_profiles: Dict[str, Dict[str, Dict[int, float]]],
     te_taken_by_team: bool,
-    def_ranking: int,
     position_counts: Dict[str, int],
 ) -> float:
     """Score a player for this team/round. Higher = better pick."""
@@ -416,7 +416,7 @@ def simulate_draft(
             continue
 
         # Regular draft pick: calculate needs + preferences
-        position_needs = build_position_need_scores(team, keeper_predictions.get(team, []), rankings_lookup, taken_by_team[team])
+        position_needs = build_position_need_scores(keeper_predictions.get(team, []), rankings_lookup, taken_by_team[team])
 
         # Find best available player
         best_player = None
@@ -429,9 +429,12 @@ def simulate_draft(
             if player_key in taken_players:
                 continue
 
-            def_ranking = player.get('ranking', 999)
-            score = score_pick(player, team, round_num, position_needs, manager_profiles,
-                              te_taken_by_team[team], def_ranking, position_counts[team])
+            score = score_pick(
+                player, team, round_num, position_needs,
+                manager_profiles=manager_profiles,
+                te_taken_by_team=te_taken_by_team[team],
+                position_counts=position_counts[team],
+            )
 
             if score > best_score:
                 best_score = score

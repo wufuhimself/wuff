@@ -84,7 +84,7 @@ def get_sync_leagues() -> List[Dict[str, Any]]:
             })
         return result
     except Exception as e:
-        logger.error(f"Error fetching leagues: {e}")
+        logger.error("Error fetching leagues: %s", e)
         raise
 
 
@@ -103,11 +103,11 @@ def get_sync_standings(league_id: str) -> List[Dict[str, Any]]:
         standings = fetch_standings(token, league_id)
         return standings or []
     except Exception as e:
-        logger.error(f"Error fetching standings: {e}")
+        logger.error("Error fetching standings: %s", e)
         raise
 
 
-def get_sync_roster(league_id: str, team_key: Optional[str] = None) -> List[YahooRosterPlayer]:
+def get_sync_roster(_league_id: str, _team_key: Optional[str] = None) -> List[YahooRosterPlayer]:
     """
     Get roster players for a team.
 
@@ -123,11 +123,11 @@ def get_sync_roster(league_id: str, team_key: Optional[str] = None) -> List[Yaho
         roster_players = fetch_yahoo_roster_players(token)
         return roster_players or []
     except Exception as e:
-        logger.error(f"Error fetching roster: {e}")
+        logger.error("Error fetching roster: %s", e)
         raise
 
 
-def get_sync_draft_rankings(league_id: str) -> List[Dict[str, Any]]:
+def get_sync_draft_rankings(_league_id: str) -> List[Dict[str, Any]]:
     """
     Get pre-draft rankings for the league.
 
@@ -142,11 +142,11 @@ def get_sync_draft_rankings(league_id: str) -> List[Dict[str, Any]]:
         rankings = fetch_yahoo_rankings(token)
         return rankings or []
     except Exception as e:
-        logger.error(f"Error fetching draft rankings: {e}")
+        logger.error("Error fetching draft rankings: %s", e)
         raise
 
 
-def get_sync_keepers(league_id: str) -> List[YahooRosterPlayer]:
+def get_sync_keepers(_league_id: str) -> List[YahooRosterPlayer]:
     """
     Get keeper-eligible players from your roster.
 
@@ -161,7 +161,7 @@ def get_sync_keepers(league_id: str) -> List[YahooRosterPlayer]:
         keepers = fetch_yahoo_keepers(token)
         return keepers or []
     except Exception as e:
-        logger.error(f"Error fetching keepers: {e}")
+        logger.error("Error fetching keepers: %s", e)
         raise
 
 
@@ -180,7 +180,7 @@ def get_sync_league_teams(league_id: str) -> List[Dict[str, Any]]:
         teams = fetch_league_teams(token, league_id)
         return teams or []
     except Exception as e:
-        logger.error(f"Error fetching league teams: {e}")
+        logger.error("Error fetching league teams: %s", e)
         raise
 
 
@@ -199,7 +199,7 @@ def get_sync_all_team_rosters(league_id: str) -> Dict[str, tuple[str, List[Yahoo
         rosters = fetch_all_team_rosters(token, league_id)
         return rosters or {}
     except Exception as e:
-        logger.error(f"Error fetching all team rosters: {e}")
+        logger.error("Error fetching all team rosters: %s", e)
         raise
 
 
@@ -230,5 +230,5 @@ def get_sync_standings_for_year(league_id: str, year: int) -> List[Dict[str, Any
             return standings_data.get('standings', [])
         return []
     except Exception as e:
-        logger.error(f"Error fetching standings for year {year}: {e}")
+        logger.error("Error fetching standings for year %s: %s", year, e)
         raise

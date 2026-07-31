@@ -200,19 +200,15 @@ def _position_starter_cutoff(position: str, league_format: LeagueFormat) -> int:
     flex_wr_share = 0.5 if ppr >= 1.0 else 0.4
     flex_rb_share = 0.35 if ppr >= 1.0 else 0.45
     flex_te_share = 0.15
-    if position == 'QB':
-        return teams * (league_format.slot_count('QB') + league_format.slot_count('SUPERFLEX'))
-    if position == 'RB':
-        return math.ceil(teams * (league_format.slot_count('RB') + (flex_count * flex_rb_share)))
-    if position == 'WR':
-        return math.ceil(teams * (league_format.slot_count('WR') + (flex_count * flex_wr_share)))
-    if position == 'TE':
-        return math.ceil(teams * (league_format.slot_count('TE') + (flex_count * flex_te_share)))
-    if position == 'DEF':
-        return teams * league_format.slot_count('DEF')
-    if position == 'K':
-        return teams * league_format.slot_count('K')
-    return teams
+    cutoffs = {
+        'QB': teams * (league_format.slot_count('QB') + league_format.slot_count('SUPERFLEX')),
+        'RB': math.ceil(teams * (league_format.slot_count('RB') + (flex_count * flex_rb_share))),
+        'WR': math.ceil(teams * (league_format.slot_count('WR') + (flex_count * flex_wr_share))),
+        'TE': math.ceil(teams * (league_format.slot_count('TE') + (flex_count * flex_te_share))),
+        'DEF': teams * league_format.slot_count('DEF'),
+        'K': teams * league_format.slot_count('K'),
+    }
+    return cutoffs.get(position, teams)
 
 
 def _premium_cutoff(position: str, league_format: LeagueFormat) -> int:
@@ -263,6 +259,23 @@ def _value_over_replacement_rounds(position: str, market_round: Optional[int], l
     return replacement_round - market_round
 
 
+def _superflex_context_note(position: str, position_rank: int, league_format: LeagueFormat) -> Optional[str]:
+    starter_cutoff = _position_starter_cutoff(position, league_format)
+    premium_cutoff = _premium_cutoff(position, league_format)
+    projected_round = _expected_draft_round(_projected_pick(position, position_rank, league_format), league_format.teams)
+
+    if position_rank <= premium_cutoff:
+        return f'Superflex premium: {position}{position_rank}; this is early-round QB territory in a {league_format.teams}-team league.'
+    if position_rank <= league_format.teams:
+        return (
+            f'Starter-tier superflex QB: {position}{position_rank}; usually more of a round '
+            f'{projected_round} profile than a locked-in first-rounder.'
+        )
+    if position_rank <= starter_cutoff:
+        return f'Back-end superflex starter: {position}{position_rank}; still startable, but not a premium keeper at market cost.'
+    return None
+
+
 def _format_context_note(position: str, position_rank: Optional[int], league_format: LeagueFormat) -> str:
     if position_rank is None:
         return 'No position rank available for this scoring format.'
@@ -272,12 +285,9 @@ def _format_context_note(position: str, position_rank: Optional[int], league_for
     projected_round = _expected_draft_round(_projected_pick(position, position_rank, league_format), league_format.teams)
 
     if position == 'QB' and league_format.slot_count('SUPERFLEX') > 0:
-        if position_rank <= premium_cutoff:
-            return f'Superflex premium: {position}{position_rank}; this is early-round QB territory in a {league_format.teams}-team league.'
-        if position_rank <= league_format.teams:
-            return f'Starter-tier superflex QB: {position}{position_rank}; usually more of a round {projected_round} profile than a locked-in first-rounder.'
-        if position_rank <= starter_cutoff:
-            return f'Back-end superflex starter: {position}{position_rank}; still startable, but not a premium keeper at market cost.'
+        superflex_note = _superflex_context_note(position, position_rank, league_format)
+        if superflex_note is not None:
+            return superflex_note
 
     if position_rank <= premium_cutoff:
         return f'Format premium: {position}{position_rank}; projected around round {projected_round} in this league setup.'
@@ -352,21 +362,7 @@ def roster_keeper_insight(
                 'keeperLocked': player.keeperLockedOverride,
                 'keeperStatus': keeper_status,
                 'savedRounds': saved_rounds,
-                'note': _player_note(
-                    ranking,
-                    keeper_round,
-                    saved_rounds,
-                    normalized_position,
-                    position_rank,
-                    league_format,
-                    keeper_eligible,
-                    player.keeperLockedOverride,
-                    keeper_status,
-                    uses_non_standard_keeper_cost,
-                    _manual_market_note(player),
-                    replacement_round,
-                    value_over_replacement,
-                ),
+                'note': _player_note(ranking, keeper_status, _manual_market_note(player)),
             }
         )
 
@@ -464,23 +460,11 @@ def select_best_keepers(
     return chosen, alternates
 
 
-def _player_note(
-    ranking: Optional[int],
-    keeper_round: Optional[int],
-    saved_rounds: Optional[int],
-    position: str,
-    position_rank: Optional[int],
-    league_format: LeagueFormat,
-    keeper_eligible: Optional[bool],
-    keeper_locked: Optional[bool],
-    keeper_status: str,
-    uses_non_standard_keeper_cost: bool,
-    manual_market_note: str,
-    replacement_round: Optional[int],
-    value_over_replacement: Optional[int],
-) -> str:
+def _player_note(ranking: Optional[int], keeper_status: str, manual_market_note: str) -> str:
     if ranking is None:
         return 'No ranking data.'
+    if manual_market_note:
+        return manual_market_note
     return keeper_status
 
 
@@ -504,12 +488,13 @@ def league_keeper_board(
     keeper_prefs_file = Path(__file__).parent.parent / 'data' / 'config' / 'keeper_preferences.json'
     keeper_prefs = {}
     if keeper_prefs_file.exists():
-        keeper_prefs = json.load(open(keeper_prefs_file, encoding='utf-8'))
+        with open(keeper_prefs_file, encoding='utf-8') as f:
+            keeper_prefs = json.load(f)
 
     per_team = []
     chosen_names: set = set()
     for team in league_rosters:
-        team_name = str(team.get('teamName', '')).split(' - ')[-1]
+        team_name = str(team.get('teamName', '')).rsplit(' - ', maxsplit=1)[-1]
         players = [
             YahooRosterPlayer(
                 playerId=str(p.get('playerId', '')).strip(),
@@ -533,7 +518,10 @@ def league_keeper_board(
         ]
         insight = roster_keeper_insight(players, rankings, teams=league_format.teams, league_format=league_format)
         preferred_names = keeper_prefs.get(team_name)
-        chosen, alternates = select_best_keepers(insight, keeper_count=keeper_count, league_format=league_format, preferred_keeper_names=preferred_names)
+        chosen, alternates = select_best_keepers(
+            insight, keeper_count=keeper_count, league_format=league_format,
+            preferred_keeper_names=preferred_names,
+        )
         per_team.append({'team': team_name, 'chosen': chosen, 'alternates': alternates})
         chosen_names.update(normalize(c['playerName']) for c in chosen)
 
@@ -574,6 +562,7 @@ def forecast_opponent_keepers(
     league_rosters: List[Dict[str, Any]],
     rankings: List[Dict[str, Any]],
     league_format: LeagueFormat,
+    *,
     your_roster_players: Optional[List[YahooRosterPlayer]] = None,
     keeper_count: int = 2,
     consider_top: int = 100,
@@ -606,7 +595,7 @@ def forecast_opponent_keepers(
             overlap = len(your_ids & team_ids) + len(your_names & team_names)
             if overlap > best_overlap:
                 best_overlap = overlap
-                your_team_name = str(team.get('teamName', '')).split(' - ')[-1]
+                your_team_name = str(team.get('teamName', '')).rsplit(' - ', maxsplit=1)[-1]
 
     likely_keepers = []
     for entry in per_team:

@@ -172,9 +172,9 @@ class YahooScraper:
             if players:
                 print(f"✓ Found {len(players)} players")
                 return players
-            else:
-                print("✗ No players found in roster")
-                return None
+
+            print("✗ No players found in roster")
+            return None
 
         except Exception as e:
             print(f"✗ Error fetching roster: {e}")
@@ -257,9 +257,9 @@ class YahooScraper:
                     'year': season,
                     'standings': standings,
                 }
-            else:
-                print("✗ No standings found")
-                return None
+
+            print("✗ No standings found")
+            return None
 
         except Exception as e:
             print(f"✗ Error fetching standings: {e}")
@@ -360,6 +360,48 @@ class YahooScraper:
 
         return sorted(standings, key=lambda x: x['rank'])
 
+    def _parse_roster_row(self, row) -> Optional[YahooRosterPlayer]:
+        cells = row.find_all('td')
+        if len(cells) < 4:
+            return None
+
+        # Cell 0: Player name (contains extra noise)
+        player_text = cells[0].get_text(' ', strip=True)
+        cleaned_text = re.sub(r'\b(?:New Player Note|Player Note|No new|Video|Forecast|NA)\b', ' ', player_text)
+        cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
+
+        player_name = cleaned_text
+        team = 'UNK'
+        position = 'UNK'
+
+        match = re.search(r'(.+?)\s+([A-Za-z]{2,3})\s*-\s*([A-Z/]{2,3})', cleaned_text)
+        if match:
+            player_name = match.group(1).strip()
+            team = match.group(2).upper()
+            position = match.group(3).upper()
+
+        if not player_name or len(player_name) < 2:
+            return None
+
+        # Cell 3 sometimes carries the position marker in parentheses.
+        pos_text = cells[3].get_text(' ', strip=True)
+        if position == 'UNK' and '(' in pos_text and ')' in pos_text:
+            position = pos_text[pos_text.index('(') + 1:pos_text.index(')')].strip().upper()
+
+        if team == 'UNK':
+            tail_match = re.search(r'([A-Za-z]{2,3})\s*-\s*([A-Z/]{2,3})', cleaned_text)
+            if tail_match:
+                team = tail_match.group(1).upper()
+                if position == 'UNK':
+                    position = tail_match.group(2).upper()
+
+        return YahooRosterPlayer(
+            playerId=player_name,
+            playerName=player_name,
+            position=position,
+            team=team,
+        )
+
     def _parse_roster_table(self, soup: BeautifulSoup) -> List[YahooRosterPlayer]:
         """Extract player data from roster page HTML."""
         players = []
@@ -378,51 +420,13 @@ class YahooScraper:
             # Skip header rows (first 2)
             for row in rows[2:]:
                 try:
-                    cells = row.find_all('td')
-                    if len(cells) < 4:
-                        continue
-
-                    # Cell 0: Player name (contains extra noise)
-                    player_text = cells[0].get_text(' ', strip=True)
-                    cleaned_text = re.sub(r'\b(?:New Player Note|Player Note|No new|Video|Forecast|NA)\b', ' ', player_text)
-                    cleaned_text = re.sub(r'\s+', ' ', cleaned_text).strip()
-
-                    player_name = cleaned_text
-                    team = 'UNK'
-                    position = 'UNK'
-
-                    match = re.search(r'(.+?)\s+([A-Za-z]{2,3})\s*-\s*([A-Z/]{2,3})', cleaned_text)
-                    if match:
-                        player_name = match.group(1).strip()
-                        team = match.group(2).upper()
-                        position = match.group(3).upper()
-
-                    if not player_name or len(player_name) < 2:
-                        continue
-
-                    # Cell 3 sometimes carries the position marker in parentheses.
-                    pos_text = cells[3].get_text(' ', strip=True)
-                    if position == 'UNK' and '(' in pos_text and ')' in pos_text:
-                        position = pos_text[pos_text.index('(') + 1:pos_text.index(')')].strip().upper()
-
-                    if team == 'UNK':
-                        tail_match = re.search(r'([A-Za-z]{2,3})\s*-\s*([A-Z/]{2,3})', cleaned_text)
-                        if tail_match:
-                            team = tail_match.group(1).upper()
-                            if position == 'UNK':
-                                position = tail_match.group(2).upper()
-
-                    player = YahooRosterPlayer(
-                        playerId=player_name,
-                        playerName=player_name,
-                        position=position,
-                        team=team,
-                    )
-                    players.append(player)
-                    print(f"  ✓ {player_name:25} | {position:5} | {team}")
-
+                    player = self._parse_roster_row(row)
                 except Exception:
                     continue
+                if player is None:
+                    continue
+                players.append(player)
+                print(f"  ✓ {player.playerName:25} | {player.position:5} | {player.team}")
 
         return players
 

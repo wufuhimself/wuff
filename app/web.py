@@ -89,21 +89,24 @@ def index():
         teams = league_format.teams if league_format else 12
 
         # Load draft order for team dropdown
-        standings_years = sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True) if RAW_STANDINGS_DIR.exists() else []
+        available_years = (
+            sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True)
+            if RAW_STANDINGS_DIR.exists() else []
+        )
         team_names = []
         round1_order = []
         origins_by_team = None
         selected_team_picks = set()
 
-        if standings_years:
-            standings = load_standings(standings_years[0])
+        if available_years:
+            standings = load_standings(available_years[0])
             if standings:
                 aliases = current_team_names(standings)
                 round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
                 team_names = round1_order
 
                 # Load draft picks for traded picks info (next season after standings year)
-                origins_by_team = load_draft_pick_origins(standings_years[0] + 1)
+                origins_by_team = load_draft_pick_origins(available_years[0] + 1)
 
         # Get selected team from query param or config default
         selected_team = request.args.get('team')
@@ -140,7 +143,7 @@ def index():
 
         # Calculate keeper forecasts to show which players are removed
         adp_map = load_adp_map()
-        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
+        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
 
         state['board_by_rank'] = board_by_rank
         state['board_by_adp'] = board_by_adp
@@ -402,7 +405,7 @@ def forecast_from_keeper_export(keeper_export_data, rankings=None):
     return forecasts
 
 
-def calculate_keeper_impact(keeper_forecasts, rankings):
+def calculate_keeper_impact(keeper_forecasts):
     """Calculate how many elite players at each position are locked up as keepers.
 
     Shows impact on draft board by counting HIGH confidence keepers per position.
@@ -445,7 +448,47 @@ def calculate_keeper_impact(keeper_forecasts, rankings):
     return sorted(impact, key=lambda x: x['pct_kept'], reverse=True)
 
 
-def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
+def _elite_tier_confidence(position, pos_rank_num):
+    """High-confidence keep if this player is in the scarce elite tier at their position."""
+    if position == 'TE' and pos_rank_num and pos_rank_num <= 5:
+        return 'high', f'TE{pos_rank_num} - top 5 scarce, keep'
+    if position == 'RB' and pos_rank_num and pos_rank_num <= 16:
+        return 'high', f'RB{pos_rank_num} - top 16, premium keeper'
+    if position == 'WR' and pos_rank_num and pos_rank_num <= 20:
+        return 'high', f'WR{pos_rank_num} - top 20, keep for value'
+    if position == 'QB' and pos_rank_num and pos_rank_num <= 15:
+        return 'high', f'QB{pos_rank_num} - top 15, reasonable keeper'
+    return None
+
+
+def _best_available_confidence(keeper, position, rank, pos_rank_num, eligible_by_position):
+    """Confidence based on being the best eligible option at a scarce position."""
+    eligible_at_pos = eligible_by_position.get(position)
+    if not eligible_at_pos:
+        return None
+    is_best_at_pos = eligible_at_pos[0]['name'].lower().strip() == keeper.get('playerName', '').lower().strip()
+    if not is_best_at_pos:
+        return None
+
+    next_best_rank = eligible_at_pos[1]['rank'] if len(eligible_at_pos) > 1 else None
+    drop_off = (next_best_rank or 999) - (rank or 999) if next_best_rank and rank else 0
+    pos_label = f'{position}{pos_rank_num or "?"}'
+
+    if len(eligible_at_pos) <= 2:
+        # Only 1-2 eligible = forced keeper
+        reason = 'huge drop-off' if drop_off > 20 else f'only {len(eligible_at_pos)} eligible'
+        return 'high', f'{pos_label} - forced keeper ({reason})'
+    if drop_off > 25:
+        # Big drop-off (25+ ranks) to next option = forced even with more alternatives
+        return 'high', f'{pos_label} - forced keeper (major gap to next option)'
+    if drop_off > 10:
+        # Moderate gap = likely to keep
+        return 'medium', f'{pos_label} - likely keeper (clear best option)'
+    # Small gap or tied
+    return 'medium', f'{pos_label} - best eligible at position'
+
+
+def forecast_keeper_decisions(per_team, adp_map):
     """Forecast which keepers each team will likely keep based on position scarcity.
 
     Position scarcity is the key driver of keeper value - elite players at
@@ -475,8 +518,8 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
             })
 
         # Sort by rank within each position to find best/worst options
-        for pos in eligible_by_position:
-            eligible_by_position[pos].sort(key=lambda x: x['rank'])
+        for players in eligible_by_position.values():
+            players.sort(key=lambda x: x['rank'])
 
         forecast_keepers = []
         for keeper in chosen:
@@ -492,56 +535,11 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
                     pos_rank_num = int(match.group(1))
 
             # Keeper decision: elite tier OR best available at position for this team
-            confidence = 'low'
-            reasoning = 'Will be available in draft at this tier'
-
-            # Check if in elite tier
-            is_elite = False
-            if position == 'TE' and pos_rank_num and pos_rank_num <= 5:
-                confidence = 'high'
-                reasoning = f'TE{pos_rank_num} - top 5 scarce, keep'
-                is_elite = True
-            elif position == 'RB' and pos_rank_num and pos_rank_num <= 16:
-                confidence = 'high'
-                reasoning = f'RB{pos_rank_num} - top 16, premium keeper'
-                is_elite = True
-            elif position == 'WR' and pos_rank_num and pos_rank_num <= 20:
-                confidence = 'high'
-                reasoning = f'WR{pos_rank_num} - top 20, keep for value'
-                is_elite = True
-            elif position == 'QB' and pos_rank_num and pos_rank_num <= 15:
-                confidence = 'high'
-                reasoning = f'QB{pos_rank_num} - top 15, reasonable keeper'
-                is_elite = True
-
-            # If not elite, check if best available at position for this team
-            if not is_elite and position in eligible_by_position:
-                eligible_at_pos = eligible_by_position[position]
-                is_best_at_pos = eligible_at_pos and eligible_at_pos[0]['name'].lower().strip() == keeper.get('playerName', '').lower().strip()
-
-                if is_best_at_pos:
-                    next_best_rank = eligible_at_pos[1]['rank'] if len(eligible_at_pos) > 1 else None
-                    drop_off = (next_best_rank or 999) - (rank or 999) if next_best_rank and rank else 0
-
-                    if len(eligible_at_pos) <= 2:
-                        # Only 1-2 eligible = forced keeper
-                        confidence = 'high'
-                        if drop_off > 20:
-                            reasoning = f'{position}{pos_rank_num or "?"} - forced keeper (huge drop-off)'
-                        else:
-                            reasoning = f'{position}{pos_rank_num or "?"} - forced keeper (only {len(eligible_at_pos)} eligible)'
-                    elif drop_off > 25:
-                        # Big drop-off (25+ ranks) to next option = forced even with more alternatives
-                        confidence = 'high'
-                        reasoning = f'{position}{pos_rank_num or "?"} - forced keeper (major gap to next option)'
-                    elif drop_off > 10:
-                        # Moderate gap = likely to keep
-                        confidence = 'medium'
-                        reasoning = f'{position}{pos_rank_num or "?"} - likely keeper (clear best option)'
-                    else:
-                        # Small gap or tied
-                        confidence = 'medium'
-                        reasoning = f'{position}{pos_rank_num or "?"} - best eligible at position'
+            confidence, reasoning = _elite_tier_confidence(position, pos_rank_num) or (None, None)
+            if confidence is None:
+                confidence, reasoning = _best_available_confidence(
+                    keeper, position, rank, pos_rank_num, eligible_by_position,
+                ) or ('low', 'Will be available in draft at this tier')
 
             # Look up ADP for this keeper
             from .adp_manager import normalize_player_name
@@ -650,15 +648,15 @@ def keepers_board_view():
     teams = league_format.teams if league_format else 12
     live_rounds = 13
 
-    standings_years = sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True) if RAW_STANDINGS_DIR.exists() else []
+    available_years = sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True) if RAW_STANDINGS_DIR.exists() else []
     round1_order = None
     origins_by_team = None
-    if standings_years:
-        standings = load_standings(standings_years[0])
+    if available_years:
+        standings = load_standings(available_years[0])
         if standings:
             aliases = current_team_names(standings)
             round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
-            origins_by_team = load_draft_pick_origins(standings_years[0] + 1)
+            origins_by_team = load_draft_pick_origins(available_years[0] + 1)
 
     # Dropdown must use the same team names the pick math keys on (last season's standings,
     # normalized to current display names), not raw historical names -- team display names can
@@ -701,10 +699,10 @@ def keepers_board_view():
                 player_name = alt.get('playerName', '').lower()
                 if player_name in adp_map:
                     alt['adp'] = adp_map[player_name]
-        keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
+        keeper_impact = calculate_keeper_impact(keeper_forecasts)
     else:
-        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
-        keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
+        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
+        keeper_impact = calculate_keeper_impact(keeper_forecasts)
 
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
@@ -732,7 +730,10 @@ def draft_history_view(year: int):
     years = load_draft_years()
     picks = years.get(year)
     if picks is None:
-        return render_template('draft_history.html', active='draft-history', year=year, rounds={}, error=f'No saved draft history for {year}.')
+        return render_template(
+            'draft_history.html', active='draft-history', year=year, rounds={},
+            error=f'No saved draft history for {year}.',
+        )
 
     mode = request.args.get('mode', 'all')
     if mode == 'live':
@@ -749,7 +750,6 @@ def draft_history_view(year: int):
 
 @app.route('/standings')
 def standings_years():
-    from .paths import RAW_STANDINGS_DIR
     years = sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True) if RAW_STANDINGS_DIR.exists() else []
     return render_template('standings_years.html', active='standings', years=years)
 
@@ -766,7 +766,10 @@ def standings_view(year: int):
 def draft_order_view(standings_year: int):
     standings = load_standings(standings_year)
     if standings is None:
-        return render_template('draft_order.html', active='standings', standings_year=standings_year, rounds={}, error=f'No saved standings for {standings_year}.')
+        return render_template(
+            'draft_order.html', active='standings', standings_year=standings_year, rounds={},
+            error=f'No saved standings for {standings_year}.',
+        )
     round1_order = draft_order_from_standings(standings)
     rounds = snake_draft_order(round1_order, 15)
     return render_template('draft_order.html', active='standings', standings_year=standings_year, rounds=rounds, error=None)
@@ -776,7 +779,10 @@ def draft_order_view(standings_year: int):
 def draft_picks_view(year: int):
     picks = load_draft_picks(year)
     if picks is None:
-        return render_template('draft_picks.html', active='draft-history', year=year, teams={}, all_rounds=[], error=f'No saved pick ownership for {year}.')
+        return render_template(
+            'draft_picks.html', active='draft-history', year=year, teams={}, all_rounds=[],
+            error=f'No saved pick ownership for {year}.',
+        )
     all_rounds = sorted({r for rounds in picks.values() for r in rounds.keys()})
     return render_template('draft_picks.html', active='draft-history', year=year, teams=picks, all_rounds=all_rounds, error=None)
 
@@ -785,7 +791,10 @@ def draft_picks_view(year: int):
 def draft_order_board_view(standings_year: int):
     standings = load_standings(standings_year)
     if standings is None:
-        return render_template('draft_order_board.html', active='standings', standings_year=standings_year, teams={}, error=f'No saved standings for {standings_year}.')
+        return render_template(
+            'draft_order_board.html', active='standings', standings_year=standings_year, teams={},
+            error=f'No saved standings for {standings_year}.',
+        )
 
     rankings = load_yahoo_rankings()
     if not rankings:
@@ -860,7 +869,10 @@ def mock_draft_view():
                 picks_by_team[team] = []
             picks_by_team[team].append(pick)
 
-        return render_template('mock_draft.html', active='mock-draft', picks=picks, picks_by_round=picks_by_round, picks_by_team=picks_by_team, error=None)
+        return render_template(
+            'mock_draft.html', active='mock-draft', picks=picks,
+            picks_by_round=picks_by_round, picks_by_team=picks_by_team, error=None,
+        )
     except Exception as e:
         return render_template('mock_draft.html', active='mock-draft', picks=[], picks_by_round={}, picks_by_team={}, error=str(e))
 
