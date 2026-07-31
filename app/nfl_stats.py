@@ -102,7 +102,7 @@ def load_weekly_stats(season: int, directory: Path = RAW_NFL_WEEKLY_STATS_DIR) -
         return None
 
     result = []
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             result.append(row)
@@ -117,7 +117,7 @@ def load_seasonal_stats(season: int, directory: Path = RAW_NFL_SEASONAL_STATS_DI
         return None
 
     result = []
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             result.append(row)
@@ -132,7 +132,7 @@ def load_rosters(season: int, directory: Path = RAW_NFL_ROSTERS_DIR) -> Optional
         return None
 
     result = []
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             result.append(row)

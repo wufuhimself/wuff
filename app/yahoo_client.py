@@ -20,7 +20,7 @@ class YahooToken:
 
 
 @dataclass
-class YahooRosterPlayer:
+class YahooRosterPlayer:  # pylint: disable=invalid-name
     playerId: str
     playerName: str
     position: str
@@ -208,7 +208,7 @@ def exchange_code_for_token(code: str) -> YahooToken:
         'client_id': config.yahoo_client_id,
         'client_secret': config.yahoo_client_secret,
     }
-    response = requests.post('https://api.login.yahoo.com/oauth2/get_token', data=payload, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+    response = requests.post('https://api.login.yahoo.com/oauth2/get_token', data=payload, headers={'Content-Type': 'application/x-www-form-urlencoded'}, timeout=30)
     response.raise_for_status()
     token_data = response.json()
     token_data['expires_at'] = int(time.time()) + int(token_data.get('expires_in', 0))
@@ -228,7 +228,7 @@ def refresh_token(refresh_token_value: str) -> YahooToken:
         'client_id': config.yahoo_client_id,
         'client_secret': config.yahoo_client_secret,
     }
-    response = requests.post('https://api.login.yahoo.com/oauth2/get_token', data=payload, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+    response = requests.post('https://api.login.yahoo.com/oauth2/get_token', data=payload, headers={'Content-Type': 'application/x-www-form-urlencoded'}, timeout=30)
     response.raise_for_status()
     token_data = response.json()
     token_data['expires_at'] = int(time.time()) + int(token_data.get('expires_in', 0))
@@ -243,7 +243,7 @@ def refresh_token(refresh_token_value: str) -> YahooToken:
 
 def fetch_yahoo_rankings(access_token: str, count: int = 200) -> List[Dict[str, Any]]:
     request_url = f"{BASE_URL}/league/{config.yahoo_league_id}/players;status=ALL;sort=rank;count={count}?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
     response.raise_for_status()
     players = parse_yahoo_players(response.json())
     return [
@@ -257,7 +257,7 @@ def fetch_yahoo_rankings(access_token: str, count: int = 200) -> List[Dict[str, 
 
 
 def get_roster(access_token: str) -> Any:
-    response = requests.get(f"{BASE_URL}/team/{config.yahoo_team_key}/roster?format=json", headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response = requests.get(f"{BASE_URL}/team/{config.yahoo_team_key}/roster?format=json", headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
     response.raise_for_status()
     return response.json()
 
@@ -278,7 +278,7 @@ def set_lineup(access_token: str, lineup: List[Dict[str, str]]) -> Any:
 
     encoded = urllib.parse.urlencode(values)
     url = f"{BASE_URL}/team/{config.yahoo_team_key}/roster;{encoded}"
-    response = requests.put(url, data=None, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/xml'})
+    response = requests.put(url, data=None, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/xml'}, timeout=30)
     response.raise_for_status()
     return response.json()
 
@@ -288,7 +288,7 @@ def fetch_games(access_token: str, seasons: List[int]) -> Dict[int, str]:
     Returns: {season: game_key}"""
     seasons_str = ','.join(str(s) for s in seasons)
     request_url = f"{BASE_URL}/games;seasons={seasons_str}?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -310,7 +310,7 @@ def fetch_user_leagues(access_token: str, game_key: str) -> Dict[str, Any]:
     """Fetch user's league(s) for a given game_key.
     Returns: {league_id: {name, team_key, ...}}"""
     request_url = f"{BASE_URL}/users;use_login=1/games/{game_key}/leagues?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -345,7 +345,7 @@ def fetch_standings(access_token: str, league_key: str) -> Optional[Dict[str, An
     """Fetch league standings for a given league_key.
     Returns: {year, standings: []}"""
     request_url = f"{BASE_URL}/league/{league_key}/standings?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -394,7 +394,7 @@ def fetch_league_teams(access_token: str, league_key: str) -> List[Dict[str, Any
     """Fetch all teams in a league.
     Returns: [{'team_key': str, 'team_id': int, 'name': str, 'manager_name': str}, ...]"""
     request_url = f"{BASE_URL}/league/{league_key}/teams?format=json"
-    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response = requests.get(request_url, headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
     response.raise_for_status()
     data = response.json()
 
@@ -419,7 +419,7 @@ def fetch_league_teams(access_token: str, league_key: str) -> List[Dict[str, Any
 
 def fetch_team_roster(access_token: str, team_key: str) -> List[YahooRosterPlayer]:
     """Fetch roster for a specific team by team_key."""
-    response = requests.get(f"{BASE_URL}/team/{team_key}/roster?format=json", headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'})
+    response = requests.get(f"{BASE_URL}/team/{team_key}/roster?format=json", headers={'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}, timeout=30)
     response.raise_for_status()
     return parse_yahoo_roster_players(response.json())
 

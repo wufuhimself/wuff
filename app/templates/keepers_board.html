@@ -145,27 +145,5 @@
         {% endif %}
       </section>
 
-      <section class="card">
-        <h2>Your keeper insight</h2>
-        {% if keeper_insight %}
-        <table class="table">
-          <thead><tr><th>Player</th><th>Last year's round</th><th>Expected</th><th>Years left</th><th>Eligible</th><th>Note</th></tr></thead>
-          <tbody>
-            {% for row in keeper_insight %}
-            <tr>
-              <td>{{ row.playerName }} ({{ row.position }})</td>
-              <td>{{ row.keeperRound or 'N/A' }}</td>
-              <td>{{ row.expectedRound or 'N/A' }}</td>
-              <td>{{ row.keeperYearsRemaining if row.keeperYearsRemaining is not none else 'N/A' }}</td>
-              <td>{{ 'Yes' if row.keeperEligible == True else ('No' if row.keeperEligible == False else 'Unknown') }}</td>
-              <td class="wrap note-col">{{ row.note }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <p class="status">No roster or rankings data available yet.</p>
-        {% endif %}
-      </section>
       {% endif %}
 {% endblock %}

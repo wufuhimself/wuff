@@ -25,7 +25,7 @@ def load_all_rankings() -> List[Dict[str, Any]]:
 
         if file_path.suffix == '.json':
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     if isinstance(data, list):
                         for entry in data:
@@ -124,7 +124,7 @@ def save_combined_rankings(combined: List[Dict[str, Any]], output_path: Optional
 
     ensure_parent_dir(output_path)
 
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(combined, f, indent=2)
 
     return output_path
@@ -138,7 +138,7 @@ def load_combined_rankings(path: Optional[Path] = None) -> List[Dict[str, Any]]:
     if not path.exists():
         return []
 
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 

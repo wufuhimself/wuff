@@ -2,12 +2,20 @@ VENV ?= .venv
 PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip
 
-.PHONY: install clean auth-server auth token run cli web web-debug web-network gems
+.PHONY: install clean auth-server auth token run cli web web-debug web-network gems lint install-dev
 
 install:
 	python3 -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
+
+install-dev:
+	python3 -m venv $(VENV)
+	$(PIP) install --upgrade pip
+	$(PIP) install -r requirements-dev.txt
+
+lint: install-dev
+	$(VENV)/bin/pylint app
 
 # CLI commands
 cli: install
@@ -17,6 +25,7 @@ run: cli
 
 # Web server targets
 web: install
+	@echo "Running at http://127.0.0.1:5001"
 	FLASK_APP=app.web $(PYTHON) -m flask run --port 5001
 
 web-debug: install

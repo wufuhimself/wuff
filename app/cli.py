@@ -37,8 +37,6 @@ from .keeper_history import (
 from .team_mapper import (
     save_team_mapping,
     load_team_mapping,
-    get_owner_by_team_name,
-    get_team_names_for_owner,
 )
 from .feature_table import build_and_save_feature_table
 from .fantasypros_manager import (
@@ -74,9 +72,6 @@ from .roster_parser import parse_yahoo_text_rosters, format_roster_preview
 from .yahoo_client import (
     YahooRosterPlayer,
     exchange_code_for_token,
-    fetch_yahoo_keepers,
-    fetch_yahoo_rankings,
-    fetch_yahoo_roster_players,
     fetch_standings,
     fetch_games,
     fetch_user_leagues,
@@ -89,8 +84,6 @@ from .mcp_client import (
     get_sync_leagues,
     get_sync_roster,
     get_sync_draft_rankings,
-    get_sync_standings,
-    get_sync_league_teams,
     get_sync_all_team_rosters,
     get_sync_standings_for_year,
 )
@@ -262,16 +255,16 @@ def parse_args() -> argparse.Namespace:
     adjust_rankings_parser = subparsers.add_parser('adjust-rankings', help='Apply rule-based adjustments to combined rankings (e.g., QB rushing thresholds)')
     adjust_rankings_parser.add_argument('--config', default=None, help='Path to board_adjustments.json config file (default: data/config/board_adjustments.json)')
 
-    extract_keeper_history_parser = subparsers.add_parser('extract-keeper-history', help='Extract historical keeper selections from draft history (2020-2025)')
+    subparsers.add_parser('extract-keeper-history', help='Extract historical keeper selections from draft history (2020-2025)')
 
-    manager_profiles_parser = subparsers.add_parser('manager-keeper-history', help='Generate manager profiles with historical keeper data by comparing rosters year-to-year')
+    subparsers.add_parser('manager-keeper-history', help='Generate manager profiles with historical keeper data by comparing rosters year-to-year')
 
     keeper_strategy_parser = subparsers.add_parser('keeper-strategy', help='Show a team\'s historical keeper strategy')
     keeper_strategy_parser.add_argument('team', help='Team name (e.g., "Wuf")')
 
-    map_teams_parser = subparsers.add_parser('map-teams', help='Build owner identity mapping from draft slot consistency')
+    subparsers.add_parser('map-teams', help='Build owner identity mapping from draft slot consistency')
 
-    refresh_token_parser = subparsers.add_parser('refresh-oauth-token', help='Refresh expired Yahoo OAuth token using refresh token from .env')
+    subparsers.add_parser('refresh-oauth-token', help='Refresh expired Yahoo OAuth token using refresh token from .env')
 
     backfill_standings_mcp_parser = subparsers.add_parser('backfill-standings-mcp', help='Fetch historical standings (2020-current) via MCP and save locally')
     backfill_standings_mcp_parser.add_argument('--start-year', type=int, default=2020, help='Start year (default: 2020)')
@@ -298,7 +291,7 @@ def parse_args() -> argparse.Namespace:
     adp_analysis_parser = subparsers.add_parser('adp-value-analysis', help='Analyze rank vs ADP to find overvalued and undervalued players')
     adp_analysis_parser.add_argument('--export', default=None, help='Export results to CSV file')
 
-    parse_rosters_parser = subparsers.add_parser('parse-rosters', help='Interactively parse Yahoo Fantasy rosters from pasted text')
+    subparsers.add_parser('parse-rosters', help='Interactively parse Yahoo Fantasy rosters from pasted text')
 
     keepers_export_parser = subparsers.add_parser('keepers-board-export', help='Export per-team keeper recommendations and post-keepers draft board as CSVs')
     keepers_export_parser.add_argument('--teams', type=int, default=12, help='Number of teams in the league')
@@ -362,7 +355,7 @@ def parse_lineup_json(lineup_json: str) -> List[Dict[str, str]]:
     except json.JSONDecodeError:
         file_path = Path(lineup_json)
         if file_path.exists():
-            payload = json.loads(file_path.read_text())
+            payload = json.loads(file_path.read_text(encoding='utf-8'))
         else:
             raise
 
@@ -874,7 +867,7 @@ def main() -> None:
                 sys.exit(1)
 
             league_rosters = []
-            for team_key, (team_name, roster_players) in all_rosters.items():
+            for _team_key, (team_name, roster_players) in all_rosters.items():
                 team_roster = {
                     'teamName': team_name,
                     'playerCount': len(roster_players),
@@ -884,7 +877,7 @@ def main() -> None:
 
             output_path = Path(args.output)
             ensure_parent_dir(output_path)
-            with open(output_path, 'w') as f:
+            with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(league_rosters, f, indent=2)
 
             print(f'Saved {len(league_rosters)} team rosters to {args.output}')
@@ -921,7 +914,7 @@ def main() -> None:
         if league_rosters:
             output_path = Path(args.output)
             ensure_parent_dir(output_path)
-            output_path.write_text(json.dumps(league_rosters, indent=2))
+            output_path.write_text(json.dumps(league_rosters, indent=2), encoding='utf-8')
             total_players = sum(team.get('playerCount', 0) for team in league_rosters)
             print(f'Saved {len(league_rosters)} team rosters and {total_players} players to {output_path}')
         else:
@@ -1036,7 +1029,7 @@ def main() -> None:
     if args.command == 'keepers-board':
         input_path = Path(args.input)
         try:
-            league_rosters = json.loads(input_path.read_text())
+            league_rosters = json.loads(input_path.read_text(encoding='utf-8'))
         except FileNotFoundError:
             print(f'League roster snapshot not found: {input_path}', file=sys.stderr)
             sys.exit(1)
@@ -1055,7 +1048,7 @@ def main() -> None:
 
         output_path = Path(args.output)
         ensure_parent_dir(output_path)
-        with output_path.open('w', newline='') as csv_file:
+        with output_path.open('w', newline='', encoding='utf-8') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=['draftOrder', 'ranking', 'playerName', 'position', 'posRank', 'team', 'source'])
             writer.writeheader()
             for row in remaining_board:
@@ -1257,7 +1250,7 @@ def main() -> None:
 
         if args.export_csv:
             ensure_parent_dir(Path(args.export_csv))
-            with open(args.export_csv, 'w', newline='') as f:
+            with open(args.export_csv, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=['year', 'team', 'draft_slot', 'final_rank'])
                 writer.writeheader()
                 for outcome in outcomes:
@@ -1283,7 +1276,7 @@ def main() -> None:
 
         if args.export_csv:
             ensure_parent_dir(Path(args.export_csv))
-            with open(args.export_csv, 'w', newline='') as f:
+            with open(args.export_csv, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=['year', 'team', 'round', 'position', 'final_rank'])
                 writer.writeheader()
                 for outcome in outcomes:
@@ -1343,7 +1336,7 @@ def main() -> None:
             output_path = save_manager_profiles_with_keepers()
             print(f'Manager profiles with keeper history saved to {output_path}')
 
-            with open(output_path) as f:
+            with open(output_path, encoding='utf-8') as f:
                 profiles = json.load(f)
 
             # Show summary
@@ -1394,7 +1387,6 @@ def main() -> None:
             print(f'\nTeam identity mapping ({len(mapping)} owners):')
             for owner_id in sorted(mapping.keys()):
                 owner_data = mapping[owner_id]
-                names = owner_data.get('all_names', [])
                 print(f'  {owner_id} (slot {owner_data.get("standing_position")}):')
                 for year in sorted(owner_data.get('names_by_year', {}).keys()):
                     name = owner_data['names_by_year'][year]
@@ -1419,7 +1411,7 @@ def main() -> None:
             # Update .env file
             env_file = Path('.env')
             if env_file.exists():
-                with open(env_file, 'r') as f:
+                with open(env_file, 'r', encoding='utf-8') as f:
                     env_content = f.read()
 
                 # Replace token lines
@@ -1434,7 +1426,7 @@ def main() -> None:
                     env_content
                 )
 
-                with open(env_file, 'w') as f:
+                with open(env_file, 'w', encoding='utf-8') as f:
                     f.write(env_content)
 
                 print(f'✓ Token refreshed and saved to .env')
@@ -1467,7 +1459,7 @@ def main() -> None:
                     if standings:
                         output_file = RAW_STANDINGS_DIR / f'{year}.json'
                         output_file.parent.mkdir(parents=True, exist_ok=True)
-                        with open(output_file, 'w') as f:
+                        with open(output_file, 'w', encoding='utf-8') as f:
                             json.dump({
                                 'year': year,
                                 'standings': standings,
@@ -1632,7 +1624,7 @@ def main() -> None:
         if args.export:
             output_path = Path(args.export)
             ensure_parent_dir(output_path)
-            with open(output_path, 'w', newline='') as f:
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(
                     f,
                     fieldnames=['playerName', 'position', 'team', 'rank', 'adp', 'delta', 'value', 'sources']
@@ -1674,7 +1666,7 @@ def main() -> None:
 
         # Export per-team keepers
         keepers_file = output_dir / f'keepers_{timestamp}.csv'
-        with open(keepers_file, 'w', newline='') as f:
+        with open(keepers_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=[
                 'Team', 'PlayerName', 'Position', 'Ranking', 'Status',
                 'KeeperYearsRemaining', 'ValueOverReplacementRounds'
@@ -1705,7 +1697,7 @@ def main() -> None:
 
         # Export post-keepers draft board
         board_file = output_dir / f'draft_board_{timestamp}.csv'
-        with open(board_file, 'w', newline='') as f:
+        with open(board_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=[
                 'DraftOrder', 'PlayerName', 'Position', 'Ranking', 'PosRank', 'Team'
             ])

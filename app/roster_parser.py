@@ -1,7 +1,6 @@
 import re
 import json
 from typing import Optional, List, Dict, Any
-from .yahoo_client import YahooRosterPlayer
 from .strategy import load_yahoo_rankings
 from .paths import RANKINGS_COMBINED_FILE
 

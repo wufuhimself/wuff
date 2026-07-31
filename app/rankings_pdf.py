@@ -95,7 +95,7 @@ def parse_rankings_pdf(file_obj: BinaryIO, default_source: str) -> List[PlayerRa
     if not pdf.pages:
         raise ValueError('PDF file contains no pages.')
 
-    for page_num, page in enumerate(pdf.pages, start=1):
+    for _page_num, page in enumerate(pdf.pages, start=1):
         tables = page.extract_tables()
         page_rankings = 0
 
@@ -108,7 +108,7 @@ def parse_rankings_pdf(file_obj: BinaryIO, default_source: str) -> List[PlayerRa
                 if not headers:
                     continue
 
-                for row_number, row in enumerate(table[1:], start=2):
+                for _row_number, row in enumerate(table[1:], start=2):
                     row_dict = {headers[i]: (row[i] if i < len(row) else '') for i in range(len(headers))}
 
                     player_name = _get_value(row_dict, _PLAYER_NAME_COLUMNS)

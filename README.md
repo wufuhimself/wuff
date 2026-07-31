@@ -13,7 +13,7 @@ cp .env.example .env
 
 # Run web dashboard
 make web
-# Opens at http://localhost:5001
+# Opens at http://127.0.0.1:5001
 ```
 
 ## Common workflows
@@ -66,7 +66,13 @@ Run `make web` or `make web-debug` for hot-reload during development.
 **Installation:**
 ```bash
 make install          # Create venv + install dependencies
+make install-dev      # Create venv + install dependencies + pylint
 make clean           # Remove venv
+```
+
+**Linting:**
+```bash
+make lint             # Run pylint over app/ (config: .pylintrc)
 ```
 
 **Yahoo OAuth:**

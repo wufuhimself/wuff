@@ -44,7 +44,7 @@ class YahooScraper:
 
         # Initialize driver
         try:
-            self.driver = webdriver.Firefox(options=firefox_options)
+            self.driver = webdriver.Firefox(options=firefox_options)  # pylint: disable=not-callable
         except Exception as e:
             print(f"Error starting Firefox: {e}")
             self.driver = None

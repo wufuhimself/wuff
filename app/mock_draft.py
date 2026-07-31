@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Tuple, Optional
 from collections import defaultdict
 
 from .paths import PROCESSED_DIR, RAW_STANDINGS_DIR, RAW_DRAFT_HISTORY_DIR, RAW_RANKINGS_DIR, RAW_DRAFT_PICKS_DIR
-from .standings import draft_order_from_standings, snake_draft_order
 
 
 LEAGUE_STARTERS = {
@@ -44,7 +43,7 @@ def load_current_teams(filepath: Optional[Path] = None) -> Dict[str, Dict[str, s
         return {}
 
     teams = {}
-    with open(filepath, 'r') as f:
+    with open(filepath, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             team = row.get('Team', '').strip()
@@ -68,7 +67,7 @@ def load_adjusted_rankings(filepath: Optional[Path] = None) -> Tuple[Dict[str, D
     if not filepath.exists():
         raise FileNotFoundError(f'Rankings not found: {filepath}')
 
-    with open(filepath, 'r') as f:
+    with open(filepath, 'r', encoding='utf-8') as f:
         rankings = json.load(f)
 
     # Build lookup by player name (lowercase)
@@ -91,7 +90,7 @@ def get_draft_order_2026(standings_year: int = 2025, current_teams: Optional[Dic
     if current_teams is None:
         current_teams = load_current_teams()
 
-    with open(standings_path, 'r') as f:
+    with open(standings_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     standings = data.get('standings', [])
@@ -144,7 +143,7 @@ def get_draft_order_2026_with_trades(standings_year: int = 2025, current_teams: 
         # Fallback to standings-based order if no trades file
         return get_draft_order_2026(standings_year=standings_year, current_teams=current_teams)
 
-    with open(picks_path) as f:
+    with open(picks_path, encoding='utf-8') as f:
         picks_data = json.load(f)
 
     # Get standings order (draft order is reverse standings: worst to best)
@@ -152,7 +151,7 @@ def get_draft_order_2026_with_trades(standings_year: int = 2025, current_teams: 
     if not standings_file.exists():
         raise FileNotFoundError(f'Standings not found: {standings_file}')
 
-    with open(standings_file) as f:
+    with open(standings_file, encoding='utf-8') as f:
         standings_data = json.load(f)
 
     standings = sorted(standings_data.get('standings', []), key=lambda x: x.get('rank', 0))
@@ -219,7 +218,7 @@ def build_manager_profiles(rankings_lookup: Dict[str, Dict]) -> Dict[str, Dict[s
         if not history_file.exists():
             continue
 
-        with open(history_file) as f:
+        with open(history_file, encoding='utf-8') as f:
             data = json.load(f)
 
         picks = data.get('picks', [])
@@ -487,7 +486,7 @@ def export_mock_draft(picks: List[Dict[str, Any]], output_dir: Optional[Path] = 
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / 'mock_draft_2026.csv'
 
-    with open(csv_path, 'w', newline='') as f:
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ['round', 'pickInRound', 'team', 'playerName', 'position', 'rank', 'nflTeam', 'isKeeper']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

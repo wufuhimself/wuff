@@ -3,7 +3,7 @@
 For multi-source combining (Yahoo + CSV + PDF) see rankings_manager.py.
 """
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 Keeper = Dict[str, str]
 PlayerRanking = Dict[str, Any]
@@ -33,7 +33,7 @@ def fetch_rankings_from_site(url: str, source: str) -> List[PlayerRanking]:
     import requests
     from bs4 import BeautifulSoup
 
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, 'html.parser')
     rankings: List[PlayerRanking] = []
@@ -69,7 +69,7 @@ def fetch_rankings_from_site(url: str, source: str) -> List[PlayerRanking]:
     return rankings
 
 
-def aggregate_rankings(rankings: List[PlayerRanking], keepers: List[Keeper] = []) -> List[AggregatedRanking]:
+def aggregate_rankings(rankings: List[PlayerRanking], keepers: Optional[List[Keeper]] = None) -> List[AggregatedRanking]:
     filtered_rankings = [r for r in rankings if not is_keeper(r, keepers)] if keepers else rankings
     grouped: Dict[str, AggregatedRanking] = {}
 

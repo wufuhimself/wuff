@@ -28,7 +28,8 @@ def exchange_code_for_token(code: str) -> Optional[YahooToken]:
         response = requests.post(
             'https://api.login.yahoo.com/oauth2/get_token',
             data=payload,
-            headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            timeout=30,
         )
         response.raise_for_status()
 

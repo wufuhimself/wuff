@@ -65,7 +65,7 @@ def fetch_rankings(
     headers = {"x-api-key": api_key}
     params = {"week": week}
 
-    response = requests.get(url, headers=headers, params=params)
+    response = requests.get(url, headers=headers, params=params, timeout=30)
     response.raise_for_status()
 
     data = response.json()
@@ -102,7 +102,7 @@ def fetch_projections(
     if week is not None:
         params["week"] = week
 
-    response = requests.get(url, headers=headers, params=params)
+    response = requests.get(url, headers=headers, params=params, timeout=30)
     response.raise_for_status()
 
     data = response.json()
@@ -165,7 +165,7 @@ def save_rankings(
     ensure_parent_dir(output_dir)
 
     output_path = output_dir / f"fantasypros_{sport.lower()}_{season}_rankings.json"
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding='utf-8') as f:
         json.dump(rankings, f, indent=2)
 
     return output_path
@@ -186,7 +186,7 @@ def save_projections(
 
     week_str = f"_w{week}" if week is not None else "_preseason"
     output_path = output_dir / f"fantasypros_{sport.lower()}_{season}_projections{week_str}.json"
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding='utf-8') as f:
         json.dump(projections, f, indent=2)
 
     return output_path

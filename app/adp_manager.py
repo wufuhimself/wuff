@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .paths import RAW_ADP_DIR, RAW_RANKINGS_DIR, ensure_parent_dir
+from .paths import RAW_ADP_DIR, ensure_parent_dir
 
 
 def normalize_player_name(name: str) -> str:
@@ -39,7 +39,7 @@ def load_adp_csv(csv_path: Path) -> List[Dict[str, Any]]:
     """
     players = []
 
-    with open(csv_path, 'r') as f:
+    with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         if not reader.fieldnames:
             raise ValueError('CSV must have header row')
@@ -94,7 +94,7 @@ def save_adp_json(adp_data: List[Dict[str, Any]], output_path: Optional[Path] = 
         output_path = RAW_ADP_DIR / 'adp_combined.json'
 
     ensure_parent_dir(output_path)
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(adp_data, f, indent=2)
 
     return output_path
@@ -108,7 +108,7 @@ def load_adp_json(path: Optional[Path] = None) -> List[Dict[str, Any]]:
     if not path.exists():
         return []
 
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 

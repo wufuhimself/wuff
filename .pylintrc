@@ -1,0 +1,27 @@
+[MASTER]
+ignore=.venv,__pycache__
+jobs=0
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-few-public-methods,
+    too-many-locals,
+    too-many-arguments,
+    too-many-branches,
+    too-many-statements,
+    fixme,
+    broad-exception-caught,
+    import-outside-toplevel,
+    duplicate-code,
+
+[FORMAT]
+max-line-length=140
+
+[DESIGN]
+max-args=8
+
+[BASIC]
+good-names=i,j,k,ex,_,id,pk,df

@@ -7,11 +7,10 @@ the need to manage tokens separately in wuff.
 """
 
 import logging
+import os
 from typing import Any, Dict, List, Optional
-from pathlib import Path
 
 from dotenv import load_dotenv
-import os
 
 from .yahoo_client import (
     YahooRosterPlayer,
@@ -22,7 +21,6 @@ from .yahoo_client import (
     fetch_user_leagues,
     fetch_games,
     fetch_league_teams,
-    fetch_team_roster,
     fetch_all_team_rosters,
 )
 

@@ -504,7 +504,7 @@ def league_keeper_board(
     keeper_prefs_file = Path(__file__).parent.parent / 'data' / 'config' / 'keeper_preferences.json'
     keeper_prefs = {}
     if keeper_prefs_file.exists():
-        keeper_prefs = json.load(open(keeper_prefs_file))
+        keeper_prefs = json.load(open(keeper_prefs_file, encoding='utf-8'))
 
     per_team = []
     chosen_names: set = set()

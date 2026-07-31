@@ -8,7 +8,7 @@ but not drafted in season N+1 draft = inferred keepers.
 """
 import json
 from pathlib import Path
-from typing import Dict, List, Set, Any, Tuple
+from typing import Dict, List, Any
 from collections import defaultdict
 from difflib import SequenceMatcher
 
@@ -98,7 +98,7 @@ def save_keeper_history(output_path: Path | None = None) -> Path:
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(output, f, indent=2)
 
     return output_path
@@ -112,7 +112,7 @@ def load_keeper_history(path: Path | None = None) -> Dict[str, Dict[int, List[st
     if not path.exists():
         raise FileNotFoundError(f'Keeper history not found: {path}')
 
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         data = json.load(f)
     return data.get('by_team', {})
 
@@ -163,7 +163,7 @@ def load_season_rosters() -> Dict[int, Dict[str, List[str]]]:
 
     for year_file in sorted(rosters_dir.glob('*.json')):
         year = int(year_file.stem)
-        with open(year_file) as f:
+        with open(year_file, encoding='utf-8') as f:
             data = json.load(f)
 
         rosters[year] = {}
@@ -183,7 +183,7 @@ def load_managers() -> Dict[int, Dict[str, Dict[str, str]]]:
 
     for year_file in sorted(managers_dir.glob('*.json')):
         year = int(year_file.stem)
-        with open(year_file) as f:
+        with open(year_file, encoding='utf-8') as f:
             data = json.load(f)
 
         managers[year] = {}
@@ -303,7 +303,7 @@ def save_manager_profiles_with_keepers(output_path: Path | None = None) -> Path:
     profiles = augment_managers_with_keeper_history()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(profiles, f, indent=2)
 
     return output_path

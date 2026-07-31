@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from .nfl_stats import load_seasonal_stats
-from .paths import RAW_RANKINGS_DIR, PROCESSED_DIR, ensure_parent_dir
+from .paths import PROCESSED_DIR, ensure_parent_dir
 from .rankings_manager import load_combined_rankings
 from .draft_history import load_draft_years
 
@@ -25,7 +25,7 @@ def load_adjustment_rules(config_path: Optional[Path] = None) -> Dict[str, Any]:
     if not config_path.exists():
         raise FileNotFoundError(f'Board adjustments config not found: {config_path}')
 
-    with open(config_path, 'r') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
@@ -202,10 +202,10 @@ def export_adjusted_rankings(
     json_path = output_dir / 'rankings_adjusted.json'
     csv_path = output_dir / f'rankings_adjusted_{timestamp}.csv'
 
-    with open(json_path, 'w') as f:
+    with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(adjusted, f, indent=2)
 
-    with open(csv_path, 'w', newline='') as f:
+    with open(csv_path, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ['originalRank', 'adjustedRank', 'rankShift', 'playerName', 'position', 'team']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

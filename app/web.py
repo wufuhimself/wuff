@@ -2,7 +2,6 @@ import csv
 import io
 import json
 from io import BytesIO
-from pathlib import Path
 from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
@@ -16,7 +15,6 @@ from .rankings_pdf import parse_rankings_pdf
 from .roster_store import load_roster, save_roster as persist_roster
 from .standings import current_team_names, draft_order_from_standings, load_standings, snake_draft_order
 from .strategy import (
-    forecast_opponent_keepers,
     league_keeper_board,
     load_yahoo_rankings,
     roster_keeper_insight,
@@ -37,7 +35,7 @@ def load_adp_value_analysis():
         return []
 
     analysis = []
-    with open(adp_csv, 'r') as f:
+    with open(adp_csv, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             analysis.append({
@@ -241,7 +239,7 @@ def load_adp_map() -> dict:
         return {}
 
     adp_map = {}
-    with open(adp_csv, 'r') as f:
+    with open(adp_csv, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             name = normalize_player_name(row['playerName'])
@@ -288,7 +286,7 @@ def load_keeper_export(filename: str):
         return {}
 
     keepers_by_team = {}
-    with open(csv_path, 'r') as f:
+    with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
             team = row.get('Team')
@@ -409,8 +407,6 @@ def calculate_keeper_impact(keeper_forecasts, rankings):
 
     Shows impact on draft board by counting HIGH confidence keepers per position.
     """
-    import re
-
     # Define elite tier sizes (how many top players per position matter for strategy)
     elite_tiers = {
         'TE': 5,    # Top 5 elite TEs (scarce)
@@ -569,13 +565,6 @@ def forecast_keeper_decisions(per_team, adp_map, league_rosters=None):
             alt_rank = alt.get('ranking')
             alt_pos_rank = alt.get('positionRank', '')
 
-            # Extract positional rank
-            alt_pos_rank_num = None
-            if alt_pos_rank:
-                match = re.search(r'(\d+)', str(alt_pos_rank))
-                if match:
-                    alt_pos_rank_num = int(match.group(1))
-
             # Look up ADP
             from .adp_manager import normalize_player_name
             normalized_alt_name = normalize_player_name(alt.get('playerName', ''))
@@ -613,7 +602,7 @@ def keepers_board_view():
     try:
         league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
     except FileNotFoundError:
-        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], keeper_insight=[],
+        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[],
                              keeper_versions=keeper_versions, selected_version=selected_version,
                              keeper_export_data=keeper_export_data, error=(
             f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. '
@@ -622,7 +611,7 @@ def keepers_board_view():
 
     rankings = load_yahoo_rankings()
     if not rankings:
-        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], keeper_insight=[], error=(
+        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], error=(
             'No saved rankings. Run `python3 -m app.cli refresh-yahoo-rankings` or '
             '`import-rankings-csv` first.'
         ))
@@ -630,9 +619,6 @@ def keepers_board_view():
     league_format = load_league_format()
     per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
 
-    # Load keeper insight for your team
-    roster = load_roster()
-    keeper_insight = roster_keeper_insight(roster, rankings, league_format=league_format) if roster and rankings else []
     remaining_board = remaining_board[:100]
 
     # Load ADP and enrich player data
@@ -693,10 +679,6 @@ def keepers_board_view():
         row['isMyPick'] = row.get('draftOrder') in my_picks
         row['round'] = ((row.get('draftOrder', 1) - 1) // teams) + 1
 
-    # Create two sorted views of the draft board
-    board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
-    board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
-
     # Use export-derived forecast if keeper export is loaded, otherwise compute from per_team
     organized_keeper_data = None
     if keeper_export_data:
@@ -724,24 +706,12 @@ def keepers_board_view():
         keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_rosters=league_rosters)
         keeper_impact = calculate_keeper_impact(keeper_forecasts, rankings)
 
-    # Load custom keeper predictions if available
-    custom_predictions = None
-    try:
-        from .keeper_history import load_custom_keeper_predictions
-        predictions_file = PROCESSED_DIR / 'keeper_predictions_2026.json'
-        if predictions_file.exists():
-            custom_predictions = load_custom_keeper_predictions(predictions_file)
-    except Exception:
-        pass
-
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
         keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
-        keeper_insight=keeper_insight,
         my_team=my_team, team_names=team_names, error=None,
         keeper_versions=keeper_versions, selected_version=selected_version,
         keeper_export_data=organized_keeper_data,
-        custom_predictions=custom_predictions,
     )
 
 
