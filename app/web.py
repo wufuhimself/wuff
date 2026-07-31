@@ -28,40 +28,16 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 LEAGUE_RULES_FILE = CONFIG_DIR / 'league_rules.json'
 
 
-def load_adp_value_analysis():
-    """Load ADP value analysis from CSV."""
-    adp_csv = PROCESSED_DIR / 'adp_value_analysis.csv'
-    if not adp_csv.exists():
-        return []
-
-    analysis = []
-    with open(adp_csv, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            analysis.append({
-                'playerName': row['playerName'],
-                'position': row['position'],
-                'rank': int(row['rank']),
-                'adp': float(row['adp']),
-                'delta': float(row['delta']),
-                'value': row['value'],
-            })
-    return analysis
-
-
 def load_dashboard_state():
     roster = load_roster()
     rankings = load_yahoo_rankings()
     league_format = load_league_format()
     keeper_insight = roster_keeper_insight(roster, rankings, league_format=league_format) if roster and rankings else []
 
-    adp_analysis = load_adp_value_analysis()
-
     return {
         'roster': roster,
         'rankings_count': len(rankings),
         'keeper_insight': keeper_insight,
-        'adp_analysis': adp_analysis,
         'has_token': get_valid_token() is not None,
     }
 
@@ -236,18 +212,8 @@ def team_pick_numbers(
 
 def load_adp_map() -> dict:
     """Load ADP data as dict keyed by normalized player name."""
-    from .adp_manager import normalize_player_name
-    adp_csv = PROCESSED_DIR / 'adp_value_analysis.csv'
-    if not adp_csv.exists():
-        return {}
-
-    adp_map = {}
-    with open(adp_csv, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            name = normalize_player_name(row['playerName'])
-            adp_map[name] = float(row['adp'])
-    return adp_map
+    from .adp_manager import load_adp_json
+    return {entry['playerName']: entry['adp'] for entry in load_adp_json()}
 
 
 def enrich_with_adp(player_list, adp_map):

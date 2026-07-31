@@ -49,20 +49,6 @@ you'd be running the ingestion.
 draft_analysis.py; just need to reshape the aggregations to per-manager
 and persist them as a viewable report.
 
-### 2. ML model: predicting breakout seasons
-**Status:** Zero — but feature_table.csv is ready-made**
-
-- Train a simple model on feature_table.csv to predict `fantasy_points`
-  given draft inputs: `draft_round`, `adp`, `rank_consensus`, `age`,
-  `position`, etc.
-- Use it to rank next season's prospects: who looks good on paper vs who's
-  undervalued by ADP / rankings
-- Start simple (scikit-learn linear regression or a decision tree), not
-  deep learning
-
-**Why:** Feature table is already built — this is a pure modeling task.
-Start with correlation analysis before committing to a model.
-
 ## Stretch: Beyond the app
 
 ### Discord/Slack bot

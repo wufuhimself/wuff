@@ -38,16 +38,11 @@ from .team_mapper import (
     save_team_mapping,
     load_team_mapping,
 )
-from .feature_table import build_and_save_feature_table
 from .fantasypros_manager import (
     fetch_and_save_rankings as fantasypros_fetch_rankings,
     fetch_and_save_projections as fantasypros_fetch_projections,
 )
-from .adp_manager import (
-    import_and_save_adp,
-    load_adp_json,
-    rank_vs_adp_analysis,
-)
+from .adp_manager import import_and_save_adp
 from .strategy import (
     forecast_opponent_keepers,
     league_keeper_board,
@@ -319,22 +314,10 @@ def parse_args() -> argparse.Namespace:
     )
     fantasypros_projections_parser.add_argument('--week', type=int, default=None, help='Week number (None for preseason)')
 
-    build_features_parser = subparsers.add_parser(
-        'build-features',
-        help='Build ML feature table joining draft history, stats, and rankings',
-    )
-    build_features_parser.add_argument('--seasons', nargs='+', type=int, default=[2022, 2023, 2024, 2025],
-        help='Seasons to include (default: 2022-2025)'
-    )
-    build_features_parser.add_argument('--output', default=None, help='Output CSV path (default: data/processed/feature_table.csv)')
+    subparsers.add_parser('parse-rosters', help='Interactively parse Yahoo Fantasy rosters from pasted text')
 
     import_adp_parser = subparsers.add_parser('import-adp', help='Import ADP (Average Draft Position) from CSV file')
     import_adp_parser.add_argument('csv_path', help='Path to ADP CSV file')
-
-    adp_analysis_parser = subparsers.add_parser('adp-value-analysis', help='Analyze rank vs ADP to find overvalued and undervalued players')
-    adp_analysis_parser.add_argument('--export', default=None, help='Export results to CSV file')
-
-    subparsers.add_parser('parse-rosters', help='Interactively parse Yahoo Fantasy rosters from pasted text')
 
     keepers_export_parser = subparsers.add_parser(
         'keepers-board-export',
@@ -1478,19 +1461,6 @@ def _cmd_fantasypros_projections(args) -> None:
 
 
 
-def _cmd_build_features(args) -> None:
-    try:
-        seasons = args.seasons or [2022, 2023, 2024, 2025]
-        output_path = build_and_save_feature_table(seasons, output_path=Path(args.output) if args.output else None)
-        print(f'Feature table ready for ML analysis at {output_path}')
-    except Exception as e:
-        print(f'Error building feature table: {e}', file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-
-
 def _cmd_parse_rosters(_args) -> None:
     print('Paste your Yahoo Fantasy rosters (copy-pasted from browser). Press Ctrl+D (or Ctrl+Z on Windows) when done:\n')
     lines = []
@@ -1539,7 +1509,6 @@ def _cmd_import_adp(args) -> None:
         csv_path = Path(args.csv_path)
         import_and_save_adp(csv_path)
         print('ADP saved to data/raw/adp/adp_combined.json')
-        print('Run adp-value-analysis to compare rankings vs ADP.')
     except FileNotFoundError:
         print(f'File not found: {args.csv_path}', file=sys.stderr)
         sys.exit(1)
@@ -1548,62 +1517,6 @@ def _cmd_import_adp(args) -> None:
         import traceback
         traceback.print_exc()
         sys.exit(1)
-
-
-
-def _cmd_adp_value_analysis(args) -> None:
-    # Load rankings
-    if not RANKINGS_COMBINED_FILE.exists():
-        print('No combined rankings found. Run combine-rankings first.', file=sys.stderr)
-        sys.exit(1)
-    rankings = json.loads(RANKINGS_COMBINED_FILE.read_text())
-
-    # Load ADP
-    adp_data = load_adp_json()
-    if not adp_data:
-        print('No ADP data found. Run import-adp first.', file=sys.stderr)
-        sys.exit(1)
-
-    # Analyze
-    analysis = rank_vs_adp_analysis(rankings, adp_data)
-    print(f'Matched {len(analysis)} players (experts vs market)')
-    print()
-
-    # Show undervalued
-    undervalued = [e for e in analysis if e['delta'] > 3]
-    print(f'UNDERVALUED (ranked higher than ADP, δ > +3): {len(undervalued)} players')
-    print('-' * 105)
-    for entry in undervalued[:20]:
-        print(
-            f"  {entry['rank']:3d}. rank vs {entry['adp']:6.1f} ADP  │  "
-            f"{entry['playerName']:25} {entry['position']:4}  │  +{entry['delta']:5.1f}"
-        )
-
-    print()
-
-    # Show overvalued
-    overvalued = [e for e in analysis if e['delta'] < -3]
-    print(f'OVERVALUED (ranked lower than ADP, δ < -3): {len(overvalued)} players')
-    print('-' * 105)
-    for entry in sorted(overvalued, key=lambda x: x['delta'])[:20]:
-        print(
-            f"  {entry['rank']:3d}. rank vs {entry['adp']:6.1f} ADP  │  "
-            f"{entry['playerName']:25} {entry['position']:4}  │  {entry['delta']:5.1f}"
-        )
-
-    # Export if requested
-    if args.export:
-        output_path = Path(args.export)
-        ensure_parent_dir(output_path)
-        with open(output_path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(
-                f,
-                fieldnames=['playerName', 'position', 'team', 'rank', 'adp', 'delta', 'value', 'sources']
-            )
-            writer.writeheader()
-            writer.writerows(analysis)
-        print()
-        print(f'Exported full analysis to {output_path}')
 
 
 
@@ -1737,10 +1650,8 @@ _COMMAND_HANDLERS = {
     'backfill-standings-mcp': _cmd_backfill_standings_mcp,
     'fantasypros-rankings': _cmd_fantasypros_rankings,
     'fantasypros-projections': _cmd_fantasypros_projections,
-    'build-features': _cmd_build_features,
     'parse-rosters': _cmd_parse_rosters,
     'import-adp': _cmd_import_adp,
-    'adp-value-analysis': _cmd_adp_value_analysis,
     'keepers-board-export': _cmd_keepers_board_export,
 }
 

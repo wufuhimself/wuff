@@ -1,12 +1,11 @@
-"""Average Draft Position (ADP) loader and value analysis.
+"""Average Draft Position (ADP) loader.
 
-ADP = where players actually go in real drafts (market consensus).
-Compare against expert rankings to find overrated/underrated players.
+ADP = where players actually go in real drafts (market consensus). Used to
+enrich keeper forecasts and mock draft picks with an ADP field.
 
 Workflow:
 1. Save ADP CSV to data/raw/adp/fantasypros_adp.csv
-2. Load combined rankings: python -m app combine-rankings
-3. Run value analysis: from app.adp_manager import rank_vs_adp_analysis
+2. Import: python3 -m app import-adp <csv_path>
 """
 import csv
 import json
@@ -110,46 +109,6 @@ def load_adp_json(path: Optional[Path] = None) -> List[Dict[str, Any]]:
 
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
-
-
-def rank_vs_adp_analysis(
-    rankings: List[Dict[str, Any]],
-    adp_data: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    """Compare rankings vs ADP to find value plays.
-
-    Returns list of players with rank, adp, and value analysis.
-    Positive delta = ranked higher than draft position (undervalued by market).
-    Negative delta = ranked lower than draft position (overvalued by market).
-    """
-    adp_by_name = {p['playerName']: p for p in adp_data}
-
-    analysis = []
-    for entry in rankings:
-        player_name = normalize_player_name(entry.get('playerName', ''))
-        adp_entry = adp_by_name.get(player_name)
-
-        if not adp_entry:
-            continue
-
-        rank = entry.get('ranking', 999)
-        adp = adp_entry['adp']
-        delta = adp - rank  # positive = undervalued, negative = overvalued
-
-        analysis.append({
-            'playerName': entry.get('playerName'),
-            'position': entry.get('position'),
-            'team': entry.get('team'),
-            'rank': rank,
-            'adp': adp,
-            'delta': round(delta, 2),
-            'value': 'undervalued' if delta > 5 else 'overvalued' if delta < -5 else 'fair',
-            'sources': entry.get('sourceCount', 0),
-        })
-
-    # Sort by delta (biggest undervalued first)
-    analysis.sort(key=lambda x: x['delta'], reverse=True)
-    return analysis
 
 
 def import_and_save_adp(csv_path: Path, output_path: Optional[Path] = None) -> Path:

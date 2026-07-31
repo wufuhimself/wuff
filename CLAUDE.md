@@ -78,9 +78,9 @@ Keeper recommendations are exported as timestamped CSVs in `data/processed/keepe
 
 No manual sync needed; Flask auto-discovers CSVs on each page load.
 
-## Multi-source rankings + ML feature pipeline (2026)
+## Multi-source rankings (2026)
 
-New modules for combining rankings and building ML-ready feature tables:
+Modules for combining rankings from multiple sources and importing ADP:
 
 ### Rankings ingestion (`app/rankings_manager.py`)
 
@@ -103,32 +103,13 @@ Combines multiple ranking sources (Yahoo, ESPN, FantasyPros, etc) in any format 
 - `save_combined_rankings()` — persist to JSON
 - `get_player_rank()` — lookup player's consensus rank
 
-### Feature table builder (`app/feature_table.py`)
+### ADP import (`app/adp_manager.py`)
 
-Builds ML-ready feature table by joining draft history + NFL stats + rankings + rosters.
-One row per player-season.
+Imports Average Draft Position (market consensus) from a CSV, used to enrich
+keeper forecasts and mock draft picks with an ADP field.
 
-**Workflow:**
-1. Ensure combined rankings exist (run `combine-rankings` first)
-2. Run `python -m app build-features --seasons 2022 2023 2024 2025`
-   - Joins: draft_history, nfl_stats (seasonal), rosters (age/bye), rankings
-   - Outputs `data/processed/feature_table.csv`
-3. Load into Pandas for analysis: `pd.read_csv('data/processed/feature_table.csv')`
+```bash
+python3 -m app import-adp data/raw/adp/fantasypros_adp.csv
+```
 
-**Feature columns:**
-- `player_id`, `player_name`, `season` — identifiers
-- `draft_round`, `draft_pick`, `adp` — draft data
-- `position`, `team`, `age`, `bye_week` — player profile
-- `fantasy_points` — actual season performance
-- `rank_consensus`, `rank_yahoo`, `rank_espn`, ...  — multiple ranking sources
-- `source_count` — how many sources ranked this player
-- `rank_vs_adp` — ranking minus draft position (higher = overrated)
-
-**Key functions:**
-- `load_adp_by_season()` — compute average draft position from draft_history
-- `load_player_age_by_season()` — compute age from birth year in rosters
-- `load_bye_weeks()` — extract bye week from rosters
-- `load_season_stats_map()` — load fantasy points from nfl_stats
-- `build_feature_table()` — join all sources
-- `save_feature_table()` — write to CSV
-- `build_and_save_feature_table()` — end-to-end
+Saves normalized ADP to `data/raw/adp/adp_combined.json`.

@@ -38,8 +38,8 @@ python3 -m app combine-rankings
 # Pull fresh rankings from Yahoo
 python3 -m app refresh-yahoo-rankings
 
-# Analyze rank vs ADP to find value plays
-python3 -m app adp-value-analysis --export data/processed/analysis.csv
+# Import ADP (used to enrich keeper forecasts / mock draft)
+python3 -m app import-adp data/raw/adp/fantasypros_adp.csv
 ```
 
 ### **Draft history & league trends**
