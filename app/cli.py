@@ -25,7 +25,8 @@ from .paths import (
 from .rankings_csv import load_rankings_csv
 from .rankings_pdf import load_rankings_pdf
 from .rankings_aggregator import aggregate_rankings, fetch_rankings_from_site
-from .rankings_manager import combine_and_save_all as combine_rankings_all
+from .rankings_manager import combine_and_save_all as combine_rankings_all, normalize_player_id
+from .qb_historical_adjustment import apply_qb_historical_adjustment, compute_historical_qb_pick_targets, DEFAULT_TOP_N
 from .ranking_adjustments import adjust_and_export as adjust_rankings
 from .keeper_history import (
     save_keeper_history,
@@ -247,6 +248,16 @@ def parse_args() -> argparse.Namespace:
 
     combine_rankings_parser = subparsers.add_parser('combine-rankings', help='Merge all ranking sources (CSV/JSON) into a single normalized file')
     combine_rankings_parser.add_argument('--output', default=None, help='Output file path (default: data/raw/rankings/rankings_combined.json)')
+
+    qb_adjust_parser = subparsers.add_parser(
+        'apply-qb-adjustment',
+        help="Standard 2026+ draft-forecasting adjustment: nudge the top-N QBs (by current ranking, from data/raw/rankings/yahoo_rankings.json) "
+             "up to the overall pick where a QB of that rank has actually gone in this league's own draft history, then renumber the board. "
+             "Also mirrors the result into rankings_combined.json (single-source) so keepers-board-export picks it up.",
+    )
+    qb_adjust_parser.add_argument('--top-n', type=int, default=DEFAULT_TOP_N, help=f'How many top QBs to adjust (default {DEFAULT_TOP_N})')
+    qb_adjust_parser.add_argument('--years', nargs='+', type=int, default=None, help='Draft history years to compute historical targets from (default: all available)')
+    qb_adjust_parser.add_argument('--no-sync-combined', action='store_true', help='Skip mirroring into rankings_combined.json')
 
     adjust_rankings_parser = subparsers.add_parser('adjust-rankings', help='Apply rule-based adjustments to combined rankings (e.g., QB rushing thresholds)')
     adjust_rankings_parser.add_argument('--config', default=None, help='Path to board_adjustments.json config file (default: data/config/board_adjustments.json)')
@@ -655,6 +666,56 @@ def main() -> None:
         rankings = load_rankings_csv(csv_path, source=args.source)
         save_yahoo_rankings(rankings)
         print(f'Saved {len(rankings)} rankings from {csv_path} to data/raw/rankings/yahoo_rankings.json')
+        return
+
+    if args.command == 'apply-qb-adjustment':
+        rankings = load_yahoo_rankings()
+        if not rankings:
+            print('No saved rankings found. Run import-rankings-csv first.', file=sys.stderr)
+            sys.exit(1)
+
+        targets = compute_historical_qb_pick_targets(years=args.years)
+        if not targets:
+            print('No draft history with roster data available to compute historical QB targets.', file=sys.stderr)
+            sys.exit(1)
+
+        before = {
+            entry['playerName']: entry['ranking']
+            for entry in sorted((e for e in rankings if e.get('position') == 'QB'), key=lambda e: e.get('ranking', 9999))[:args.top_n]
+        }
+
+        adjusted = apply_qb_historical_adjustment(rankings, top_n=args.top_n, targets=targets)
+        save_yahoo_rankings(adjusted)
+        print(f'Saved adjusted rankings to {YAHOO_RANKINGS_FILE}')
+
+        if not args.no_sync_combined:
+            combined = []
+            for entry in adjusted:
+                source = entry.get('source', 'unknown')
+                ranking = entry['ranking']
+                combined.append({
+                    'playerId': normalize_player_id(entry['playerName']),
+                    'playerName': entry['playerName'],
+                    'position': entry['position'],
+                    'team': entry.get('team', 'UNK'),
+                    'sourceRanks': {source: ranking},
+                    'posRank': entry.get('posRank', ''),
+                    'averageRank': float(ranking),
+                    'ranking': ranking,
+                    'sourceCount': 1,
+                })
+            combined.sort(key=lambda x: x['averageRank'])
+            ensure_parent_dir(RANKINGS_COMBINED_FILE)
+            RANKINGS_COMBINED_FILE.write_text(json.dumps(combined, indent=2))
+            print(f'Mirrored into {RANKINGS_COMBINED_FILE} (single-source, for keepers-board-export)')
+
+        print(f'\nQB adjustment (top {args.top_n}, historical targets from years={args.years or "all available"}):')
+        print(f"{'Player':<22}{'Before':<9}{'Target':<9}{'After'}")
+        for name, before_rank in before.items():
+            hit = next(e for e in adjusted if e['playerName'] == name)
+            target_idx = list(before.keys()).index(name)
+            target = targets[target_idx] if target_idx < len(targets) else targets[-1]
+            print(f"{name:<22}{before_rank:<9}{target:<9}{hit['ranking']}")
         return
 
     if args.command == 'import-rankings-pdf':

@@ -9,6 +9,16 @@ description: >
 
 Automate keeper analysis without asking.
 
+## Standard rankings input (2026+)
+
+Keeper selection is rank-first (see "Keeper rules" below), so the rankings feeding
+it matter. The standard as of 2026 is a straight PPR base with the top QBs nudged
+to their historical draft-slot target — see the `refresh-rankings` skill's
+"Standard workflow" section (`import-rankings-csv` + `apply-qb-adjustment`). Run
+that *before* the commands below any time the rankings source changes; it keeps
+`yahoo_rankings.json` and `rankings_combined.json` in sync so `keepers-board` and
+`keepers-board-export` agree with each other.
+
 ## Autonomous keeper-picking agent
 
 New workflow for multiple roster snapshots with before/after comparison:
@@ -17,15 +27,34 @@ New workflow for multiple roster snapshots with before/after comparison:
 # 1. Update rosters (interactive)
 python3 -m app parse-rosters
 
-# 2. Export keeper recommendations + draft board (timestamped CSVs)
+# 2. Refresh rankings to the PPR + historical-QB-adjustment standard (see above)
+python3 -m app apply-qb-adjustment
+
+# 3. Export keeper recommendations + draft board (timestamped CSVs)
 python3 -m app keepers-board-export
 
-# 3. View in Flask web app at /keepers-board
+# 4. View in Flask web app at /keepers-board
 #    Auto-discovers all keepers_*.csv and draft_board_*.csv files
 #    Compare snapshots to see how recommendations shifted as rosters changed
 ```
 
 Requires: `data/raw/rosters/yahoo_league_rosters.json`, `data/raw/rankings/rankings_combined.json` (or yahoo_rankings.json fallback)
+
+### Manual per-team keeper overrides
+
+If you know a manager's real keeper intent differs from the algorithm (e.g. they've
+told you who they're keeping), add it to `data/config/keeper_preferences.json`:
+
+```json
+{
+  "Team Display Name": ["Player One", "Player Two"]
+}
+```
+
+Both players must already be keeper-eligible (round 1/2 rule, consecutive-cap rule) —
+this fills remaining keeper slots with the named players ahead of the auto-selected
+pick, it doesn't bypass eligibility. Re-run `keepers-board` / `keepers-board-export`
+after editing.
 
 Outputs (per export run):
 - `keepers_YYYYMMDD_HHMM.csv` — per-team keeper picks (2 keepers) + alternates (top 3), one row per player
