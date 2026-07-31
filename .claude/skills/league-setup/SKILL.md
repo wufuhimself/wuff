@@ -52,34 +52,17 @@ Requires: Yahoo OAuth access token
 - `--league-id ID`: override default league ID from .env
 - `--year YYYY`: fetch specific season
 
-### Scrape standings
+### Backfill standings (via MCP)
 
 ```bash
-python3 -m app scrape-standings 2025
-python3 -m app scrape-standings 2025 --email user@yahoo.com --password pw --headless
+python3 -m app backfill-standings-mcp --start-year 2022 --end-year 2025
 ```
 
-Web scrape standings (if API is unavailable). Requires Yahoo credentials.
+Fetch standings for multiple years at once via MCP. Requires MCP server running.
 
 **Flags:**
-- `--year YYYY`: season to scrape (default current year)
-- `--email EMAIL`: Yahoo email (or use YAHOO_EMAIL from .env)
-- `--password PW`: Yahoo password (or use YAHOO_PASSWORD from .env)
-- `--headless`: run browser in headless mode
-
-### Backfill standings
-
-```bash
-python3 -m app backfill-standings --start 2022 --end 2025
-```
-
-Fetch or scrape standings for multiple years at once.
-
-**Flags:**
-- `--start YYYY`: first season
-- `--end YYYY`: last season (inclusive)
-- `--email EMAIL`: for scraping
-- `--password PW`: for scraping
+- `--start-year YYYY`: first season (default 2020)
+- `--end-year YYYY`: last season, inclusive (default 2025)
 
 ## Why league format matters
 

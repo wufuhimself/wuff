@@ -121,9 +121,7 @@ python3 -m app best-keepers --teams 12 --count 3
 
 Before running keeper analysis:
 1. Ensure rankings are combined: `python3 -m app combine-rankings` (creates `data/raw/rankings/rankings_combined.json`)
-2. Ensure rosters are current:
-   - Use `python3 -m app parse-rosters` to upload updated rosters (interactive, copy-paste from Yahoo)
-   - Or: `python3 -m app scrape-league-rosters` to web-scrape all team rosters
+2. Ensure rosters are current: `python3 -m app parse-rosters` to upload updated rosters (interactive, copy-paste from Yahoo)
 3. Ensure league format is set: check with `python3 -m app show-league-format` (already configured: 12-team, 1 QB, 2 RB, 3 WR, 1 TE, 1 SUPERFLEX, 1 DEF)
 
 ## Auto-triggers

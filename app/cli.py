@@ -87,7 +87,6 @@ from .mcp_client import (
     get_sync_all_team_rosters,
     get_sync_standings_for_year,
 )
-from .yahoo_scraper import scrape_roster, scrape_league_rosters, scrape_standings
 from .config import config
 
 
@@ -165,21 +164,6 @@ def parse_args() -> argparse.Namespace:
         help='Path to write the league roster snapshot'
     )
 
-    scrape_roster_parser = subparsers.add_parser('scrape-roster', help='Web scrape your Yahoo roster using Selenium and store it locally')
-    scrape_roster_parser.add_argument('--headless', action='store_true', help='Run browser in headless mode (default: visible browser)')
-
-    scrape_league_rosters_parser = subparsers.add_parser(
-        'scrape-league-rosters',
-        help='Web scrape every team roster in the league and store a snapshot',
-    )
-    scrape_league_rosters_parser.add_argument('--teams', type=int, default=12, help='Number of teams in the league')
-    scrape_league_rosters_parser.add_argument('--output', default=str(YAHOO_LEAGUE_ROSTERS_JSON),
-        help='Path to write the league roster snapshot'
-    )
-    scrape_league_rosters_parser.add_argument('--headless', action='store_true',
-        help='Run browser in headless mode (default: visible browser)'
-    )
-
     export_league_rosters_parser = subparsers.add_parser('export-league-rosters-csv', help='Convert a saved league roster snapshot to CSV')
     export_league_rosters_parser.add_argument('--input', default=str(YAHOO_LEAGUE_ROSTERS_JSON),
         help='Path to the saved league roster snapshot'
@@ -246,25 +230,6 @@ def parse_args() -> argparse.Namespace:
     fetch_standings_parser = subparsers.add_parser('fetch-standings', help='Fetch and save standings for a season')
     fetch_standings_parser.add_argument('year', type=int, help='Season year to fetch (e.g. 2024)')
     fetch_standings_parser.add_argument('--league-key', default=None, help='Optional: league_key (game_key.l.league_id) if known')
-
-    scrape_standings_parser = subparsers.add_parser('scrape-standings', help='Scrape and save league standings for a season')
-    scrape_standings_parser.add_argument('year', type=int, help='Season year to scrape (e.g. 2024)')
-    scrape_standings_parser.add_argument('--email', default=None, help='Yahoo email (from .env if not provided)')
-    scrape_standings_parser.add_argument('--password', default=None, help='Yahoo password (from .env if not provided)')
-    scrape_standings_parser.add_argument('--headless', action='store_true', default=True,
-        help='Run browser in headless mode (default: True)'
-    )
-    scrape_standings_parser.add_argument('--no-headless', action='store_false', dest='headless', help='Run browser visibly')
-
-    backfill_standings_parser = subparsers.add_parser('backfill-standings', help='Backfill standings for multiple seasons via web scraping')
-    backfill_standings_parser.add_argument('--start', type=int, default=2020, help='Start year (inclusive)')
-    backfill_standings_parser.add_argument('--end', type=int, default=2024, help='End year (inclusive)')
-    backfill_standings_parser.add_argument('--email', default=None, help='Yahoo email (from .env if not provided)')
-    backfill_standings_parser.add_argument('--password', default=None, help='Yahoo password (from .env if not provided)')
-    backfill_standings_parser.add_argument('--headless', action='store_true', default=True,
-        help='Run browser in headless mode (default: True)'
-    )
-    backfill_standings_parser.add_argument('--no-headless', action='store_false', dest='headless', help='Run browser visibly')
 
     nfl_stats_parser = subparsers.add_parser('fetch-nfl-stats', help='Fetch and save NFL player stats (weekly, seasonal, rosters)')
     nfl_stats_parser.add_argument('--seasons', nargs='+', type=int, default=None, help='Specific seasons (default: all from 2019-current)')
@@ -994,39 +959,6 @@ def _cmd_fetch_league_rosters_mcp(args) -> None:
 
 
 
-def _cmd_scrape_roster(args) -> None:
-    if not config.yahoo_email or not config.yahoo_password:
-        print('Error: YAHOO_EMAIL and YAHOO_PASSWORD must be set in .env', file=sys.stderr)
-        sys.exit(1)
-    print(f'Scraping roster for {config.yahoo_email}...')
-    roster_players = scrape_roster(config.yahoo_email, config.yahoo_password, headless=args.headless)
-    if roster_players:
-        save_roster([player.__dict__ for player in roster_players])
-        print(f'Saved {len(roster_players)} roster players to data/raw/rosters/yahoo_roster.json')
-    else:
-        print('Failed to scrape roster', file=sys.stderr)
-        sys.exit(1)
-
-
-
-def _cmd_scrape_league_rosters(args) -> None:
-    if not config.yahoo_email or not config.yahoo_password:
-        print('Error: YAHOO_EMAIL and YAHOO_PASSWORD must be set in .env', file=sys.stderr)
-        sys.exit(1)
-    print(f'Scraping all {args.teams} team rosters for {config.yahoo_email}...')
-    league_rosters = scrape_league_rosters(config.yahoo_email, config.yahoo_password, team_count=args.teams, headless=args.headless)
-    if league_rosters:
-        output_path = Path(args.output)
-        ensure_parent_dir(output_path)
-        output_path.write_text(json.dumps(league_rosters, indent=2), encoding='utf-8')
-        total_players = sum(team.get('playerCount', 0) for team in league_rosters)
-        print(f'Saved {len(league_rosters)} team rosters and {total_players} players to {output_path}')
-    else:
-        print('Failed to scrape league rosters', file=sys.stderr)
-        sys.exit(1)
-
-
-
 def _cmd_export_league_rosters_csv(args) -> None:
     input_path = Path(args.input)
     output_path = Path(args.output)
@@ -1229,72 +1161,6 @@ def _cmd_fetch_standings(args) -> None:
             print(f"  {row.get('rank'):>2}. {row.get('team'):<30} {row.get('wins')}-{row.get('losses')}-{row.get('ties')}")
     except Exception as e:
         print(f'Error fetching standings: {e}', file=sys.stderr)
-        sys.exit(1)
-
-
-
-def _cmd_scrape_standings(args) -> None:
-    email = args.email or config.yahoo_email
-    password = args.password or config.yahoo_password
-    if not email or not password:
-        print(
-            'Error: Yahoo email and password required. Provide via --email --password '
-            'or set YAHOO_EMAIL/YAHOO_PASSWORD in .env',
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    try:
-        data = scrape_standings(email, password, season=args.year, headless=args.headless)
-        if data is None:
-            print(f'Failed to scrape standings for {args.year}', file=sys.stderr)
-            sys.exit(1)
-
-        output_path = Path('data/raw/standings') / f'{args.year}.json'
-        ensure_parent_dir(output_path)
-        output_path.write_text(json.dumps(data, indent=2))
-        print(f'\nWrote standings for {args.year} to {output_path}')
-        print('\nTeams:')
-        for row in data.get('standings', []):
-            print(f"  {row.get('rank'):>2}. {row.get('team'):<30} {row.get('wins')}-{row.get('losses')}-{row.get('ties')}")
-    except Exception as e:
-        print(f'Error scraping standings: {e}', file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-
-
-def _cmd_backfill_standings(args) -> None:
-    email = args.email or config.yahoo_email
-    password = args.password or config.yahoo_password
-    if not email or not password:
-        print(
-            'Error: Yahoo email and password required. Provide via --email --password '
-            'or set YAHOO_EMAIL/YAHOO_PASSWORD in .env',
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    try:
-        print(f'Backfilling standings for {args.start}-{args.end}...')
-        for year in range(args.start, args.end + 1):
-            print(f'\n{year}:')
-            data = scrape_standings(email, password, season=year, headless=args.headless)
-            if data is None:
-                print('  Failed to scrape standings', file=sys.stderr)
-                continue
-
-            output_path = Path('data/raw/standings') / f'{year}.json'
-            ensure_parent_dir(output_path)
-            output_path.write_text(json.dumps(data, indent=2))
-            print(f'  Wrote {len(data.get("standings", []))} teams')
-
-        print('\nBackfill complete')
-    except Exception as e:
-        print(f'Error backfilling standings: {e}', file=sys.stderr)
-        import traceback
-        traceback.print_exc()
         sys.exit(1)
 
 
@@ -1846,8 +1712,6 @@ _COMMAND_HANDLERS = {
     'yahoo-roster': _cmd_yahoo_roster,
     'save-roster': _cmd_save_roster,
     'fetch-league-rosters-mcp': _cmd_fetch_league_rosters_mcp,
-    'scrape-roster': _cmd_scrape_roster,
-    'scrape-league-rosters': _cmd_scrape_league_rosters,
     'export-league-rosters-csv': _cmd_export_league_rosters_csv,
     'saved-roster': _cmd_saved_roster,
     'yahoo-keepers': _cmd_yahoo_keepers,
@@ -1860,8 +1724,6 @@ _COMMAND_HANDLERS = {
     'keepers-board': _cmd_keepers_board,
     'list-league-keys': _cmd_list_league_keys,
     'fetch-standings': _cmd_fetch_standings,
-    'scrape-standings': _cmd_scrape_standings,
-    'backfill-standings': _cmd_backfill_standings,
     'fetch-nfl-stats': _cmd_fetch_nfl_stats,
     'draft-slot-outcomes': _cmd_draft_slot_outcomes,
     'position-round-outcomes': _cmd_position_round_outcomes,
