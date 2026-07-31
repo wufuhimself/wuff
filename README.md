@@ -2,6 +2,30 @@
 
 Keeper recommendations, draft board rankings, and strategic analysis for Yahoo Fantasy Football.
 
+## What this is
+
+Most fantasy tools are dashboards: they show data, you decide. wuff is designed as an
+**agent** — something that perceives league state, reasons about decisions using
+league-specific learned patterns (not just generic expert consensus), and is working
+toward eventually acting on those decisions itself. The core bet: a league's own multi-year
+history is more predictive of *this* league's behavior than a national ranking site — see
+`app/qb_historical_adjustment.py` for a concrete example (QB draft-slot targets computed
+fresh from this league's own draft history each run, not hand-tuned).
+
+**Where it stands today:** a strong "on-demand advisor" — ask it for a keeper board, a
+mock draft, or a QB-adjusted ranking, and it returns a scored recommendation with
+rationale, grounded in this league's own draft/keeper history. Read-only against Yahoo
+(write access requires manual API approval, currently pending).
+
+**What's next:** closing the feedback loop. `app/outcome_log.py` (added 2026-07-31) logs
+every keeper and QB-draft-slot forecast the app makes, tagged with which scoring method
+produced it, then `resolve-outcomes` matches those forecasts against actual draft results
+once a season's draft happens. Right now it *records* forecast accuracy; the next step is
+having something read that log back and actually adjust scoring — that's what turns this
+from a tool that makes recommendations into one that improves them over time. After that:
+a lineup optimizer and trade evaluator (the two most common in-season decisions, neither
+built yet), and a platform abstraction layer so the reasoning core stops being Yahoo-shaped.
+
 ## Quick start
 
 ```bash
@@ -54,8 +78,9 @@ python3 -m app draft-order 2025
 Run `make web` or `make web-debug` for hot-reload during development.
 
 **Routes:**
-- `/` — Dashboard with keeper impact + ADP analysis
-- `/keepers-board` — Team keeper picks + draft board
+- `/` — Dashboard with roster, rankings, and keeper insight
+- `/keepers-board` — Team keeper picks + draft board (versioned by snapshot)
+- `/mock-draft` — Full 15-round mock draft simulator (BPA + manager tendencies)
 - `/draft-history` — Historical draft results by year
 - `/standings` — League standings and performance
 
@@ -90,6 +115,7 @@ make auth-server     # Start local HTTPS server for OAuth flow
 - `data/raw/rankings/` — Multi-source rankings (Yahoo, ESPN, FantasyPros, etc.)
 - `data/raw/draft_history/` — Historical picks by season
 - `data/processed/keeper_exports/` — Keeper board CSV exports (timestamped by method)
+- `data/processed/outcome_log.json` — Forecast-vs-actual log (generated locally, gitignored); see `app/outcome_log.py`
 
 **Keeper logic:** `app/strategy.py` — eligibility, scoring, and selection
 
