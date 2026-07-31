@@ -113,3 +113,34 @@ python3 -m app import-adp data/raw/adp/fantasypros_adp.csv
 ```
 
 Saves normalized ADP to `data/raw/adp/adp_combined.json`.
+
+## Outcome log (agent Learn pillar)
+
+Forecast-vs-actual tracking, so scoring-method accuracy can be measured over
+time instead of trusted on faith. Module: `app/outcome_log.py`.
+
+**Write side (automatic):** `apply-qb-adjustment` and `keepers-board-export`
+log every forecast they produce to `data/processed/outcome_log.json` as a
+side effect — no separate step to remember. Each entry is tagged with a
+`forecast_method_version` string, so accuracy can later be compared across
+scoring-method changes (e.g. the QB historical adjustment standard that
+replaced the old superflex+hand-tuned approach).
+
+**Read/resolve side:** `python3 -m app resolve-outcomes` scans `pending`
+entries and matches them against `data/raw/draft_history/{season}.json` —
+keeper forecasts resolve against that season's keeper-slot picks (R14-15);
+QB-adjustment forecasts resolve against the live-draft pick number. Entries
+whose season hasn't drafted yet stay `pending`, not errored — safe to run
+anytime (e.g. right after a new `draft_history/{year}.json` file is added).
+
+**Schema per entry:** `decision_id`, `decision_type` (`keeper_forecast` /
+`qb_adjustment`), `season`, `entity`, `team`, `forecast`,
+`forecast_method_version`, `forecasted_at`, `actual`, `resolved_at`, `delta`,
+`status` (`pending`/`resolved`). Re-forecasting the same
+(decision_type, season, entity) while still `pending` overwrites in place
+rather than piling up duplicates; `resolved` entries are left alone as
+historical record.
+
+**Not yet covered:** mock-draft-pick and draft-rank-vs-season-points
+resolution (needs nflverse season stats matching) — logging/resolution for
+those decision types is a follow-up, not yet wired in.

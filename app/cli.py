@@ -61,6 +61,7 @@ from .draft_analysis import (
 from .draft_history import load_draft_years, live_draft_picks, keeper_slot_picks
 from .draft_picks import load_draft_picks
 from .nfl_stats import refresh_nfl_stats
+from .outcome_log import log_outcome, load_outcomes, save_outcomes, resolve_outcomes
 from .standings import load_standings, draft_order_from_standings, snake_draft_order
 from .token_store import get_valid_token, save_token
 from .roster_parser import parse_yahoo_text_rosters, format_roster_preview
@@ -83,6 +84,12 @@ from .mcp_client import (
     get_sync_standings_for_year,
 )
 from .config import config
+
+
+def _next_draft_season() -> int:
+    """The upcoming draft year: one past the latest season with draft_history data."""
+    years = load_draft_years()
+    return max(years.keys()) + 1 if years else 2026
 
 
 def parse_args() -> argparse.Namespace:
@@ -265,6 +272,10 @@ def parse_args() -> argparse.Namespace:
         help='Draft history years to compute historical targets from (default: all available)'
     )
     qb_adjust_parser.add_argument('--no-sync-combined', action='store_true', help='Skip mirroring into rankings_combined.json')
+    qb_adjust_parser.add_argument('--season', type=int, default=None,
+        help='Draft year this forecast is for, used for the outcome log (default: one past the latest draft_history year)'
+    )
+    qb_adjust_parser.add_argument('--no-log-outcome', action='store_true', help='Skip logging this forecast to the outcome log')
 
     adjust_rankings_parser = subparsers.add_parser(
         'adjust-rankings',
@@ -327,6 +338,16 @@ def parse_args() -> argparse.Namespace:
     keepers_export_parser.add_argument('--count', type=int, default=2, help='Keeper slots per team')
     keepers_export_parser.add_argument('--input', default=str(YAHOO_LEAGUE_ROSTERS_JSON), help='Path to the saved league roster snapshot')
     keepers_export_parser.add_argument('--output-dir', default='data/processed/keeper_exports', help='Directory to write CSV exports')
+    keepers_export_parser.add_argument('--season', type=int, default=None,
+        help='Draft year this forecast is for, used for the outcome log (default: one past the latest draft_history year)'
+    )
+    keepers_export_parser.add_argument('--no-log-outcome', action='store_true', help='Skip logging this forecast to the outcome log')
+
+    resolve_outcomes_parser = subparsers.add_parser(
+        'resolve-outcomes',
+        help='Match pending outcome-log forecasts against current draft_history data and fill in actual results',
+    )
+    resolve_outcomes_parser.add_argument('--teams', type=int, default=12, help='Number of teams in the league (for overall-pick math)')
 
     return parser.parse_args()
 
@@ -739,11 +760,24 @@ def _cmd_apply_qb_adjustment(args) -> None:
 
     print(f'\nQB adjustment (top {args.top_n}, historical targets from years={args.years or "all available"}):')
     print(f"{'Player':<22}{'Before':<9}{'Target':<9}{'After'}")
+
+    season = args.season or _next_draft_season()
+    log_batch = None if args.no_log_outcome else load_outcomes()
     for name, before_rank in before.items():
         hit = next(e for e in adjusted if e['playerName'] == name)
         target_idx = list(before.keys()).index(name)
         target = targets[target_idx] if target_idx < len(targets) else targets[-1]
         print(f"{name:<22}{before_rank:<9}{target:<9}{hit['ranking']}")
+        if log_batch is not None:
+            log_outcome(
+                'qb_adjustment', season, name,
+                forecast={'pre_adjustment_rank': before_rank, 'target_pick': target},
+                method_version='qb_historical_adjustment_v1',
+                outcomes=log_batch,
+            )
+    if log_batch is not None:
+        save_outcomes(log_batch)
+        print(f'\nLogged {len(before)} forecasts to outcome log for season {season}.')
 
 
 
@@ -1603,6 +1637,31 @@ def _cmd_keepers_board_export(args) -> None:
     print(f'  {len(per_team)} teams with keeper picks')
     print(f'  {len(remaining_board)} players available for draft')
 
+    if not args.no_log_outcome:
+        season = args.season or _next_draft_season()
+        log_batch = load_outcomes()
+        logged = 0
+        for entry in per_team:
+            team_name = entry['team']
+            for i, keeper in enumerate(entry['chosen'], 1):
+                log_outcome(
+                    'keeper_forecast', season, keeper['playerName'],
+                    forecast={'keeper_status': f'Keeper {i}', 'ranking': keeper['ranking']},
+                    method_version='rank_first_vor_years_remaining_v1',
+                    team=team_name,
+                    outcomes=log_batch,
+                )
+                logged += 1
+        save_outcomes(log_batch)
+        print(f'\nLogged {logged} keeper forecasts to outcome log for season {season}.')
+
+
+
+def _cmd_resolve_outcomes(args) -> None:
+    summary = resolve_outcomes(teams=args.teams)
+    print(f"Resolved {summary['resolved_this_run']} outcome(s) this run.")
+    print(f"Still pending: {summary['still_pending']} / {summary['total']} total logged.")
+
 
 
 _COMMAND_HANDLERS = {
@@ -1653,6 +1712,7 @@ _COMMAND_HANDLERS = {
     'parse-rosters': _cmd_parse_rosters,
     'import-adp': _cmd_import_adp,
     'keepers-board-export': _cmd_keepers_board_export,
+    'resolve-outcomes': _cmd_resolve_outcomes,
 }
 
 
