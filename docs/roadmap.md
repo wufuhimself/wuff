@@ -54,8 +54,8 @@ and persist them as a viewable report.
 ### Discord/Slack bot
 **Status:** Zero**
 
-- Use `app/gem_finder.py` + `app/strategy.py` as a library (not views)
-- Post weekly breakout alerts and keeper reminders to the league Discord
+- Use `app/strategy.py` as a library (not views)
+- Post weekly keeper reminders to the league Discord
 - Useful for async engagement — teammates don't have to remember to visit
   the site
 
@@ -67,6 +67,4 @@ and persist them as a viewable report.
 1. **Highest signal:** Manager report card — tells stories about your league
    and is immediately fun to read.
 2. **Next:** Trade analyzer — high utility during active season play.
-3. **Model:** Once feature table is well-validated (report card + gems prove
-   the data is clean), build the ML piece.
-4. **Discord:** Nice-to-have after the web app is hosted and stable.
+3. **Discord:** Nice-to-have after the web app is hosted and stable.
