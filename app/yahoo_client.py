@@ -239,6 +239,7 @@ def refresh_token(refresh_token_value: str) -> YahooToken:
     payload = {
         'grant_type': 'refresh_token',
         'refresh_token': refresh_token_value,
+        'redirect_uri': config.yahoo_redirect_uri,
         'client_id': config.yahoo_client_id,
         'client_secret': config.yahoo_client_secret,
     }

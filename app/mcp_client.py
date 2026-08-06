@@ -1,17 +1,17 @@
 """
 MCP client wrapper for Yahoo Fantasy Football.
 
-This module uses OAuth tokens from the Fantasy Football MCP server's .env
-file to make API calls through wuff's existing yahoo_client, avoiding
-the need to manage tokens separately in wuff.
+Thin wrapper around wuff's yahoo_client that sources its access token from
+the shared token store (data/auth/yahoo_token.json via token_store.py) --
+the same store the Flask app and `auth`/`token`/`refresh` CLI commands use.
+This keeps a single, auto-refreshing source of truth for the OAuth token
+instead of a second copy tracked separately in .env.
 """
 
 import logging
-import os
 from typing import Any, Dict, List, Optional
 
-from dotenv import load_dotenv
-
+from .token_store import get_valid_token
 from .yahoo_client import (
     YahooRosterPlayer,
     fetch_yahoo_rankings,
@@ -27,20 +27,14 @@ from .yahoo_client import (
 logger = logging.getLogger(__name__)
 
 def _get_access_token() -> str:
-    """Get the current Yahoo access token from environment.
-
-    Loads fresh from .env each time to catch token refreshes.
-    """
-    # Reload from .env to catch recent token refreshes
-    load_dotenv(override=True)
-
-    token = os.getenv('YAHOO_ACCESS_TOKEN')
+    """Get a valid Yahoo access token, refreshing it via the shared token store if needed."""
+    token = get_valid_token()
     if not token:
         raise RuntimeError(
-            "No YAHOO_ACCESS_TOKEN found in .env. "
-            "Run 'python -m app refresh-oauth-token' to refresh the token."
+            "No valid Yahoo token found. Run 'python -m app auth-server' "
+            "(or 'python -m app auth' + 'python -m app token <code>') to authorize."
         )
-    return token
+    return token.access_token
 
 
 def get_sync_leagues() -> List[Dict[str, Any]]:
