@@ -1,8 +1,7 @@
 # wuff — Fantasy Football GM tool
 
 Keeper recommendations, draft board rankings, and strategic analysis for fantasy football —
-not tied to one platform. wuff started as a single-league Yahoo tool (the Frank Gore Memorial
-League) and, as of 2026-08-10, also observes 6 additional leagues on Sleeper.
+not tied to one platform.
 
 ## What this is
 
