@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Sleeper leagues{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>Sleeper leagues{% if username %} — {{ username }}{% endif %}</h2>
+        <p class="status">Readonly, unauthenticated public API. Run <code>python3 -m app sleeper-sync</code> to refresh all leagues.</p>
+        {% if leagues %}
+        <ul class="team-list">
+          {% for l in leagues %}
+          <li>
+            <a href="/sleeper/{{ l.leagueId }}">{{ l.name }}</a>
+            <span class="pill">{{ l.format }}</span>
+            {% if l.synced %}
+              <span class="status">synced {{ l.syncedAt }}{% if l.status %} · {{ l.status }}{% endif %}</span>
+            {% else %}
+              <span class="status">not synced yet</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="status">No leagues configured yet. Run <code>python3 -m app sleeper-discover &lt;username&gt;</code>.</p>
+        {% endif %}
+      </section>
+{% endblock %}

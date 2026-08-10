@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ league.name if league else league_id }} — Sleeper{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>{{ league.name if league else league_id }}</h2>
+        <p class="status">
+          <a href="/sleeper">All Sleeper leagues</a>
+          {% if league %}&nbsp;·&nbsp;{{ league.season }} · {{ league.status }} · {{ entry.format if entry else '' }}{% endif %}
+        </p>
+      </section>
+
+      {% if error %}
+      <section class="card"><p class="status">{{ error }}</p></section>
+      {% else %}
+
+      <section class="card">
+        <h2>Standings</h2>
+        <table class="table">
+          <thead><tr><th>Team</th><th>Manager</th><th>Record</th><th>PF</th><th>PA</th></tr></thead>
+          <tbody>
+            {% for r in rosters %}
+            <tr>
+              <td>{{ r.teamName }}</td>
+              <td>{{ r.managerDisplayName or '' }}</td>
+              <td>{{ r.wins }}-{{ r.losses }}{% if r.ties %}-{{ r.ties }}{% endif %}</td>
+              <td class="number">{{ r.fpts }}</td>
+              <td class="number">{{ r.fptsAgainst }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Rosters</h2>
+        {% for r in rosters %}
+        <div class="round-block">
+          <h3>{{ r.teamName }}{% if r.managerDisplayName %} ({{ r.managerDisplayName }}){% endif %}</h3>
+          <p class="status">
+            {% for p in r.players %}
+            <span class="pill pos-{{ (p.position or '').lower() }}">{{ p.playerName }}{% if p.position %} · {{ p.position }}{% endif %}</span>
+            {% endfor %}
+          </p>
+        </div>
+        {% endfor %}
+      </section>
+
+      {% if drafts %}
+      {% for draft in drafts %}
+      <section class="card">
+        <h2>Draft ({{ draft.status }}{% if draft.season %}, {{ draft.season }}{% endif %})</h2>
+        <table class="table compact">
+          <thead><tr><th>Round</th><th>Pick</th><th>Player</th><th>Pos</th><th>Team</th></tr></thead>
+          <tbody>
+            {% for pick in draft.picks %}
+            <tr>
+              <td>{{ pick.round }}</td>
+              <td>{{ pick.pick }}</td>
+              <td class="playerName">{{ pick.playerName or '—' }}</td>
+              <td>{{ pick.position or '' }}</td>
+              <td>{{ pick.team or '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endfor %}
+      {% endif %}
+
+      {% endif %}
+{% endblock %}

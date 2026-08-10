@@ -1,6 +1,10 @@
 # wuff Roadmap
 
-Feature development plan for the Yahoo fantasy football assistant GM.
+Feature development plan for the fantasy football assistant GM. Deepest
+support is still the Yahoo league (Frank Gore Memorial League); as of
+2026-08-10 wuff also observes 6 Sleeper leagues (readonly, visibility-only
+so far — see CLAUDE.md's Sleeper section). Most items below are Yahoo-league-specific
+unless noted.
 
 ## Near-term: Extend existing capability
 
