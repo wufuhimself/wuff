@@ -33,16 +33,44 @@
 
       <section class="card">
         <h2>Rosters</h2>
-        {% for r in rosters %}
-        <div class="round-block">
-          <h3>{{ r.teamName }}{% if r.managerDisplayName %} ({{ r.managerDisplayName }}){% endif %}</h3>
-          <p class="status">
-            {% for p in r.players %}
-            <span class="pill pos-{{ (p.position or '').lower() }}">{{ p.playerName }}{% if p.position %} · {{ p.position }}{% endif %}</span>
-            {% endfor %}
-          </p>
+        <p class="status">Starters in lineup order, bench grouped by position.</p>
+        <div class="grid" style="align-items: start; margin-top: 0.75rem;">
+          {% for r in rosters %}
+          <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: #fafbfc;">
+            <h3 style="margin: 0 0 0.5rem 0; font-size: clamp(0.95rem, 3vw, 1.05rem);">{{ r.teamName }}
+              {% if r.managerDisplayName %}<span class="status" style="display:inline; margin-left:0.35rem;">{{ r.managerDisplayName }}</span>{% endif %}
+            </h3>
+            {% if not r.players %}
+            <p class="status">No players yet.</p>
+            {% else %}
+            <table class="table compact" style="background: white;">
+              <tbody>
+                {% if r.starterSlots %}
+                <tr class="round-divider"><td colspan="3">Starters</td></tr>
+                {% for slot, p in r.starterSlots %}
+                <tr>
+                  <td style="width: 3.2rem; color: var(--muted); font-size: 0.7rem; font-weight: 700;">{{ slot }}</td>
+                  <td class="playerName"><span class="pill pos-{{ (p.position or '').lower() }}">{{ p.position or '?' }}</span> {{ p.playerName }}</td>
+                  <td style="color: var(--muted);">{{ p.team or '' }}</td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+                {% if r.bench %}
+                <tr class="round-divider"><td colspan="3">{{ 'Bench' if r.starterSlots else 'Roster' }}</td></tr>
+                {% for p in r.bench %}
+                <tr>
+                  <td style="width: 3.2rem;"></td>
+                  <td class="playerName"><span class="pill pos-{{ (p.position or '').lower() }}">{{ p.position or '?' }}</span> {{ p.playerName }}</td>
+                  <td style="color: var(--muted);">{{ p.team or '' }}</td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+            {% endif %}
+          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
       </section>
 
       {% if drafts %}

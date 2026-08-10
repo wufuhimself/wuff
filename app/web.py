@@ -960,6 +960,23 @@ def sleeper_league_view(league_id: str):
     for draft in drafts:
         draft['picks'] = sorted(draft.get('picks') or [], key=lambda p: (p.get('round') or 0, p.get('pick') or 0))
 
+    # Structure each roster for display: starters in lineup-slot order (Sleeper's
+    # starters array aligns with the league's non-bench roster positions), bench
+    # sorted by position then name.
+    position_sort = {'QB': 0, 'RB': 1, 'WR': 2, 'TE': 3, 'K': 4, 'DEF': 5}
+    slot_labels = [p for p in (league.get('rosterPositions') or []) if p not in ('BN', 'IR', 'TAXI')]
+    for roster in rosters_sorted:
+        starters = roster.get('starters') or []
+        starter_ids = {p.get('playerId') for p in starters}
+        bench = [p for p in roster.get('players') or [] if p.get('playerId') not in starter_ids]
+        bench.sort(key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9),
+                                  p.get('playerName') or ''))
+        roster['bench'] = bench
+        roster['starterSlots'] = [
+            (slot_labels[i] if i < len(slot_labels) else (p.get('position') or ''), p)
+            for i, p in enumerate(starters)
+        ]
+
     display_name = (entry or {}).get('name') or league.get('name') or league_id
     return render_template('sleeper_league.html', active='sleeper', league_id=league_id,
                             entry=entry, league=league, rosters=rosters_sorted, drafts=drafts,
