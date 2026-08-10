@@ -1,5 +1,10 @@
 # Hosting Plan: Sharing wuff with your league
 
+> **Superseded 2026-08-10.** Direction changed from "share with my league"
+> to a multi-tenant product anyone can use (effectively Option B, sequenced
+> Sleeper-first). See `roadmap.md` for the current plan. Kept for the
+> still-useful DB-migration and hosting mechanics below.
+
 Overview of what it takes to move wuff from a local CLI/web app to a
 shared site your league mates can visit. (Non-commercial, just for fun.)
 

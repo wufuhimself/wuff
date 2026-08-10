@@ -1,74 +1,156 @@
-# wuff Roadmap
+# wuff Roadmap — Multi-Tenant Product
 
-Feature development plan for the fantasy football assistant GM. Deepest
-support is still the Yahoo league (Frank Gore Memorial League); as of
-2026-08-10 wuff also observes 6 Sleeper leagues (readonly, visibility-only
-so far — see CLAUDE.md's Sleeper section). Most items below are Yahoo-league-specific
-unless noted.
+**Direction set 2026-08-10:** turn wuff from a single-user local tool into a
+web product anyone can use to import their Yahoo, Sleeper, or ESPN leagues
+and run the keeper/draft/roster analysis on them.
 
-## Near-term: Extend existing capability
+**Decisions made:**
+- **Goal:** a real, demoable product (interview-quality); organic adoption is
+  a bonus, not the bar.
+- **Stack:** keep Flask + server-rendered templates. No React rewrite unless
+  users demand it.
+- **Yahoo:** file the public OAuth app approval request with Yahoo now — it is
+  the long pole (manual approval, 5–7+ days) and runs in parallel with all
+  other work.
+- **MVP platform:** Sleeper first (no OAuth, no approval wait, client already
+  built in `app/sleeper_client.py`).
 
-### 1. Trade analyzer
-**Status:** Zero — but high reuse potential**
+This supersedes the Option A / Option B framing in `hosting-plan.md` — the
+choice is effectively Option B (multi-user interactive), but sequenced to
+dodge the OAuth wall by launching Sleeper-only.
 
-- Given two rosters, compute the VOR (value-over-replacement) impact of a
-  proposed trade for both sides
-- Reuse `app/strategy.py` logic (positional scarcity for this league's
-  roster shape) + `rankings_combined.json` to score each side
-- Web form: paste two rosters, pick a player from each, see if the trade
-  makes sense for both teams
+---
 
-**Why:** The scoring logic exists; just needs a rosters-as-input view and a
-trade math layer on top.
+## Where wuff is today
 
-### 2. Draft-day live mode
-**Status:** Zero — complex, pulls in multi-user considerations**
+One-user tool. Flat JSON files under `data/` (see `app/paths.py`). One Yahoo
+token, one Sleeper username. League rules hardcoded for the Frank Gore
+Memorial League in `app/strategy.py` / `app/league_context.py`. Rosters
+updated by paste (`parse-rosters`), rankings imported by hand from CSV/PDF.
+Flask app is a read-only viewer with no login, run locally.
 
-- A web page that updates the keeper board / draft order as picks come in
-  during the live draft
-- Real-time view: current round, next picks by team, remaining board ranked
-  for the next pick
+Four structural walls between here and a public product:
 
-**Why:** Currently `/keepers-board` is a point-in-time snapshot, regenerated
-via CLI. For live draft, teammates would need to see the same board
-updating as picks happen, which implies multi-user read access (Phase 2 of
-hosting plan).
+1. **Multi-tenancy** — accounts, per-user data isolation, database instead of
+   JSON files.
+2. **Platform abstraction** — one normalized League/Roster/Draft/Player
+   model with three importers behind it.
+3. **Rules engine** — keeper logic driven by per-league config, not
+   hardcoded Frank Gore rules.
+4. **Rankings licensing** — FantasyPros data cannot be redistributed to
+   strangers. Legal wall, not a code wall.
 
-**Scope note:** Deferred pending hosting decision (Option A vs Option B in
-hosting plan); if read-only shared views, this is less relevant since only
-you'd be running the ingestion.
+---
 
-## Mid-term: New capability, reusing existing data pipeline
+## Phase 0 — Untangle (no new features)
 
-### 1. Manager report card
-**Status:** Skeleton exists (`app/draft_analysis.py` has draft_slot_vs_final_rank logic)**
+Make the codebase multi-league-shaped before adding users.
 
-- Grade each manager's keeper choices and draft picks against actual
-  season outcomes
-- Metrics per manager: "draft accuracy" (how many of your picks outperformed
-  their ADP), "keeper ROI" (points scored by keepers vs keepers chosen by
-  others), "trade success" (if trade data is captured)
+- **League as a first-class object:** id, platform, season, settings, rules.
+  Every analysis function takes a `league_id`; nothing reads global paths
+  directly.
+- **Storage layer:** replace direct JSON reads with a repository interface.
+  SQLite + SQLAlchemy to start; Postgres later with zero call-site changes.
+  Alembic for migrations from day one.
+- **Rules schema:** extract what `data/config/league_rules.json` already
+  encodes (keeper round restrictions, consecutive-season caps, roster shape)
+  into a validated per-league rules document. `strategy.py` and
+  `league_context.py` consume the schema instead of embedding the rules.
+- Keep Flask, keep the CLI. Wrap the existing ~8k lines; don't rebuild them.
 
-**Why:** Already have draft_history + standings + nfl_stats joined in
-draft_analysis.py; just need to reshape the aggregations to per-manager
-and persist them as a viewable report.
+## Phase 1 — Sleeper-only multi-user MVP
 
-## Stretch: Beyond the app
+The first version strangers can touch.
 
-### Discord/Slack bot
-**Status:** Zero**
+- **Accounts:** email magic link or Google sign-in (Flask-Login + Authlib).
+  No password management.
+- **Onboarding:** enter Sleeper username → discover leagues (existing
+  `sleeper-discover` flow) → pick leagues to import → sync.
+- **Ships with:** per-league rosters, standings, and draft-history views —
+  the current `/sleeper` routes, made per-user.
+- **Background sync:** job queue (RQ or APScheduler) replaces CLI-triggered
+  syncs. One shared `players_cache` table for all users (Sleeper's ~5MB
+  player dump fetched once, globally).
+- **Rate limiting:** one global budget for Sleeper API calls (their guidance
+  is <1000 calls/min total), not per-user.
 
-- Use `app/strategy.py` as a library (not views)
-- Post weekly keeper reminders to the league Discord
-- Useful for async engagement — teammates don't have to remember to visit
-  the site
+## Phase 2 — Yahoo + ESPN importers
 
-**Why:** Reuses all existing analysis logic; just adds a different UI layer
-(Discord messages instead of web pages).
+- **Yahoo:** 3-legged OAuth per user, tokens encrypted per-user in the DB
+  (`cryptography` is already a dependency; `oauth_server.py` /
+  `token_store.py` are the seeds). Requires the approved public app from the
+  parallel track. The Yahoo API replaces `parse-rosters` paste entirely —
+  rosters, draft results, and league settings come from the API.
+- **ESPN:** no official API. Public leagues via the free JSON endpoints;
+  private leagues require the user to paste `espn_s2` + `SWID` cookies.
+  Fragile and a ToS gray zone — ship labeled **beta**, expect breakage each
+  season. Use the community `espn-api` library's endpoint knowledge as
+  reference.
+- **Player identity crosswalk:** sleeper_id ↔ yahoo_id ↔ espn_id ↔
+  name+team fuzzy match, as a first-class table. This is sneaky-hard;
+  budget real time for it.
+- All three importers emit the Phase 0 normalized model.
 
-## Prioritization
+## Phase 3 — Port the analysis tools
 
-1. **Highest signal:** Manager report card — tells stories about your league
-   and is immediately fun to read.
-2. **Next:** Trade analyzer — high utility during active season play.
-3. **Discord:** Nice-to-have after the web app is hosted and stable.
+- **Keeper board per league:** rules come from the rules engine. Auto-detect
+  what the platform API exposes (roster slots, keeper counts); a league
+  settings UI covers what platforms don't expose (round penalties,
+  consecutive-year caps). The dynasty Sleeper league (no round-based cap) is
+  test case #2 after Frank Gore.
+- **Draft board, mock draft, draft analysis:** port after keeper; they're
+  already mostly league-shaped.
+- **Rankings sourcing (licensing-safe):**
+  - (a) each user uploads their own CSV/PDF — current flow, zero legal risk,
+    most friction; and
+  - (b) free sources: Sleeper ADP, FantasyFootballCalculator ADP API,
+    nflverse data.
+  - Launch with a + b. A licensing deal (FantasyPros partnership) only if the
+    product gets real traction.
+- **Outcome log per league:** forecast-vs-actual tracking
+  (`app/outcome_log.py`) generalized per league. This is the differentiator —
+  "was the keeper advice right last year" is a story no dashboard product
+  tells.
+
+### Feature backlog (folded in from the earlier single-league roadmap)
+
+These become *more* valuable in multi-league context; sequence them after the
+core port:
+
+- **Manager report card** — grade each manager's keepers/picks against actual
+  outcomes. Skeleton exists in `app/draft_analysis.py`
+  (draft_slot_vs_final_rank). High demo value: tells stories about a league.
+- **Trade analyzer** — VOR impact of a proposed trade for both sides, reusing
+  `strategy.py` scarcity logic.
+- **Draft-day live mode** — keeper board / draft order updating as picks come
+  in. Multi-user infra from Phase 1 makes this feasible for the first time.
+- **Discord/Slack bot** — analysis logic as a library, posting to league
+  chats. Good async-engagement hook once hosted.
+
+## Phase 4 — Production hardening
+
+- Postgres, gunicorn behind a proxy; host on Fly.io / Railway / Render
+  (~$5–20/mo to start).
+- Privacy page, terms of service, and account/data deletion — holding OAuth
+  tokens and ESPN cookies means holding sensitive data.
+- Basic error monitoring (Sentry free tier) — a demoable product can't 500
+  silently.
+
+---
+
+## Risks, in order
+
+1. **Yahoo approval + ESPN fragility.** The Sleeper-only MVP dodges both;
+   start the Yahoo application immediately so the wait overlaps Phase 0–1.
+2. **Rules diversity.** Every league has weird keeper rules. The rules engine
+   either handles "config, not code" or the project drowns in special cases.
+3. **Player identity matching** across three platforms' ID spaces.
+4. **Rankings licensing** — solved at launch by user-upload + free sources,
+   but caps how "turnkey" onboarding feels.
+
+## Explicitly out of scope
+
+- ML feature table / gem-finding (removed 2026-07-31; stays removed).
+- Selenium/browser scraping (removed 2026-07-31; API + paste only).
+- React/SPA frontend rewrite.
+- Monetization.
