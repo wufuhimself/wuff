@@ -1,0 +1,49 @@
+{
+  "sleeperUsername": "wufu",
+  "sleeperUserId": "1150576598442397696",
+  "leagues": [
+    {
+      "leagueId": "1392347219222360064",
+      "name": "Redraft Therapy #8 - August 10th, 8:30PM EST",
+      "format": "redraft",
+      "season": "2026",
+      "totalRosters": 12
+    },
+    {
+      "leagueId": "1392220670057807872",
+      "name": "Sickos United Reincarnated",
+      "format": "dynasty",
+      "season": "2026",
+      "totalRosters": 16
+    },
+    {
+      "leagueId": "1391819447341158400",
+      "name": "👑 Royal Rumble League 👑",
+      "format": "redraft",
+      "season": "2026",
+      "totalRosters": 12
+    },
+    {
+      "leagueId": "1390773146201657344",
+      "name": "Vistar Indigo League",
+      "format": "redraft",
+      "season": "2026",
+      "totalRosters": 12
+    },
+    {
+      "leagueId": "1390768901654052864",
+      "name": "Redraft Therapy #6 August 6th, 8:30PM",
+      "format": "redraft",
+      "season": "2026",
+      "totalRosters": 12
+    },
+    {
+      "leagueId": "1316266759489069056",
+      "name": "Start ‘em Sit ‘em $30 Season 3",
+      "format": "redraft",
+      "season": "2026",
+      "totalRosters": 10,
+      "previousLeagueId": "1180225300948316160"
+    }
+  ]
+}

@@ -1,6 +1,8 @@
-# wuff — Frank Gore Memorial League GM tool
+# wuff — Fantasy Football GM tool
 
-Keeper recommendations, draft board rankings, and strategic analysis for Yahoo Fantasy Football.
+Keeper recommendations, draft board rankings, and strategic analysis for fantasy football —
+not tied to one platform. wuff started as a single-league Yahoo tool (the Frank Gore Memorial
+League) and, as of 2026-08-10, also observes 6 additional leagues on Sleeper.
 
 ## What this is
 
@@ -12,10 +14,12 @@ history is more predictive of *this* league's behavior than a national ranking s
 `app/qb_historical_adjustment.py` for a concrete example (QB draft-slot targets computed
 fresh from this league's own draft history each run, not hand-tuned).
 
-**Where it stands today:** a strong "on-demand advisor" — ask it for a keeper board, a
-mock draft, or a QB-adjusted ranking, and it returns a scored recommendation with
-rationale, grounded in this league's own draft/keeper history. Read-only against Yahoo
-(write access requires manual API approval, currently pending).
+**Where it stands today:** a strong "on-demand advisor" for the Yahoo league — ask it for a
+keeper board, a mock draft, or a QB-adjusted ranking, and it returns a scored recommendation
+with rationale, grounded in that league's own draft/keeper history. Read-only against Yahoo
+(write access requires manual API approval, currently pending). The Sleeper side (6 leagues,
+fully readonly/public API, no auth needed) is newer and currently visibility-only — rosters,
+standings, draft results, no keeper/strategy logic ported over yet.
 
 **What's next:** closing the feedback loop. `app/outcome_log.py` (added 2026-07-31) logs
 every keeper and QB-draft-slot forecast the app makes, tagged with which scoring method
@@ -73,6 +77,20 @@ python3 -m app draft-history 2025 --live-only
 python3 -m app draft-order 2025
 ```
 
+### **Sleeper leagues (readonly, no auth needed)**
+```bash
+# Discover leagues for a Sleeper username (writes data/config/sleeper_leagues.json)
+python3 -m app sleeper-discover <username>
+
+# Sync rosters/standings/draft results for all configured leagues
+python3 -m app sleeper-sync
+
+# Refresh the shared player_id -> name/position/team cache (occasional, ~5MB fetch)
+python3 -m app sleeper-refresh-players
+
+# View in web dashboard: /sleeper
+```
+
 ## Web dashboard
 
 Run `make web` or `make web-debug` for hot-reload during development.
@@ -83,6 +101,7 @@ Run `make web` or `make web-debug` for hot-reload during development.
 - `/mock-draft` — Full 15-round mock draft simulator (BPA + manager tendencies)
 - `/draft-history` — Historical draft results by year
 - `/standings` — League standings and performance
+- `/sleeper` — Sleeper league list (6 leagues); `/sleeper/<league_id>` for standings/rosters/draft
 
 ## Setup details
 
@@ -116,6 +135,7 @@ make auth-server     # Start local HTTPS server for OAuth flow
 - `data/raw/draft_history/` — Historical picks by season
 - `data/processed/keeper_exports/` — Keeper board CSV exports (timestamped by method)
 - `data/processed/outcome_log.json` — Forecast-vs-actual log (generated locally, gitignored); see `app/outcome_log.py`
+- `data/raw/sleeper/` — Synced Sleeper league snapshots (rosters, standings, drafts); `data/config/sleeper_leagues.json` for the league list
 
 **Keeper logic:** `app/strategy.py` — eligibility, scoring, and selection
 

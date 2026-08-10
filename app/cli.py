@@ -62,6 +62,12 @@ from .draft_history import load_draft_years, live_draft_picks, keeper_slot_picks
 from .draft_picks import load_draft_picks
 from .nfl_stats import refresh_nfl_stats
 from .outcome_log import log_outcome, load_outcomes, save_outcomes, resolve_outcomes
+from .sleeper_manager import (
+    discover_leagues as sleeper_discover_leagues,
+    refresh_players_cache as sleeper_refresh_players_cache,
+    sync_all_leagues as sleeper_sync_all_leagues,
+    sync_league as sleeper_sync_league,
+)
 from .standings import load_standings, draft_order_from_standings, snake_draft_order
 from .token_store import get_valid_token, save_token
 from .roster_parser import parse_yahoo_text_rosters, format_roster_preview
@@ -346,6 +352,21 @@ def parse_args() -> argparse.Namespace:
         help='Match pending outcome-log forecasts against current draft_history data and fill in actual results',
     )
     resolve_outcomes_parser.add_argument('--teams', type=int, default=12, help='Number of teams in the league (for overall-pick math)')
+
+    sleeper_discover_parser = subparsers.add_parser(
+        'sleeper-discover',
+        help="Discover a Sleeper user's leagues for a season and save/update data/config/sleeper_leagues.json",
+    )
+    sleeper_discover_parser.add_argument('username', help='Sleeper username')
+    sleeper_discover_parser.add_argument('--season', default='2026', help='Season to look up leagues for (default: 2026)')
+
+    sleeper_sync_parser = subparsers.add_parser(
+        'sleeper-sync',
+        help='Sync rosters/users/draft results for Sleeper leagues into data/raw/sleeper/',
+    )
+    sleeper_sync_parser.add_argument('--league-id', help='Sync a single league by ID (default: all leagues in sleeper_leagues.json)')
+
+    subparsers.add_parser('sleeper-refresh-players', help="Refresh the cached Sleeper player_id -> name/position/team dict (run occasionally, it's a ~5MB fetch)")
 
     return parser.parse_args()
 
@@ -1620,6 +1641,31 @@ def _cmd_resolve_outcomes(args) -> None:
     print(f"Still pending: {summary['still_pending']} / {summary['total']} total logged.")
 
 
+def _cmd_sleeper_discover(args) -> None:
+    config = sleeper_discover_leagues(args.username, args.season)
+    print(f"Found {len(config['leagues'])} league(s) for '{args.username}' ({args.season}):")
+    for league in config['leagues']:
+        print(f"  {league['leagueId']}  [{league['format']}]  {league['name']}")
+    print(f'\nSaved to data/config/sleeper_leagues.json. Edit display names/format there if needed.')
+
+
+def _cmd_sleeper_sync(args) -> None:
+    if args.league_id:
+        summary = sleeper_sync_league(args.league_id)
+        results = [summary]
+    else:
+        results = sleeper_sync_all_leagues()
+    for r in results:
+        draft_note = f", {len(r['drafts'])} draft(s)" if r['drafts'] else ''
+        print(f"  {r['leagueId']}  {r['name']}: {r['rosterCount']} rosters{draft_note}")
+    print(f'\nSynced {len(results)} league(s) to data/raw/sleeper/.')
+
+
+def _cmd_sleeper_refresh_players(args) -> None:
+    count = sleeper_refresh_players_cache()
+    print(f'Cached {count} players to data/raw/sleeper/players_cache.json.')
+
+
 
 _COMMAND_HANDLERS = {
     'migrate-data-layout': _cmd_migrate_data_layout,
@@ -1669,6 +1715,9 @@ _COMMAND_HANDLERS = {
     'import-adp': _cmd_import_adp,
     'keepers-board-export': _cmd_keepers_board_export,
     'resolve-outcomes': _cmd_resolve_outcomes,
+    'sleeper-discover': _cmd_sleeper_discover,
+    'sleeper-sync': _cmd_sleeper_sync,
+    'sleeper-refresh-players': _cmd_sleeper_refresh_players,
 }
 
 

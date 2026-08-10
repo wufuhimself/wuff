@@ -13,6 +13,12 @@ from .paths import CONFIG_DIR, RAW_STANDINGS_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PRO
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
 from .roster_store import load_roster, save_roster as persist_roster
+from .sleeper_manager import (
+    load_sleeper_leagues_config,
+    load_synced_drafts,
+    load_synced_league,
+    load_synced_rosters,
+)
 from .standings import current_team_names, draft_order_from_standings, load_standings, snake_draft_order
 from .strategy import (
     league_keeper_board,
@@ -683,6 +689,42 @@ def keepers_board_view():
 def settings():
     state = load_dashboard_state()
     return render_template('settings.html', active='settings', **state)
+
+
+@app.route('/sleeper')
+def sleeper_leagues_view():
+    config = load_sleeper_leagues_config()
+    leagues = []
+    for entry in config.get('leagues', []):
+        synced = load_synced_league(entry['leagueId'])
+        leagues.append({
+            **entry,
+            'synced': synced is not None,
+            'syncedAt': synced.get('syncedAt') if synced else None,
+            'status': synced.get('status') if synced else None,
+        })
+    return render_template('sleeper_leagues.html', active='sleeper', leagues=leagues,
+                            username=config.get('sleeperUsername'))
+
+
+@app.route('/sleeper/<league_id>')
+def sleeper_league_view(league_id: str):
+    config = load_sleeper_leagues_config()
+    entry = next((l for l in config.get('leagues', []) if l['leagueId'] == league_id), None)
+    league = load_synced_league(league_id)
+    if league is None:
+        return render_template('sleeper_league.html', active='sleeper', league_id=league_id,
+                                entry=entry, league=None, rosters=[], drafts=[],
+                                error="Not synced yet — run `python3 -m app sleeper-sync --league-id " + league_id + "`.")
+
+    rosters = load_synced_rosters(league_id)
+    rosters_sorted = sorted(rosters, key=lambda r: (-(r.get('wins') or 0), r.get('losses') or 0))
+    drafts = load_synced_drafts(league_id)
+    for draft in drafts:
+        draft['picks'] = sorted(draft.get('picks') or [], key=lambda p: (p.get('round') or 0, p.get('pick') or 0))
+
+    return render_template('sleeper_league.html', active='sleeper', league_id=league_id,
+                            entry=entry, league=league, rosters=rosters_sorted, drafts=drafts, error=None)
 
 
 @app.route('/draft-history')
