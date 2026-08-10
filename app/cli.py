@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from .league_context import LeagueFormat, load_league_format, save_league_format
+from .league_registry import default_league_id, init_leagues_config, load_leagues
 from .oauth_server import run_yahoo_oauth_server
 from .paths import (
     LEAGUE_SETTINGS_FILE,
@@ -349,6 +350,14 @@ def parse_args() -> argparse.Namespace:
         help='Match pending outcome-log forecasts against current draft_history data and fill in actual results',
     )
     resolve_outcomes_parser.add_argument('--teams', type=int, default=12, help='Number of teams in the league (for overall-pick math)')
+
+    subparsers.add_parser('leagues', help='List every league wuff observes (from data/config/leagues.json)')
+
+    leagues_init_parser = subparsers.add_parser(
+        'leagues-init',
+        help='Write data/config/leagues.json from the legacy single-league + Sleeper configs',
+    )
+    leagues_init_parser.add_argument('--force', action='store_true', help='Overwrite an existing leagues.json')
 
     sleeper_discover_parser = subparsers.add_parser(
         'sleeper-discover',
@@ -1641,6 +1650,25 @@ def _cmd_resolve_outcomes(args) -> None:
     print(f"Still pending: {summary['still_pending']} / {summary['total']} total logged.")
 
 
+def _cmd_leagues(_args) -> None:
+    leagues = load_leagues()
+    if not leagues:
+        print('No leagues configured. Run `leagues-init` to build data/config/leagues.json.')
+        return
+    default_id = default_league_id()
+    for league in leagues.values():
+        marker = ' (default)' if league.league_id == default_id else ''
+        print(f'{league.league_id}{marker}: {league.summary()}')
+
+
+def _cmd_leagues_init(args) -> None:
+    path, written = init_leagues_config(force=args.force)
+    if written:
+        print(f'Wrote {len(load_leagues())} league(s) to {path}.')
+    else:
+        print(f'{path} already exists; re-run with --force to overwrite.')
+
+
 def _cmd_sleeper_discover(args) -> None:
     sleeper_config = sleeper_discover_leagues(args.username, args.season)
     print(f"Found {len(sleeper_config['leagues'])} league(s) for '{args.username}' ({args.season}):")
@@ -1715,6 +1743,8 @@ _COMMAND_HANDLERS = {
     'import-adp': _cmd_import_adp,
     'keepers-board-export': _cmd_keepers_board_export,
     'resolve-outcomes': _cmd_resolve_outcomes,
+    'leagues': _cmd_leagues,
+    'leagues-init': _cmd_leagues_init,
     'sleeper-discover': _cmd_sleeper_discover,
     'sleeper-sync': _cmd_sleeper_sync,
     'sleeper-refresh-players': _cmd_sleeper_refresh_players,

@@ -51,12 +51,14 @@ def rounds_in_year(year: int, years: Optional[Dict[int, List[dict]]] = None) -> 
     return max(pick.get('round', 0) for pick in picks)
 
 
-def keeper_rounds_for_year(year: int, years: Optional[Dict[int, List[dict]]] = None) -> Optional[set]:
-    """The last-2-rounds keeper-slot rounds for a given draft year (shifts with total round count)."""
+def keeper_rounds_for_year(year: int, years: Optional[Dict[int, List[dict]]] = None, slots: int = 2) -> Optional[set]:
+    """The keeper-slot rounds for a given draft year: the last `slots` rounds of that
+    year's draft (shifts with total round count). Empty set when the league has no
+    end-of-draft keeper slots (slots=0)."""
     total_rounds = rounds_in_year(year, years)
     if total_rounds is None:
         return None
-    return {total_rounds - 1, total_rounds}
+    return {total_rounds - offset for offset in range(max(0, slots))}
 
 
 def live_draft_picks(year: int, years: Optional[Dict[int, List[dict]]] = None) -> List[dict]:
@@ -89,18 +91,20 @@ def consecutive_keeper_years(
     latest_year: int,
     keeper_rounds: Optional[set] = None,
     years: Optional[Dict[int, List[dict]]] = None,
+    slots: int = 2,
 ) -> int:
     """Count how many years in a row, ending at latest_year, this player occupied a keeper-slot round.
 
     keeper_rounds, if given, is used for every year checked. Leave it unset to let each year use its
-    own last-2-rounds slot (handles the 16-round-to-15-round shift when the kicker spot was dropped).
+    own last-`slots`-rounds set (handles the 16-round-to-15-round shift when the kicker spot was
+    dropped).
     """
     years = years if years is not None else load_draft_years()
     streak = 0
     year = latest_year
     while True:
         round_drafted = draft_round_for_player(player_name, year, years)
-        year_keeper_rounds = keeper_rounds if keeper_rounds is not None else keeper_rounds_for_year(year, years)
+        year_keeper_rounds = keeper_rounds if keeper_rounds is not None else keeper_rounds_for_year(year, years, slots=slots)
         if round_drafted is None or year_keeper_rounds is None or round_drafted not in year_keeper_rounds:
             break
         streak += 1

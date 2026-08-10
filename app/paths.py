@@ -23,6 +23,7 @@ RAW_SLEEPER_DIR = RAW_DIR / 'sleeper'
 
 YAHOO_TOKEN_FILE = AUTH_DIR / 'yahoo_token.json'
 LEAGUE_SETTINGS_FILE = CONFIG_DIR / 'league_settings.json'
+LEAGUES_CONFIG_FILE = CONFIG_DIR / 'leagues.json'
 SLEEPER_LEAGUES_CONFIG_FILE = CONFIG_DIR / 'sleeper_leagues.json'
 SLEEPER_PLAYERS_CACHE_FILE = RAW_SLEEPER_DIR / 'players_cache.json'
 

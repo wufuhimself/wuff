@@ -1,0 +1,265 @@
+{
+  "defaultLeagueId": "frank-gore",
+  "leagues": [
+    {
+      "leagueId": "frank-gore",
+      "platform": "yahoo",
+      "platformLeagueId": "9410",
+      "name": "Frank Gore Memorial League y15",
+      "season": null,
+      "formatFile": "data/config/league_settings.json"
+    },
+    {
+      "leagueId": "sleeper-1392347219222360064",
+      "platform": "sleeper",
+      "platformLeagueId": "1392347219222360064",
+      "name": "Redraft Therapy #8 - August 10th, 8:30PM EST",
+      "season": "2026",
+      "format": {
+        "teams": 12,
+        "league_id": "1392347219222360064",
+        "league_name": "Redraft Therapy #8 - August 10th, 8:30PM EST",
+        "draft_type": null,
+        "scoring_type": null,
+        "keeper_cost_uses_draft_round": false,
+        "keeper_slots_at_draft_end": true,
+        "keeper_max_consecutive_seasons": 2,
+        "keeper_slots": 0,
+        "keeper_ineligible_rounds": [],
+        "keeper_slot_rounds": [],
+        "roster_positions": [],
+        "scoring": {
+          "pass_td": 4.0,
+          "pass_yd_per_point": 25.0,
+          "rush_yd_per_point": 10.0,
+          "rec_yd_per_point": 10.0,
+          "receptions": 0.5,
+          "rush_td": 6.0,
+          "rec_td": 6.0,
+          "interception": -1.0,
+          "fumble_lost": -2.0
+        },
+        "starters": {
+          "QB": 1,
+          "RB": 2,
+          "WR": 2,
+          "TE": 1,
+          "FLEX": 0,
+          "SUPERFLEX": 0,
+          "DEF": 1,
+          "K": 1
+        }
+      }
+    },
+    {
+      "leagueId": "sleeper-1392220670057807872",
+      "platform": "sleeper",
+      "platformLeagueId": "1392220670057807872",
+      "name": "Sickos United Reincarnated",
+      "season": "2026",
+      "format": {
+        "teams": 16,
+        "league_id": "1392220670057807872",
+        "league_name": "Sickos United Reincarnated",
+        "draft_type": null,
+        "scoring_type": null,
+        "keeper_cost_uses_draft_round": false,
+        "keeper_slots_at_draft_end": true,
+        "keeper_max_consecutive_seasons": 2,
+        "keeper_slots": 0,
+        "keeper_ineligible_rounds": [],
+        "keeper_slot_rounds": [],
+        "roster_positions": [],
+        "scoring": {
+          "pass_td": 4.0,
+          "pass_yd_per_point": 25.0,
+          "rush_yd_per_point": 10.0,
+          "rec_yd_per_point": 10.0,
+          "receptions": 0.5,
+          "rush_td": 6.0,
+          "rec_td": 6.0,
+          "interception": -1.0,
+          "fumble_lost": -2.0
+        },
+        "starters": {
+          "QB": 1,
+          "RB": 2,
+          "WR": 2,
+          "TE": 1,
+          "FLEX": 0,
+          "SUPERFLEX": 0,
+          "DEF": 1,
+          "K": 1
+        }
+      }
+    },
+    {
+      "leagueId": "sleeper-1391819447341158400",
+      "platform": "sleeper",
+      "platformLeagueId": "1391819447341158400",
+      "name": "\ud83d\udc51 Royal Rumble League \ud83d\udc51",
+      "season": "2026",
+      "format": {
+        "teams": 12,
+        "league_id": "1391819447341158400",
+        "league_name": "\ud83d\udc51 Royal Rumble League \ud83d\udc51",
+        "draft_type": null,
+        "scoring_type": null,
+        "keeper_cost_uses_draft_round": false,
+        "keeper_slots_at_draft_end": true,
+        "keeper_max_consecutive_seasons": 2,
+        "keeper_slots": 0,
+        "keeper_ineligible_rounds": [],
+        "keeper_slot_rounds": [],
+        "roster_positions": [],
+        "scoring": {
+          "pass_td": 4.0,
+          "pass_yd_per_point": 25.0,
+          "rush_yd_per_point": 10.0,
+          "rec_yd_per_point": 10.0,
+          "receptions": 0.5,
+          "rush_td": 6.0,
+          "rec_td": 6.0,
+          "interception": -1.0,
+          "fumble_lost": -2.0
+        },
+        "starters": {
+          "QB": 1,
+          "RB": 2,
+          "WR": 2,
+          "TE": 1,
+          "FLEX": 0,
+          "SUPERFLEX": 0,
+          "DEF": 1,
+          "K": 1
+        }
+      }
+    },
+    {
+      "leagueId": "sleeper-1390773146201657344",
+      "platform": "sleeper",
+      "platformLeagueId": "1390773146201657344",
+      "name": "Vistar Indigo League",
+      "season": "2026",
+      "format": {
+        "teams": 12,
+        "league_id": "1390773146201657344",
+        "league_name": "Vistar Indigo League",
+        "draft_type": null,
+        "scoring_type": null,
+        "keeper_cost_uses_draft_round": false,
+        "keeper_slots_at_draft_end": true,
+        "keeper_max_consecutive_seasons": 2,
+        "keeper_slots": 0,
+        "keeper_ineligible_rounds": [],
+        "keeper_slot_rounds": [],
+        "roster_positions": [],
+        "scoring": {
+          "pass_td": 4.0,
+          "pass_yd_per_point": 25.0,
+          "rush_yd_per_point": 10.0,
+          "rec_yd_per_point": 10.0,
+          "receptions": 0.5,
+          "rush_td": 6.0,
+          "rec_td": 6.0,
+          "interception": -1.0,
+          "fumble_lost": -2.0
+        },
+        "starters": {
+          "QB": 1,
+          "RB": 2,
+          "WR": 2,
+          "TE": 1,
+          "FLEX": 0,
+          "SUPERFLEX": 0,
+          "DEF": 1,
+          "K": 1
+        }
+      }
+    },
+    {
+      "leagueId": "sleeper-1390768901654052864",
+      "platform": "sleeper",
+      "platformLeagueId": "1390768901654052864",
+      "name": "Redraft Therapy #6 August 6th, 8:30PM",
+      "season": "2026",
+      "format": {
+        "teams": 12,
+        "league_id": "1390768901654052864",
+        "league_name": "Redraft Therapy #6 August 6th, 8:30PM",
+        "draft_type": null,
+        "scoring_type": null,
+        "keeper_cost_uses_draft_round": false,
+        "keeper_slots_at_draft_end": true,
+        "keeper_max_consecutive_seasons": 2,
+        "keeper_slots": 0,
+        "keeper_ineligible_rounds": [],
+        "keeper_slot_rounds": [],
+        "roster_positions": [],
+        "scoring": {
+          "pass_td": 4.0,
+          "pass_yd_per_point": 25.0,
+          "rush_yd_per_point": 10.0,
+          "rec_yd_per_point": 10.0,
+          "receptions": 0.5,
+          "rush_td": 6.0,
+          "rec_td": 6.0,
+          "interception": -1.0,
+          "fumble_lost": -2.0
+        },
+        "starters": {
+          "QB": 1,
+          "RB": 2,
+          "WR": 2,
+          "TE": 1,
+          "FLEX": 0,
+          "SUPERFLEX": 0,
+          "DEF": 1,
+          "K": 1
+        }
+      }
+    },
+    {
+      "leagueId": "sleeper-1316266759489069056",
+      "platform": "sleeper",
+      "platformLeagueId": "1316266759489069056",
+      "name": "Start \u2018em Sit \u2018em $30 Season 3",
+      "season": "2026",
+      "format": {
+        "teams": 10,
+        "league_id": "1316266759489069056",
+        "league_name": "Start \u2018em Sit \u2018em $30 Season 3",
+        "draft_type": null,
+        "scoring_type": null,
+        "keeper_cost_uses_draft_round": false,
+        "keeper_slots_at_draft_end": true,
+        "keeper_max_consecutive_seasons": 2,
+        "keeper_slots": 0,
+        "keeper_ineligible_rounds": [],
+        "keeper_slot_rounds": [],
+        "roster_positions": [],
+        "scoring": {
+          "pass_td": 4.0,
+          "pass_yd_per_point": 25.0,
+          "rush_yd_per_point": 10.0,
+          "rec_yd_per_point": 10.0,
+          "receptions": 0.5,
+          "rush_td": 6.0,
+          "rec_td": 6.0,
+          "interception": -1.0,
+          "fumble_lost": -2.0
+        },
+        "starters": {
+          "QB": 1,
+          "RB": 2,
+          "WR": 2,
+          "TE": 1,
+          "FLEX": 0,
+          "SUPERFLEX": 0,
+          "DEF": 1,
+          "K": 1
+        }
+      }
+    }
+  ]
+}

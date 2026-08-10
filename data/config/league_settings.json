@@ -7,6 +7,9 @@
   "keeper_cost_uses_draft_round": false,
   "keeper_slots_at_draft_end": true,
   "keeper_max_consecutive_seasons": 2,
+  "keeper_slots": 2,
+  "keeper_ineligible_rounds": [1, 2],
+  "keeper_slot_rounds": [14, 15],
   "roster_positions": [
     "QB",
     "WR",

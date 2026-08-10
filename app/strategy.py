@@ -17,8 +17,6 @@ from .paths import YAHOO_RANKINGS_FILE, ensure_parent_dir
 from .yahoo_client import YahooRosterPlayer
 
 RANKINGS_FILE = YAHOO_RANKINGS_FILE
-INELIGIBLE_KEEPER_ROUNDS = {1, 2}
-PRIOR_KEEPER_ROUNDS = {14, 15}
 
 
 def _latest_draft_year(years: Dict[int, List[dict]]) -> Optional[int]:
@@ -32,13 +30,13 @@ def _draft_history_round(player_name: str, years: Dict[int, List[dict]]) -> Opti
     return draft_round_for_player(player_name, latest_year, years)
 
 
-def _keeper_streak(player_name: str, years: Dict[int, List[dict]]) -> int:
+def _keeper_streak(player_name: str, years: Dict[int, List[dict]], league_format: LeagueFormat) -> int:
     """How many consecutive seasons ending at the latest saved draft year this player was
-    already kept (occupied a last-2-rounds keeper slot). 0 if they weren't a keeper last season."""
+    already kept (occupied an end-of-draft keeper slot). 0 if they weren't a keeper last season."""
     latest_year = _latest_draft_year(years)
     if latest_year is None:
         return 0
-    return consecutive_keeper_years(player_name, latest_year, years=years)
+    return consecutive_keeper_years(player_name, latest_year, years=years, slots=league_format.keeper_slots)
 
 
 def _keeper_years_remaining(streak: int, league_format: LeagueFormat) -> int:
@@ -56,7 +54,7 @@ def _keeper_cap_status(
 ) -> Optional[Tuple[bool, str]]:
     """Hard override: a player who has already occupied a keeper slot for the league's max
     consecutive seasons cannot be kept again, regardless of round eligibility."""
-    streak = _keeper_streak(player_name, years)
+    streak = _keeper_streak(player_name, years, league_format)
     if streak >= league_format.keeper_max_consecutive_seasons:
         return False, (
             f'Ineligible keeper: kept {streak} consecutive season(s) already, at the '
@@ -106,20 +104,24 @@ def _expected_draft_round(ranking: int, teams: int = 12) -> int:
     return max(1, (ranking + teams - 1) // teams)
 
 
-def _keeper_status(keeper_round: Optional[int], costless: bool = False) -> tuple[Optional[bool], str]:
+def _keeper_status(
+    keeper_round: Optional[int],
+    league_format: LeagueFormat,
+    costless: bool = False,
+) -> tuple[Optional[bool], str]:
     if keeper_round is None:
         # No draft-round record for this player -- most likely a waiver-wire pickup or
-        # in-season free-agent add, never a live draft pick. The round 1/2 restriction only
+        # in-season free-agent add, never a live draft pick. The early-round restriction only
         # applies to players actually drafted that early, so an undrafted player was never
         # subject to it and defaults to eligible, valued on current ranking like anyone else.
         msg = (
             'Eligible: no draft-round record found (likely a waiver-wire pickup), so '
-            'the round 1/2 restriction does not apply.'
+            'the early-round keeper restriction does not apply.'
         )
         return True, msg
-    if keeper_round in INELIGIBLE_KEEPER_ROUNDS:
+    if keeper_round in league_format.keeper_ineligible_round_set:
         return False, f'Ineligible keeper: players drafted in round {keeper_round} cannot be kept in this league.'
-    if keeper_round in PRIOR_KEEPER_ROUNDS:
+    if keeper_round in league_format.keeper_slot_round_set:
         if costless:
             return True, 'Eligible: was a keeper last season and is still under the consecutive-season cap.'
         return None, 'This player occupied a prior-year keeper slot last season.'
@@ -144,12 +146,16 @@ def _resolve_keeper_status(
 
     draft_round = player.draftRound if player.draftRound is not None else _draft_history_round(player.playerName, years)
     costless = not _uses_draft_round_as_keeper_cost(league_format)
-    return _keeper_status(draft_round, costless=costless)
+    return _keeper_status(draft_round, league_format, costless=costless)
 
 
-def _uses_non_standard_keeper_cost(player: YahooRosterPlayer, keeper_round: Optional[int] = None) -> bool:
+def _uses_non_standard_keeper_cost(
+    player: YahooRosterPlayer,
+    league_format: LeagueFormat,
+    keeper_round: Optional[int] = None,
+) -> bool:
     round_value = keeper_round if keeper_round is not None else player.draftRound
-    return bool(player.keeperEligibleOverride) and round_value in PRIOR_KEEPER_ROUNDS
+    return bool(player.keeperEligibleOverride) and round_value in league_format.keeper_slot_round_set
 
 
 def _manual_market_note(player: YahooRosterPlayer) -> str:
@@ -165,12 +171,12 @@ def _uses_draft_round_as_keeper_cost(league_format: LeagueFormat) -> bool:
     return bool(league_format.keeper_cost_uses_draft_round)
 
 
-def _league_history_round(keeper_round: Optional[int]) -> Optional[int]:
+def _league_history_round(keeper_round: Optional[int], league_format: LeagueFormat) -> Optional[int]:
     if keeper_round is None:
         return None
-    if keeper_round in INELIGIBLE_KEEPER_ROUNDS:
+    if keeper_round in league_format.keeper_ineligible_round_set:
         return keeper_round
-    if keeper_round in PRIOR_KEEPER_ROUNDS:
+    if keeper_round in league_format.keeper_slot_round_set:
         return None
     return keeper_round
 
@@ -328,9 +334,9 @@ def roster_keeper_insight(
         market_round = projected_round or expected_round
         replacement_round = _replacement_round(normalized_position, league_format)
         value_over_replacement = _value_over_replacement_rounds(normalized_position, market_round, league_format)
-        league_history_round = _league_history_round(keeper_round)
-        uses_non_standard_keeper_cost = _uses_non_standard_keeper_cost(player, keeper_round)
-        keeper_streak = _keeper_streak(player.playerName, draft_years)
+        league_history_round = _league_history_round(keeper_round, league_format)
+        uses_non_standard_keeper_cost = _uses_non_standard_keeper_cost(player, league_format, keeper_round)
+        keeper_streak = _keeper_streak(player.playerName, draft_years, league_format)
         keeper_years_remaining = _keeper_years_remaining(keeper_streak, league_format)
         if (
             _uses_draft_round_as_keeper_cost(league_format)

@@ -56,14 +56,17 @@
     "nflStatsNote": "Player stats from nflreadpy/nflverse (weekly, seasonal, and roster snapshots per season). Used for historical position lookups and player evaluation enrichment. Fetch via 'fetch-nfl-stats [--seasons 2019 2020 ...]. Does NOT include play-by-play (out of scope). Currently have 2022-2025.",
     "draftAnalysisDir": "data/processed/draft_analysis/",
     "draftAnalysisNote": "Regeneratable snapshots from draft-analysis reports (e.g. slot vs rank, position vs rank analyses). Optional CSV export via --export-csv flag.",
-    "leagueSettings": "data/config/league_settings.json"
+    "leagueSettings": "data/config/league_settings.json",
+    "leaguesRegistry": "data/config/leagues.json",
+    "leaguesRegistryNote": "Cross-platform league registry (Phase 0 of the multi-tenant roadmap, see docs/roadmap.md). One entry per league: wuff-internal leagueId (this league is 'frank-gore', the default), platform, platformLeagueId, and format (inline or via formatFile pointing at league_settings.json). Regenerate with 'python3 -m app leagues-init --force'; list with 'python3 -m app leagues'."
   },
   "codeMap": {
-    "app/strategy.py": "Core keeper eligibility + selection logic. INELIGIBLE_KEEPER_ROUNDS, PRIOR_KEEPER_ROUNDS constants. roster_keeper_insight() builds per-player analysis, select_best_keepers() picks the top N per league_format rules.",
+    "app/strategy.py": "Core keeper eligibility + selection logic. Keeper round rules (ineligible rounds, keeper-slot rounds) come from LeagueFormat fields, not module constants. roster_keeper_insight() builds per-player analysis, select_best_keepers() picks the top N per league_format rules.",
+    "app/league_registry.py": "League registry: every league wuff observes across platforms (yahoo/sleeper/espn), loaded from data/config/leagues.json. League dataclass wraps a LeagueFormat; get_league()/load_leagues()/default_league_id(). CLI: leagues, leagues-init.",
     "app/draft_history.py": "Loads data/raw/draft_history/*.json, computes consecutive_keeper_years() for the cap rule.",
     "app/draft_picks.py": "Loads data/raw/draft_picks/*.json, who owns which round picks.",
     "app/standings.py": "Loads data/raw/standings/*.json and derives the next season's snake draft order (worst record picks first, reverses each round). Snake draft, confirmed.",
-    "app/league_context.py": "LeagueFormat dataclass — teams, starters, keeper_cost_uses_draft_round (should stay False), keeper_max_consecutive_seasons.",
+    "app/league_context.py": "LeagueFormat dataclass — teams, starters, keeper_cost_uses_draft_round (should stay False), keeper_max_consecutive_seasons, keeper_slots, keeper_ineligible_rounds ([1,2] here), keeper_slot_rounds ([14,15] here). All keeper rules are per-league config now, seeded from league_settings.json.",
     "app/roster_store.py": "Load/save roster JSON into YahooRosterPlayer objects.",
     "app/nfl_stats.py": "Fetches and caches NFL player stats from nflreadpy/nflverse: load_player_stats(summary_level='week'/'reg'), load_rosters(). Exposes refresh_nfl_stats() for CLI; load_* functions read CSVs for downstream consumers. Seasons default to FIRST_SEASON (2019) through current_nfl_season().",
     "app/draft_analysis.py": "Historical draft-outcome analysis: draft_slot_vs_final_rank(), position_in_round_vs_final_rank(). Joins draft_history + standings + nfl_stats rosters to correlate draft decisions with season outcomes.",
