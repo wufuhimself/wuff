@@ -34,34 +34,39 @@
       <section class="card">
         <h2>Rosters</h2>
         <p class="status">Starters in lineup order, bench grouped by position.</p>
-        <div class="grid" style="align-items: start; margin-top: 0.75rem;">
+        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); align-items: start; margin-top: 0.75rem;">
           {% for r in rosters %}
-          <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: #fafbfc;">
-            <h3 style="margin: 0 0 0.5rem 0; font-size: clamp(0.95rem, 3vw, 1.05rem);">{{ r.teamName }}
+          <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: #fafbfc; min-width: 0;">
+            <h3 style="margin: 0 0 0.5rem 0; font-size: clamp(0.95rem, 3vw, 1.05rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ r.teamName }}{% if r.managerDisplayName %} ({{ r.managerDisplayName }}){% endif %}">{{ r.teamName }}
               {% if r.managerDisplayName %}<span class="status" style="display:inline; margin-left:0.35rem;">{{ r.managerDisplayName }}</span>{% endif %}
             </h3>
             {% if not r.players %}
             <p class="status">No players yet.</p>
             {% else %}
-            <table class="table compact" style="background: white;">
+            <table class="table compact" style="background: white; table-layout: fixed; width: 100%;">
+              <colgroup>
+                <col style="width: 2.6rem"><col style="width: 3.1rem"><col><col style="width: 2.8rem">
+              </colgroup>
               <tbody>
                 {% if r.starterSlots %}
-                <tr class="round-divider"><td colspan="3">Starters</td></tr>
+                <tr class="round-divider"><td colspan="4">Starters</td></tr>
                 {% for slot, p in r.starterSlots %}
                 <tr>
-                  <td style="width: 3.2rem; color: var(--muted); font-size: 0.7rem; font-weight: 700;">{{ slot }}</td>
-                  <td class="playerName"><span class="pill pos-{{ (p.position or '').lower() }}">{{ p.position or '?' }}</span> {{ p.playerName }}</td>
-                  <td style="color: var(--muted);">{{ p.team or '' }}</td>
+                  <td style="color: var(--muted); font-size: 0.65rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis;" title="{{ slot }}">{{ slot }}</td>
+                  <td><span class="pill pos-{{ (p.position or '').lower() }}" style="margin-right: 0;">{{ p.position or '?' }}</span></td>
+                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.playerName }}">{{ p.playerName }}</td>
+                  <td style="color: var(--muted); text-align: right;">{{ p.team or '' }}</td>
                 </tr>
                 {% endfor %}
                 {% endif %}
                 {% if r.bench %}
-                <tr class="round-divider"><td colspan="3">{{ 'Bench' if r.starterSlots else 'Roster' }}</td></tr>
+                <tr class="round-divider"><td colspan="4">{{ 'Bench' if r.starterSlots else 'Roster' }}</td></tr>
                 {% for p in r.bench %}
                 <tr>
-                  <td style="width: 3.2rem;"></td>
-                  <td class="playerName"><span class="pill pos-{{ (p.position or '').lower() }}">{{ p.position or '?' }}</span> {{ p.playerName }}</td>
-                  <td style="color: var(--muted);">{{ p.team or '' }}</td>
+                  <td></td>
+                  <td><span class="pill pos-{{ (p.position or '').lower() }}" style="margin-right: 0;">{{ p.position or '?' }}</span></td>
+                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.playerName }}">{{ p.playerName }}</td>
+                  <td style="color: var(--muted); text-align: right;">{{ p.team or '' }}</td>
                 </tr>
                 {% endfor %}
                 {% endif %}
