@@ -1,4 +1,6 @@
 Flask
+Flask-Login
+SQLAlchemy
 requests
 python-dotenv
 beautifulsoup4

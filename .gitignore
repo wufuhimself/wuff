@@ -13,6 +13,7 @@ localhost+2-key.pem
 # Data files
 nfl_stats/
 data/raw/
+data/wuff.db
 
 # Generated keeper/draft exports
 data/processed/

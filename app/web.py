@@ -1,24 +1,34 @@
 import csv
 import io
 import json
+import os
+from datetime import datetime
 from io import BytesIO
 from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
+from flask_login import current_user, login_required, login_user, logout_user
 
+from . import sleeper_client
+from .auth import get_or_create_user, init_auth
+from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .league_context import load_league_format
 from .league_registry import default_league_id, load_leagues
+from .models import DbLeague, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
 from .repository import get_repository
 from .roster_store import load_roster, save_roster as persist_roster
 from .sleeper_manager import (
+    load_players_cache,
     load_sleeper_leagues_config,
     load_synced_drafts,
     load_synced_league,
     load_synced_rosters,
+    refresh_players_cache,
+    sync_league,
 )
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .strategy import (
@@ -30,6 +40,10 @@ from .token_store import get_valid_token
 from .yahoo_client import fetch_yahoo_rankings, fetch_yahoo_roster_players
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
+# Dev fallback only — any deploy sets a real SECRET_KEY (docs/roadmap.md Phase 4).
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-not-a-secret')
+init_db()
+init_auth(app)
 
 LEAGUE_RULES_FILE = CONFIG_DIR / 'league_rules.json'
 
@@ -97,7 +111,6 @@ def index():
                     pass
 
             # Try displayName keys in order (current year first, then 2025, then any)
-            from datetime import datetime
             current_year = datetime.now().year
             selected_team = (
                 my_team_config.get(f'displayName{current_year}')
@@ -684,6 +697,139 @@ def keepers_board_view():
 def settings():
     state = load_dashboard_state()
     return render_template('settings.html', active='settings', **state)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('my_leagues'))
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        if '@' not in email:
+            return render_template('login.html', active='login', error='Enter a valid email address.')
+        user = get_or_create_user(email)
+        login_user(user, remember=True)
+        return redirect(url_for('my_leagues'))
+    return render_template('login.html', active='login', error=None)
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+
+@app.route('/my/leagues')
+@login_required
+def my_leagues():
+    with SessionLocal() as session:
+        rows = (
+            session.query(DbLeague)
+            .join(UserLeague, UserLeague.league_id == DbLeague.id)
+            .filter(UserLeague.user_id == current_user.id)
+            .order_by(DbLeague.name)
+            .all()
+        )
+        entries = [
+            {
+                'name': row.name,
+                'platform': row.platform,
+                'season': row.season,
+                'teams': row.total_teams,
+                'href': f'/sleeper/{row.platform_league_id}' if row.platform == 'sleeper' else '/',
+            }
+            for row in rows
+        ]
+    return render_template(
+        'my_leagues.html', active='my-leagues', leagues=entries,
+        message=request.args.get('message', ''),
+    )
+
+
+@app.route('/my/onboard', methods=['GET', 'POST'])
+@login_required
+def onboard():
+    default_season = str(datetime.now().year)
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        season = request.form.get('season', '').strip() or default_season
+        if not username:
+            return render_template('onboard.html', active='my-leagues', discovered=None,
+                                   username='', season=season, error='Enter a Sleeper username.')
+        try:
+            sleeper_user = sleeper_client.get_user(username)
+            found = sleeper_client.get_user_leagues(sleeper_user['user_id'], season)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            return render_template('onboard.html', active='my-leagues', discovered=None,
+                                   username=username, season=season,
+                                   error=f'Sleeper lookup failed: {exc}')
+        discovered = [
+            {
+                'leagueId': entry.get('league_id'),
+                'name': entry.get('name'),
+                'season': entry.get('season'),
+                'totalRosters': entry.get('total_rosters'),
+            }
+            for entry in found
+        ]
+        return render_template('onboard.html', active='my-leagues', discovered=discovered,
+                               username=username, season=season, error=None)
+    return render_template('onboard.html', active='my-leagues', discovered=None,
+                           username='', season=default_season, error=None)
+
+
+@app.route('/my/onboard/import', methods=['POST'])
+@login_required
+def onboard_import():
+    selected = request.form.getlist('selected')
+    if not selected:
+        return redirect(url_for('onboard'))
+
+    with SessionLocal() as session:
+        for platform_league_id in selected:
+            league = (
+                session.query(DbLeague)
+                .filter_by(platform='sleeper', platform_league_id=platform_league_id)
+                .one_or_none()
+            )
+            if league is None:
+                league = DbLeague(
+                    slug=f'sleeper-{platform_league_id}',
+                    platform='sleeper',
+                    platform_league_id=platform_league_id,
+                    name=request.form.get(f'name_{platform_league_id}', platform_league_id),
+                    season=request.form.get(f'season_{platform_league_id}') or None,
+                    total_teams=request.form.get(f'teams_{platform_league_id}', type=int),
+                )
+                session.add(league)
+                session.flush()
+            link = (
+                session.query(UserLeague)
+                .filter_by(user_id=current_user.id, league_id=league.id)
+                .one_or_none()
+            )
+            if link is None:
+                session.add(UserLeague(user_id=current_user.id, league_id=league.id))
+        session.commit()
+
+    synced = _sync_sleeper_snapshots(selected)
+    return redirect(url_for('my_leagues', message=f'Imported {len(selected)} league(s), synced {synced}.'))
+
+
+def _sync_sleeper_snapshots(platform_league_ids) -> int:
+    """Pull fresh snapshots for the given Sleeper leagues; count successes."""
+    players_cache = load_players_cache()
+    if not players_cache:
+        refresh_players_cache()
+        players_cache = load_players_cache()
+    synced = 0
+    for platform_league_id in platform_league_ids:
+        try:
+            sync_league(platform_league_id, players_cache)
+            synced += 1
+        except Exception:  # pylint: disable=broad-exception-caught
+            continue
+    return synced
 
 
 @app.route('/leagues')

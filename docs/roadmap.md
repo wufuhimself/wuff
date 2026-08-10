@@ -69,17 +69,24 @@ Make the codebase multi-league-shaped before adding users.
 
 The first version strangers can touch.
 
-- **Accounts:** email magic link or Google sign-in (Flask-Login + Authlib).
-  No password management.
-- **Onboarding:** enter Sleeper username → discover leagues (existing
-  `sleeper-discover` flow) → pick leagues to import → sync.
-- **Ships with:** per-league rosters, standings, and draft-history views —
-  the current `/sleeper` routes, made per-user.
-- **Background sync:** job queue (RQ or APScheduler) replaces CLI-triggered
-  syncs. One shared `players_cache` table for all users (Sleeper's ~5MB
-  player dump fetched once, globally).
-- **Rate limiting:** one global budget for Sleeper API calls (their guidance
-  is <1000 calls/min total), not per-user.
+- ✅ **DB foundation** (2026-08-10): SQLAlchemy + SQLite (`app/db.py`,
+  `data/wuff.db`, gitignored); `DATABASE_URL` env var is the Postgres path.
+  Tables: `users`, `leagues`, `user_leagues` (`app/models.py`).
+- ✅ **Accounts, dev transport** (2026-08-10): Flask-Login sessions with an
+  email-only dev login (`app/auth.py`, `/login`). ⚠️ No verification — a
+  real transport (magic-link email or Google via Authlib) MUST replace the
+  dev form before any public deploy.
+- ✅ **Onboarding** (2026-08-10): `/my/onboard` — enter Sleeper username →
+  discover leagues via API → pick → import (DB rows, idempotent, leagues
+  shared across users) + snapshot sync. `/my/leagues` lists the user's
+  imported leagues.
+- **Remaining for Phase 1 launch:**
+  - Real login transport (magic link / Google) — the dev form is a stub.
+  - Background/scheduled sync (RQ or APScheduler) — today snapshots sync
+    inline during import only.
+  - Global Sleeper API rate budget (<1000 calls/min total, not per user).
+  - Per-user league *views* still lean on the shared snapshot files; fine
+    while snapshots are keyed by platform league id, revisit at hosting.
 
 ## Phase 2 — Yahoo + ESPN importers
 

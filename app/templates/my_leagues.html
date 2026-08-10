@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}My leagues{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>My leagues <span class="status">{{ current_user.email }}</span></h2>
+        {% if leagues %}
+        <ul class="team-list">
+          {% for l in leagues %}
+          <li>
+            <a href="{{ l.href }}">{{ l.name }}</a>
+            <span class="pill">{{ l.platform }}</span>
+            <span class="status">{% if l.teams %}{{ l.teams }} teams{% endif %}{% if l.season %} · {{ l.season }}{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="status">No leagues imported yet.</p>
+        {% endif %}
+        <p><a href="/my/onboard">Import Sleeper leagues →</a></p>
+        <form method="post" action="/logout"><button type="submit">Log out</button></form>
+      </section>
+{% endblock %}

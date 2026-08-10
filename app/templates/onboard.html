@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Import leagues{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>Import Sleeper leagues</h2>
+        <p class="status">Sleeper's API is public — just a username, no password or app connection needed. Yahoo and ESPN import are on the roadmap.</p>
+        {% if error %}<div class="message">{{ error }}</div>{% endif %}
+        <form method="post" action="/my/onboard">
+          <input type="text" name="username" placeholder="Sleeper username" value="{{ username }}" required>
+          <input type="text" name="season" value="{{ season }}" size="6" title="Season">
+          <button type="submit">Find leagues</button>
+        </form>
+        {% if discovered is not none %}
+          {% if discovered %}
+          <form method="post" action="/my/onboard/import">
+            <ul class="team-list">
+              {% for l in discovered %}
+              <li>
+                <label>
+                  <input type="checkbox" name="selected" value="{{ l.leagueId }}" checked>
+                  {{ l.name }} <span class="status">{{ l.totalRosters }} teams · {{ l.season }}</span>
+                </label>
+                <input type="hidden" name="name_{{ l.leagueId }}" value="{{ l.name }}">
+                <input type="hidden" name="season_{{ l.leagueId }}" value="{{ l.season }}">
+                <input type="hidden" name="teams_{{ l.leagueId }}" value="{{ l.totalRosters }}">
+              </li>
+              {% endfor %}
+            </ul>
+            <button type="submit">Import selected</button>
+          </form>
+          {% else %}
+          <p class="status">No leagues found for that username/season.</p>
+          {% endif %}
+        {% endif %}
+      </section>
+{% endblock %}
