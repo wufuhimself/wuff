@@ -9,9 +9,10 @@ and run the keeper/draft/roster analysis on them.
   a bonus, not the bar.
 - **Stack:** keep Flask + server-rendered templates. No React rewrite unless
   users demand it.
-- **Yahoo:** file the public OAuth app approval request with Yahoo now — it is
-  the long pole (manual approval, 5–7+ days) and runs in parallel with all
-  other work.
+- **Yahoo: deprioritized (2026-08-10).** Yahoo is dragging its feet even on
+  read-only API access (approval pending since ~2026-07-17). Not worth
+  planning around — ESPN becomes the second import platform; Yahoo lands
+  whenever Yahoo cooperates.
 - **MVP platform:** Sleeper first (no OAuth, no approval wait, client already
   built in `app/sleeper_client.py`).
 
@@ -80,26 +81,38 @@ The first version strangers can touch.
   discover leagues via API → pick → import (DB rows, idempotent, leagues
   shared across users) + snapshot sync. `/my/leagues` lists the user's
   imported leagues.
+- ✅ **Background sync + rate budget** (2026-08-10): APScheduler in-process
+  (`app/sync_scheduler.py`) — periodic sweep of every known Sleeper league
+  (DB-imported + local config, default every 6h via
+  `SLEEPER_SYNC_INTERVAL_MINUTES`), onboarding/manual syncs run as one-off
+  background jobs, every attempt recorded in the `sync_runs` table
+  (surfaced on /my/leagues with a Sync-now button). Global sliding-window
+  rate limiter (`app/rate_limit.py`) inside `sleeper_client._get` —
+  `SLEEPER_MAX_CALLS_PER_MIN`, default 600 of Sleeper's 1000/min ceiling.
+  Players cache auto-refreshes when older than 7 days.
 - **Remaining for Phase 1 launch:**
   - Real login transport (magic link / Google) — the dev form is a stub.
-  - Background/scheduled sync (RQ or APScheduler) — today snapshots sync
-    inline during import only.
-  - Global Sleeper API rate budget (<1000 calls/min total, not per user).
   - Per-user league *views* still lean on the shared snapshot files; fine
     while snapshots are keyed by platform league id, revisit at hosting.
+  - One process = one scheduler; under gunicorn multi-worker, pin the
+    scheduler to a single worker or move the sweep to a cron entrypoint.
 
-## Phase 2 — Yahoo + ESPN importers
+## Phase 2 — ESPN, then Yahoo importers
 
-- **Yahoo:** 3-legged OAuth per user, tokens encrypted per-user in the DB
-  (`cryptography` is already a dependency; `oauth_server.py` /
-  `token_store.py` are the seeds). Requires the approved public app from the
-  parallel track. The Yahoo API replaces `parse-rosters` paste entirely —
-  rosters, draft results, and league settings come from the API.
+ESPN first (2026-08-10 reorder): Yahoo won't grant even read-only API access,
+so it can't gate the second platform.
+
 - **ESPN:** no official API. Public leagues via the free JSON endpoints;
   private leagues require the user to paste `espn_s2` + `SWID` cookies.
   Fragile and a ToS gray zone — ship labeled **beta**, expect breakage each
   season. Use the community `espn-api` library's endpoint knowledge as
   reference.
+- **Yahoo (whenever approval lands):** 3-legged OAuth per user, tokens
+  encrypted per-user in the DB (`cryptography` is already a dependency;
+  `oauth_server.py` / `token_store.py` are the seeds). Requires an approved
+  public app. The Yahoo API replaces `parse-rosters` paste entirely —
+  rosters, draft results, and league settings come from the API. Until then
+  the Frank Gore league keeps its current paste/manual flows.
 - **Player identity crosswalk:** sleeper_id ↔ yahoo_id ↔ espn_id ↔
   name+team fuzzy match, as a first-class table. This is sneaky-hard;
   budget real time for it.
@@ -154,8 +167,10 @@ core port:
 
 ## Risks, in order
 
-1. **Yahoo approval + ESPN fragility.** The Sleeper-only MVP dodges both;
-   start the Yahoo application immediately so the wait overlaps Phase 0–1.
+1. **Platform API access.** Yahoo has proven it: still no read-only access
+   after ~3 weeks (hence deprioritized). ESPN's unofficial endpoints can
+   break any season. Sleeper is the only platform wuff fully controls its
+   own destiny on — which is why it's the MVP and the deepest integration.
 2. **Rules diversity.** Every league has weird keeper rules. The rules engine
    either handles "config, not code" or the project drowns in special cases.
 3. **Player identity matching** across three platforms' ID spaces.
