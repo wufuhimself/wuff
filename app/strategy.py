@@ -53,7 +53,10 @@ def _keeper_cap_status(
     years: Dict[int, List[dict]],
 ) -> Optional[Tuple[bool, str]]:
     """Hard override: a player who has already occupied a keeper slot for the league's max
-    consecutive seasons cannot be kept again, regardless of round eligibility."""
+    consecutive seasons cannot be kept again, regardless of round eligibility.
+    A cap of 0 (or negative) means the league has no consecutive-season cap at all."""
+    if league_format.keeper_max_consecutive_seasons <= 0:
+        return None
     streak = _keeper_streak(player_name, years, league_format)
     if streak >= league_format.keeper_max_consecutive_seasons:
         return False, (
@@ -307,10 +310,11 @@ def roster_keeper_insight(
     rankings: List[Dict[str, Any]],
     teams: int = 12,
     league_format: Optional[LeagueFormat] = None,
+    draft_years: Optional[Dict[int, List[dict]]] = None,
 ) -> List[Dict[str, Any]]:
     league_format = league_format or LeagueFormat(teams=teams)
     position_ranks = _build_position_ranks(rankings)
-    draft_years = load_draft_years()
+    draft_years = draft_years if draft_years is not None else load_draft_years()
     rankings_by_name = {_normalize_name(r.get('playerName', '')): r for r in rankings}
     insight = []
     for player in roster_players:
@@ -480,6 +484,8 @@ def league_keeper_board(
     league_format: LeagueFormat,
     keeper_count: int = 2,
     keeper_prefs_override: Optional[Dict[str, List[str]]] = None,
+    draft_years: Optional[Dict[int, List[dict]]] = None,
+    include_file_prefs: bool = True,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Compute the best keepers for every team in a saved league-roster snapshot.
 
@@ -491,10 +497,12 @@ def league_keeper_board(
     def normalize(name: str) -> str:
         return ' '.join(name.strip().lower().split())
 
-    # Load keeper preferences
+    # Config-file keeper preferences (the original Yahoo league's hand-set
+    # intents). Generic league boards pass include_file_prefs=False so another
+    # league's identically named team can't inherit them.
     keeper_prefs_file = Path(__file__).parent.parent / 'data' / 'config' / 'keeper_preferences.json'
     keeper_prefs = {}
-    if keeper_prefs_file.exists():
+    if include_file_prefs and keeper_prefs_file.exists():
         with open(keeper_prefs_file, encoding='utf-8') as f:
             keeper_prefs = json.load(f)
 
@@ -523,7 +531,8 @@ def league_keeper_board(
             for p in team.get('players', [])
             if isinstance(p, dict)
         ]
-        insight = roster_keeper_insight(players, rankings, teams=league_format.teams, league_format=league_format)
+        insight = roster_keeper_insight(players, rankings, teams=league_format.teams,
+                                        league_format=league_format, draft_years=draft_years)
         # User marks (keeper_prefs_override) beat the config-file prefs for a team.
         preferred_names = (keeper_prefs_override or {}).get(team_name) or keeper_prefs.get(team_name)
         chosen, alternates = select_best_keepers(

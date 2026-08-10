@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ league_display_name }} keepers — wuff{% endblock %}
+{% block content %}
+      {% macro mark_button(team, player, marked) %}
+      {% if current_user.is_authenticated %}
+      <form method="post" action="/keepers-board/mark" style="display:inline; margin-left:0.3rem;">
+        <input type="hidden" name="league_slug" value="{{ league_slug }}">
+        <input type="hidden" name="team" value="{{ team }}">
+        <input type="hidden" name="player" value="{{ player }}">
+        <input type="hidden" name="action" value="{{ 'unmark' if marked else 'mark' }}">
+        <button type="submit" style="border:none; cursor:pointer; border-radius:999px; padding:0.1rem 0.5rem; font-size:0.7rem; font-weight:700; background:{{ '#0a2f5c' if marked else '#e6e8ee' }}; color:{{ 'white' if marked else '#444' }};">
+          {{ '★ kept — unmark' if marked else '☆ mark keeper' }}
+        </button>
+      </form>
+      {% elif marked %}
+      <span class="pill" style="background:#0a2f5c; color:white;">★ kept</span>
+      {% endif %}
+      {% endmacro %}
+
+      {% if not_configured %}
+      <section class="card">
+        <h2>Keeper rules not set up yet</h2>
+        <p class="status">Tell wuff this league's keeper rules first —
+          <a href="/league/{{ league_slug }}/settings">open league settings</a> and set keeper
+          slots above zero.</p>
+      </section>
+      {% elif error %}
+      <section class="card"><p class="status">{{ error }}</p></section>
+      {% else %}
+
+      <section class="card">
+        <h2>Recommended keepers by team</h2>
+        <p class="status">Ranked by consensus market board with this league's rules applied.
+          Click ☆ to lock in what a team is actually keeping — marked players leave the draft board.</p>
+        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); align-items: start; margin-top: 0.75rem;">
+          {% for entry in per_team %}
+          <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: #fafbfc; min-width: 0;">
+            <h3 style="margin: 0 0 0.5rem 0; font-size: clamp(0.95rem, 3vw, 1.05rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ entry.team }}">{{ entry.team }}</h3>
+            {% for player in entry.chosen %}
+            <div style="margin-bottom: 0.4rem; padding: 0.5rem 0.6rem; background: white; border: 1px solid var(--border); border-radius: 6px;">
+              <span class="pill pos-{{ (player.position or '').lower() }}">{{ player.position }}</span>
+              <strong>{{ player.playerName }}</strong>
+              {% if player.ranking %}<span class="status" style="display:inline;">#{{ player.ranking }}</span>{% endif %}
+              {{ mark_button(entry.team, player.playerName, player.playerName in (keeper_marks or {}).get(entry.team, [])) }}
+            </div>
+            {% endfor %}
+            {% if entry.alternates %}
+            <div class="status" style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0.5rem 0 0.25rem;">Next options</div>
+            {% for player in entry.alternates[:3] %}
+            <div style="margin-bottom: 0.3rem; padding: 0.35rem 0.6rem; background: white; border: 1px solid var(--border); border-radius: 6px; opacity: 0.85; font-size: 0.9rem;">
+              <span class="pill pos-{{ (player.position or '').lower() }}">{{ player.position }}</span>
+              {{ player.playerName }}
+              {% if player.ranking %}<span class="status" style="display:inline;">#{{ player.ranking }}</span>{% endif %}
+              {{ mark_button(entry.team, player.playerName, player.playerName in (keeper_marks or {}).get(entry.team, [])) }}
+            </div>
+            {% endfor %}
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | length }}</span></h2>
+        <table class="table compact">
+          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>NFL</th><th>Rank</th></tr></thead>
+          <tbody>
+            {% for row in remaining_board %}
+            <tr>
+              <td class="number">{{ row.draftOrder }}</td>
+              <td class="playerName">{{ row.playerName }}</td>
+              <td><span class="pill pos-{{ (row.position or '').lower() }}">{{ row.position }}</span></td>
+              <td>{{ row.team or '' }}</td>
+              <td class="number">{{ row.ranking }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endif %}
+{% endblock %}

@@ -16,11 +16,12 @@ from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .league_context import load_league_format
 from .league_registry import default_league_id, get_league, load_leagues
+from .league_service import resolve_league, save_league_rules
 from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
-from .repository import get_repository
+from .repository import get_repository, repository_for
 from .roster_store import load_roster, save_roster as persist_roster
 from .sleeper_manager import (
     load_sleeper_leagues_config,
@@ -66,9 +67,11 @@ def _league_href(platform: str, platform_league_id: str) -> str:
     return '/'
 
 
-def load_keeper_marks() -> dict:
-    """User-marked keepers for the default league, as {team: [player, ...]}."""
-    platform, platform_league_id = _default_league_platform_ids()
+def load_keeper_marks(platform: Optional[str] = None, platform_league_id: Optional[str] = None) -> dict:
+    """User-marked keepers for a league (default league when unspecified),
+    as {team: [player, ...]}."""
+    if platform is None or platform_league_id is None:
+        platform, platform_league_id = _default_league_platform_ids()
     marks: dict = {}
     with SessionLocal() as session:
         rows = (
@@ -749,10 +752,20 @@ def keeper_mark():
     team = request.form.get('team', '').strip()
     player = request.form.get('player', '').strip()
     action = request.form.get('action', 'mark')
-    if not team or not player:
-        return redirect(url_for('keepers_board_view'))
+    league_slug = request.form.get('league_slug', '').strip()
 
-    platform, platform_league_id = _default_league_platform_ids()
+    if league_slug:
+        league = resolve_league(league_slug)
+        if league is None:
+            return redirect(url_for('leagues_view'))
+        platform, platform_league_id = league.platform, league.platform_league_id
+        back = url_for('league_keepers', league_id=league_slug)
+    else:
+        platform, platform_league_id = _default_league_platform_ids()
+        back = url_for('keepers_board_view')
+
+    if not team or not player:
+        return redirect(back)
     with SessionLocal() as session:
         existing = (
             session.query(KeeperMark)
@@ -766,7 +779,7 @@ def keeper_mark():
             session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
                                    team_name=team, player_name=player))
         session.commit()
-    return redirect(url_for('keepers_board_view'))
+    return redirect(back)
 
 
 @app.route('/settings')
@@ -974,6 +987,81 @@ def onboard_espn():
     return redirect(url_for('my_leagues', message=f"Imported {summary.get('name') or league_id} from ESPN."))
 
 
+def _league_page_ctx(league, tool: str) -> dict:
+    return {
+        'league_slug': league.league_id,
+        'league_display_name': league.name,
+        'league_platform': league.platform,
+        'league_tool': tool,
+        'league_overview_href': _league_href(league.platform, league.platform_league_id),
+    }
+
+
+@app.route('/league/<league_id>/keepers')
+def league_keepers(league_id: str):
+    league = resolve_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+    if league.platform == 'yahoo':
+        return redirect(url_for('keepers_board_view'))
+
+    ctx = _league_page_ctx(league, 'keepers')
+    if league.format.keeper_slots <= 0:
+        return render_template('league_keepers.html', active='league-keepers', per_team=[],
+                               remaining_board=[], keeper_marks={}, not_configured=True,
+                               error=None, **ctx)
+
+    repo = repository_for(league)
+    rosters = repo.rosters()
+    rankings = repo.rankings()
+    if not rosters or not rankings:
+        return render_template('league_keepers.html', active='league-keepers', per_team=[],
+                               remaining_board=[], keeper_marks={}, not_configured=False,
+                               error='No synced rosters or rankings yet — sync the league first.', **ctx)
+
+    marks = load_keeper_marks(league.platform, league.platform_league_id)
+    per_team, remaining_board = league_keeper_board(
+        rosters, rankings, league.format,
+        keeper_count=league.format.keeper_slots,
+        keeper_prefs_override=marks,
+        draft_years=repo.draft_years(),
+        include_file_prefs=False,
+    )
+    return render_template('league_keepers.html', active='league-keepers', per_team=per_team,
+                           remaining_board=remaining_board[:100], keeper_marks=marks,
+                           not_configured=False, error=None, **ctx)
+
+
+@app.route('/league/<league_id>/settings', methods=['GET', 'POST'])
+@login_required
+def league_settings(league_id: str):
+    league = resolve_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+
+    if request.method == 'POST':
+        def parse_rounds(raw: str) -> list:
+            return [int(part) for part in raw.replace(',', ' ').split() if part.strip().isdigit()]
+        save_league_rules(league, {
+            'teams': request.form.get('teams', type=int) or league.format.teams,
+            'keeper_slots': request.form.get('keeper_slots', type=int) or 0,
+            'keeper_ineligible_rounds': parse_rounds(request.form.get('keeper_ineligible_rounds', '')),
+            'keeper_slot_rounds': parse_rounds(request.form.get('keeper_slot_rounds', '')),
+            'keeper_max_consecutive_seasons': request.form.get('keeper_max_consecutive_seasons', type=int) or 0,
+        })
+        return redirect(url_for('league_settings', league_id=league_id, message='Rules saved.'))
+
+    snapshot = None
+    if league.platform == 'sleeper':
+        snapshot = load_synced_league(league.platform_league_id)
+    elif league.platform == 'espn':
+        snapshot = espn_manager.load_synced_league(league.platform_league_id)
+    return render_template('league_settings.html', active='league-settings', league=league,
+                           fmt=league.format, snapshot=snapshot,
+                           message=request.args.get('message', ''),
+                           **_league_page_ctx(league, 'settings'))
+
+
 @app.route('/leagues')
 def leagues_view():
     default_id = default_league_id()
@@ -1047,7 +1135,9 @@ def sleeper_league_view(league_id: str):
     display_name = (entry or {}).get('name') or league.get('name') or league_id
     return render_template('league_snapshot.html', active='sleeper', league_id=league_id,
                             entry=entry, league=league, rosters=rosters_sorted, drafts=drafts,
-                            league_display_name=display_name, league_platform='sleeper', error=None)
+                            league_display_name=display_name, league_platform='sleeper',
+                            league_slug=f'sleeper-{league_id}', league_tool='overview',
+                            league_overview_href=f'/sleeper/{league_id}', error=None)
 
 
 @app.route('/espn/<league_id>')
@@ -1069,7 +1159,9 @@ def espn_league_view(league_id: str):
     return render_template('league_snapshot.html', active='espn', league_id=league_id,
                             entry=None, league=league, rosters=rosters_sorted, drafts=drafts,
                             league_display_name=league.get('name') or league_id,
-                            league_platform='espn', error=None)
+                            league_platform='espn', league_slug=f'espn-{league_id}',
+                            league_tool='overview', league_overview_href=f'/espn/{league_id}',
+                            error=None)
 
 
 @app.route('/draft-history')

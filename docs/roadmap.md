@@ -132,11 +132,16 @@ so it can't gate the second platform.
 
 ## Phase 3 — Port the analysis tools
 
-- **Keeper board per league:** rules come from the rules engine. Auto-detect
-  what the platform API exposes (roster slots, keeper counts); a league
-  settings UI covers what platforms don't expose (round penalties,
-  consecutive-year caps). The dynasty Sleeper league (no round-based cap) is
-  test case #2 after Frank Gore.
+- ✅ **Keeper board per league** (2026-08-10): `/league/<slug>/keepers` runs
+  the keeper engine on ANY registered/imported league — repository rosters +
+  free-source rankings + the league's own synced draft history, with rules
+  from `/league/<slug>/settings` (keeper slots, ineligible rounds, keeper-slot
+  rounds, consecutive-season cap; cap 0 = no cap for dynasty). Rules persist
+  in `DbLeague.rules_json`, merged over the registry by
+  `app/league_service.resolve_league()`. Keeper marks are league-scoped.
+  `strategy.py` no longer reads global draft history — `draft_years` is
+  threaded through. Live-verified on a real synced Sleeper league (12 teams,
+  round-1/2 rule enforced against its actual 2026 draft).
 - **Draft board, mock draft, draft analysis:** port after keeper; they're
   already mostly league-shaped.
 - **Rankings sourcing (licensing-safe):**

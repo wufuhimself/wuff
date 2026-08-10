@@ -43,6 +43,9 @@ class DbLeague(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     season: Mapped[Optional[str]] = mapped_column(String(8))
     total_teams: Mapped[Optional[int]] = mapped_column(Integer)
+    # Web-configured LeagueFormat overrides (keeper rules etc.) as a JSON
+    # object; merged over the registry/default format by league_service.
+    rules_json: Mapped[Optional[str]] = mapped_column(String(4000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     followers = relationship('UserLeague', back_populates='league', cascade='all, delete-orphan')

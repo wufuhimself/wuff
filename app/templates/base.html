@@ -127,7 +127,13 @@
       <nav class="league-nav">
         <span class="platform-tag">{{ league_platform | default('sleeper') }}</span>
         <span class="league-name">{{ league_display_name }}</span>
+        {% if league_slug is defined and league_slug %}
+        <a href="{{ league_overview_href }}" class="{{ 'active' if league_tool == 'overview' }}">Overview</a>
+        <a href="/league/{{ league_slug }}/keepers" class="{{ 'active' if league_tool == 'keepers' }}">Keepers</a>
+        <a href="/league/{{ league_slug }}/settings" class="{{ 'active' if league_tool == 'settings' }}">Settings</a>
+        {% else %}
         <a href="#" class="active">Overview</a>
+        {% endif %}
       </nav>
       {% endif %}
     </header>

@@ -8,7 +8,7 @@ call sites never change, only the URL).
 """
 import os
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from .paths import DATA_DIR
@@ -29,6 +29,29 @@ engine = create_engine(
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)  # pylint: disable=invalid-name
 
 
+# Columns added after a table first shipped; create_all won't ALTER existing
+# tables, so init_db backfills these on SQLite. (Alembic replaces this before
+# any production deploy.)
+_COLUMN_BACKFILLS = [
+    ('leagues', 'rules_json', 'VARCHAR(4000)'),
+]
+
+
+def _ensure_columns() -> None:
+    if not DATABASE_URL.startswith('sqlite'):
+        return
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+    for table, column, ddl_type in _COLUMN_BACKFILLS:
+        if table not in tables:
+            continue
+        existing = {c['name'] for c in inspector.get_columns(table)}
+        if column not in existing:
+            with engine.begin() as conn:
+                conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {column} {ddl_type}'))
+
+
 def init_db() -> None:
     from . import models  # pylint: disable=import-outside-toplevel,unused-import,cyclic-import
+    _ensure_columns()
     Base.metadata.create_all(engine)

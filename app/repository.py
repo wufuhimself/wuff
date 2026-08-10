@@ -169,8 +169,9 @@ class EspnJsonRepository(SnapshotJsonRepository):
     snapshots = espn_manager
 
 
-def get_repository(league_id: Optional[str] = None) -> LeagueDataRepository:
-    league = get_league(league_id)
+def repository_for(league: League) -> LeagueDataRepository:
+    """Backend for an already resolved League (works for DB-only leagues the
+    file registry doesn't know about)."""
     if league.platform == 'sleeper':
         return SleeperJsonRepository(league)
     if league.platform == 'espn':
@@ -178,3 +179,7 @@ def get_repository(league_id: Optional[str] = None) -> LeagueDataRepository:
     if league.platform == 'yahoo':
         return YahooJsonRepository(league)
     raise ValueError(f"No repository backend for platform '{league.platform}' (league '{league.league_id}').")
+
+
+def get_repository(league_id: Optional[str] = None) -> LeagueDataRepository:
+    return repository_for(get_league(league_id))
