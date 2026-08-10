@@ -15,7 +15,7 @@ from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .league_context import load_league_format
 from .league_registry import default_league_id, get_league, load_leagues
-from .models import DbLeague, SyncRun, UserLeague
+from .models import DbLeague, KeeperMark, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
@@ -52,6 +52,27 @@ def _start_background_sync():
     ensure_scheduler_started()
 
 
+def _default_league_platform_ids() -> tuple:
+    league = get_league()
+    return league.platform, league.platform_league_id
+
+
+def load_keeper_marks() -> dict:
+    """User-marked keepers for the default league, as {team: [player, ...]}."""
+    platform, platform_league_id = _default_league_platform_ids()
+    marks: dict = {}
+    with SessionLocal() as session:
+        rows = (
+            session.query(KeeperMark)
+            .filter_by(platform=platform, platform_league_id=platform_league_id)
+            .order_by(KeeperMark.created_at)
+            .all()
+        )
+    for row in rows:
+        marks.setdefault(row.team_name, []).append(row.player_name)
+    return marks
+
+
 @app.context_processor
 def _inject_league_context():
     try:
@@ -86,7 +107,10 @@ def index():
     rankings = repo.rankings()
     if rankings:
         league_format = load_league_format()
-        per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
+        per_team, remaining_board = league_keeper_board(
+            league_rosters, rankings, league_format, keeper_count=2,
+            keeper_prefs_override=load_keeper_marks(),
+        )
         remaining_board = remaining_board[:100]
 
         adp_map = load_adp_map()
@@ -608,7 +632,11 @@ def keepers_board_view():
         ))
 
     league_format = load_league_format()
-    per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
+    keeper_marks = load_keeper_marks()
+    per_team, remaining_board = league_keeper_board(
+        league_rosters, rankings, league_format, keeper_count=2,
+        keeper_prefs_override=keeper_marks,
+    )
 
     remaining_board = remaining_board[:100]
 
@@ -702,8 +730,34 @@ def keepers_board_view():
         keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
         my_team=my_team, team_names=team_names, error=None,
         keeper_versions=keeper_versions, selected_version=selected_version,
-        keeper_export_data=organized_keeper_data,
+        keeper_export_data=organized_keeper_data, keeper_marks=keeper_marks,
     )
+
+
+@app.route('/keepers-board/mark', methods=['POST'])
+@login_required
+def keeper_mark():
+    team = request.form.get('team', '').strip()
+    player = request.form.get('player', '').strip()
+    action = request.form.get('action', 'mark')
+    if not team or not player:
+        return redirect(url_for('keepers_board_view'))
+
+    platform, platform_league_id = _default_league_platform_ids()
+    with SessionLocal() as session:
+        existing = (
+            session.query(KeeperMark)
+            .filter_by(platform=platform, platform_league_id=platform_league_id,
+                       team_name=team, player_name=player)
+            .one_or_none()
+        )
+        if action == 'unmark' and existing is not None:
+            session.delete(existing)
+        elif action == 'mark' and existing is None:
+            session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
+                                   team_name=team, player_name=player))
+        session.commit()
+    return redirect(url_for('keepers_board_view'))
 
 
 @app.route('/settings')
@@ -1011,7 +1065,10 @@ def draft_order_board_view(standings_year: int):
     round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
     rounds = snake_draft_order(round1_order, live_rounds)
 
-    _, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
+    _, remaining_board = league_keeper_board(
+        league_rosters, rankings, league_format, keeper_count=2,
+        keeper_prefs_override=load_keeper_marks(),
+    )
     board_by_rank = {row.get('draftOrder'): row for row in remaining_board}
 
     draft_year = request.args.get('picks_year', type=int) or standings_year + 1

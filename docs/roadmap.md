@@ -90,6 +90,13 @@ The first version strangers can touch.
   rate limiter (`app/rate_limit.py`) inside `sleeper_client._get` —
   `SLEEPER_MAX_CALLS_PER_MIN`, default 600 of Sleeper's 1000/min ceiling.
   Players cache auto-refreshes when older than 7 days.
+- ✅ **Production facelift** (2026-08-10): site branded "wuff" (headline +
+  tagline; no league name in the chrome), global nav reduced to
+  Leagues / My leagues / Settings, league tools moved to a per-league
+  subnav, /leagues hub grouped by provider. FantasyPros data fully removed
+  in favor of the daily free-source rankings refresh. Keeper marking UI:
+  logged-in users toggle a team's keepers on /keepers-board
+  (`keeper_marks` table) and marked players drop off the draft board.
 - **Remaining for Phase 1 launch:**
   - Real login transport (magic link / Google) — the dev form is a stub.
   - Per-user league *views* still lean on the shared snapshot files; fine

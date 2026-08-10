@@ -479,6 +479,7 @@ def league_keeper_board(
     rankings: List[Dict[str, Any]],
     league_format: LeagueFormat,
     keeper_count: int = 2,
+    keeper_prefs_override: Optional[Dict[str, List[str]]] = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Compute the best keepers for every team in a saved league-roster snapshot.
 
@@ -523,7 +524,8 @@ def league_keeper_board(
             if isinstance(p, dict)
         ]
         insight = roster_keeper_insight(players, rankings, teams=league_format.teams, league_format=league_format)
-        preferred_names = keeper_prefs.get(team_name)
+        # User marks (keeper_prefs_override) beat the config-file prefs for a team.
+        preferred_names = (keeper_prefs_override or {}).get(team_name) or keeper_prefs.get(team_name)
         chosen, alternates = select_best_keepers(
             insight, keeper_count=keeper_count, league_format=league_format,
             preferred_keeper_names=preferred_names,

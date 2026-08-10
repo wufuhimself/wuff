@@ -82,6 +82,23 @@ class SyncRun(Base):
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
 
+class KeeperMark(Base):
+    """A user-marked keeper decision: 'this team is keeping this player.'
+    Feeds the keeper board as an override on top of the computed picks, and
+    marked players are removed from the post-keeper draft board."""
+    __tablename__ = 'keeper_marks'
+    __table_args__ = (
+        UniqueConstraint('platform', 'platform_league_id', 'team_name', 'player_name', name='uq_keeper_mark'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    platform: Mapped[str] = mapped_column(String(16), nullable=False)
+    platform_league_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    team_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    player_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
 class UserLeague(Base):
     __tablename__ = 'user_leagues'
     __table_args__ = (UniqueConstraint('user_id', 'league_id', name='uq_user_league'),)
