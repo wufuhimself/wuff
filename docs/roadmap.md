@@ -46,17 +46,24 @@ Four structural walls between here and a public product:
 
 Make the codebase multi-league-shaped before adding users.
 
-- **League as a first-class object:** id, platform, season, settings, rules.
-  Every analysis function takes a `league_id`; nothing reads global paths
-  directly.
-- **Storage layer:** replace direct JSON reads with a repository interface.
-  SQLite + SQLAlchemy to start; Postgres later with zero call-site changes.
-  Alembic for migrations from day one.
-- **Rules schema:** extract what `data/config/league_rules.json` already
-  encodes (keeper round restrictions, consecutive-season caps, roster shape)
-  into a validated per-league rules document. `strategy.py` and
-  `league_context.py` consume the schema instead of embedding the rules.
+- ✅ **League as a first-class object** (2026-08-10): `app/league_registry.py`
+  + `data/config/leagues.json` register all 7 leagues (1 Yahoo + 6 Sleeper)
+  with wuff-internal ids. CLI: `leagues`, `leagues-init`.
+- ✅ **Rules schema** (2026-08-10): keeper round rules moved from
+  `strategy.py` hardcoded constants to per-league `LeagueFormat` fields
+  (`keeper_ineligible_rounds`, `keeper_slot_rounds`, `keeper_slots`);
+  draft-history keeper-cap math takes a configurable slot count.
+- ✅ **Storage seam** (2026-08-10): `app/repository.py` —
+  `get_repository(league_id)` serves rosters/draft history/standings/rankings
+  for any registered league; web.py reads go through it, never direct paths.
+  *Deviation from the original plan:* backends are JSON-file-backed for now;
+  the SQLAlchemy/SQLite engine is deferred to Phase 1, where the first table
+  with a real reason to exist (`users`) arrives. The interface is the
+  contract — the DB becomes another backend behind it, call sites unchanged.
 - Keep Flask, keep the CLI. Wrap the existing ~8k lines; don't rebuild them.
+- Remaining in Phase 0: convert CLI analysis commands to the repository /
+  `--league` flag where it makes sense (most CLI commands are single-league
+  ingestion paths that Phase 2's API sync replaces anyway).
 
 ## Phase 1 — Sleeper-only multi-user MVP
 

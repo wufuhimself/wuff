@@ -19,6 +19,7 @@ Key files:
 - `data/config/league_rules.json` — rules + file/code map (read this first)
 - `data/config/leagues.json` — cross-platform league registry (Phase 0 of docs/roadmap.md): all 7 leagues (1 Yahoo `frank-gore` + 6 Sleeper), each with platform ids + format/rules; `python3 -m app leagues` lists, `leagues-init --force` regenerates
 - `app/league_registry.py` — League dataclass + registry loaders (`get_league`, `load_leagues`); keeper round rules now live on `LeagueFormat` (`keeper_ineligible_rounds`, `keeper_slot_rounds`, `keeper_slots`), not hardcoded in strategy.py
+- `app/repository.py` — league-scoped data access seam: `get_repository(league_id)` serves rosters/draft history/standings/rankings for any registered league (Yahoo files or Sleeper snapshots behind one interface); web.py reads go through it, never direct JSON paths
 - `data/raw/rosters/yahoo_league_rosters.json` — current league rosters (updated via parse-rosters)
 - `data/raw/rankings/rankings_combined.json` — combined multi-source rankings (created via combine-rankings)
 - `data/raw/draft_history/{year}.json` — past draft results, one file per season

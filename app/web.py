@@ -6,12 +6,13 @@ from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
 
-from .draft_history import keeper_slot_picks, live_draft_picks, load_draft_years
-from .draft_picks import load_draft_pick_origins, load_draft_picks
+from .draft_history import keeper_slot_picks, live_draft_picks
 from .league_context import load_league_format
-from .paths import CONFIG_DIR, RAW_STANDINGS_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
+from .league_registry import default_league_id, load_leagues
+from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
+from .repository import get_repository
 from .roster_store import load_roster, save_roster as persist_roster
 from .sleeper_manager import (
     load_sleeper_leagues_config,
@@ -19,10 +20,9 @@ from .sleeper_manager import (
     load_synced_league,
     load_synced_rosters,
 )
-from .standings import current_team_names, draft_order_from_standings, load_standings, snake_draft_order
+from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .strategy import (
     league_keeper_board,
-    load_yahoo_rankings,
     roster_keeper_insight,
     save_yahoo_rankings,
 )
@@ -36,7 +36,7 @@ LEAGUE_RULES_FILE = CONFIG_DIR / 'league_rules.json'
 
 def load_dashboard_state():
     roster = load_roster()
-    rankings = load_yahoo_rankings()
+    rankings = get_repository().rankings()
     league_format = load_league_format()
     keeper_insight = roster_keeper_insight(roster, rankings, league_format=league_format) if roster and rankings else []
 
@@ -51,14 +51,12 @@ def load_dashboard_state():
 @app.route('/')
 def index():
     state = load_dashboard_state()
+    repo = get_repository()
 
     # Load draft board data for post-keeper tables
-    try:
-        league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
-    except FileNotFoundError:
-        league_rosters = []
+    league_rosters = repo.rosters()
 
-    rankings = load_yahoo_rankings()
+    rankings = repo.rankings()
     if rankings:
         league_format = load_league_format()
         per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=2)
@@ -71,24 +69,21 @@ def index():
         teams = league_format.teams if league_format else 12
 
         # Load draft order for team dropdown
-        available_years = (
-            sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True)
-            if RAW_STANDINGS_DIR.exists() else []
-        )
+        available_years = repo.standings_years()
         team_names = []
         round1_order = []
         origins_by_team = None
         selected_team_picks = set()
 
         if available_years:
-            standings = load_standings(available_years[0])
+            standings = repo.standings(available_years[0])
             if standings:
                 aliases = current_team_names(standings)
                 round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
                 team_names = round1_order
 
                 # Load draft picks for traded picks info (next season after standings year)
-                origins_by_team = load_draft_pick_origins(available_years[0] + 1)
+                origins_by_team = repo.draft_pick_origins(available_years[0] + 1)
 
         # Get selected team from query param or config default
         selected_team = request.args.get('team')
@@ -569,17 +564,17 @@ def keepers_board_view():
     if selected_version:
         keeper_export_data = load_keeper_export(selected_version)
 
-    try:
-        league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
-    except FileNotFoundError:
+    repo = get_repository()
+    league_rosters = repo.rosters()
+    if not league_rosters:
         return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[],
                              keeper_versions=keeper_versions, selected_version=selected_version,
                              keeper_export_data=keeper_export_data, error=(
             f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. '
-            'Run `python3 -m app.cli scrape-league-rosters` first.'
+            'Run `python3 -m app parse-rosters` first.'
         ))
 
-    rankings = load_yahoo_rankings()
+    rankings = repo.rankings()
     if not rankings:
         return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], error=(
             'No saved rankings. Run `python3 -m app.cli refresh-yahoo-rankings` or '
@@ -620,15 +615,15 @@ def keepers_board_view():
     teams = league_format.teams if league_format else 12
     live_rounds = 13
 
-    available_years = sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True) if RAW_STANDINGS_DIR.exists() else []
+    available_years = repo.standings_years()
     round1_order = None
     origins_by_team = None
     if available_years:
-        standings = load_standings(available_years[0])
+        standings = repo.standings(available_years[0])
         if standings:
             aliases = current_team_names(standings)
             round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
-            origins_by_team = load_draft_pick_origins(available_years[0] + 1)
+            origins_by_team = repo.draft_pick_origins(available_years[0] + 1)
 
     # Dropdown must use the same team names the pick math keys on (last season's standings,
     # normalized to current display names), not raw historical names -- team display names can
@@ -691,6 +686,23 @@ def settings():
     return render_template('settings.html', active='settings', **state)
 
 
+@app.route('/leagues')
+def leagues_view():
+    default_id = default_league_id()
+    entries = []
+    for league in load_leagues().values():
+        entries.append({
+            'leagueId': league.league_id,
+            'platform': league.platform,
+            'name': league.name,
+            'season': league.season,
+            'teams': league.format.teams,
+            'isDefault': league.league_id == default_id,
+            'href': '/' if league.platform == 'yahoo' else f'/sleeper/{league.platform_league_id}',
+        })
+    return render_template('leagues.html', active='leagues', leagues=entries)
+
+
 @app.route('/sleeper')
 def sleeper_leagues_view():
     config = load_sleeper_leagues_config()
@@ -729,13 +741,13 @@ def sleeper_league_view(league_id: str):
 
 @app.route('/draft-history')
 def draft_history_years():
-    years = load_draft_years()
+    years = get_repository().draft_years()
     return render_template('draft_history_years.html', active='draft-history', years=sorted(years.keys(), reverse=True))
 
 
 @app.route('/draft-history/<int:year>')
 def draft_history_view(year: int):
-    years = load_draft_years()
+    years = get_repository().draft_years()
     picks = years.get(year)
     if picks is None:
         return render_template(
@@ -758,13 +770,13 @@ def draft_history_view(year: int):
 
 @app.route('/standings')
 def standings_years():
-    years = sorted((int(p.stem) for p in RAW_STANDINGS_DIR.glob('*.json')), reverse=True) if RAW_STANDINGS_DIR.exists() else []
+    years = get_repository().standings_years()
     return render_template('standings_years.html', active='standings', years=years)
 
 
 @app.route('/standings/<int:year>')
 def standings_view(year: int):
-    standings = load_standings(year)
+    standings = get_repository().standings(year)
     if standings is None:
         return render_template('standings.html', active='standings', year=year, standings=[], error=f'No saved standings for {year}.')
     return render_template('standings.html', active='standings', year=year, standings=standings, error=None)
@@ -772,7 +784,7 @@ def standings_view(year: int):
 
 @app.route('/draft-order/<int:standings_year>')
 def draft_order_view(standings_year: int):
-    standings = load_standings(standings_year)
+    standings = get_repository().standings(standings_year)
     if standings is None:
         return render_template(
             'draft_order.html', active='standings', standings_year=standings_year, rounds={},
@@ -785,7 +797,7 @@ def draft_order_view(standings_year: int):
 
 @app.route('/draft-picks/<int:year>')
 def draft_picks_view(year: int):
-    picks = load_draft_picks(year)
+    picks = get_repository().draft_picks(year)
     if picks is None:
         return render_template(
             'draft_picks.html', active='draft-history', year=year, teams={}, all_rounds=[],
@@ -797,25 +809,25 @@ def draft_picks_view(year: int):
 
 @app.route('/draft-order/<int:standings_year>/board')
 def draft_order_board_view(standings_year: int):
-    standings = load_standings(standings_year)
+    repo = get_repository()
+    standings = repo.standings(standings_year)
     if standings is None:
         return render_template(
             'draft_order_board.html', active='standings', standings_year=standings_year, teams={},
             error=f'No saved standings for {standings_year}.',
         )
 
-    rankings = load_yahoo_rankings()
+    rankings = repo.rankings()
     if not rankings:
         return render_template('draft_order_board.html', active='standings', standings_year=standings_year, teams={}, error=(
             'No saved rankings. Run `python3 -m app.cli refresh-yahoo-rankings` or `import-rankings-csv` first.'
         ))
 
-    try:
-        league_rosters = json.loads(YAHOO_LEAGUE_ROSTERS_JSON.read_text())
-    except FileNotFoundError:
+    league_rosters = repo.rosters()
+    if not league_rosters:
         return render_template('draft_order_board.html', active='standings', standings_year=standings_year, teams={}, error=(
             f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. '
-            'Run `python3 -m app.cli scrape-league-rosters` first.'
+            'Run `python3 -m app parse-rosters` first.'
         ))
 
     league_format = load_league_format()
@@ -830,7 +842,7 @@ def draft_order_board_view(standings_year: int):
     board_by_rank = {row.get('draftOrder'): row for row in remaining_board}
 
     draft_year = request.args.get('picks_year', type=int) or standings_year + 1
-    origins_by_team = load_draft_pick_origins(draft_year)
+    origins_by_team = repo.draft_pick_origins(draft_year)
 
     picks_by_team: dict = {team: [] for team in round1_order}
     for round_number, order in rounds.items():

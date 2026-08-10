@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Leagues{% endblock %}
+{% block content %}
+      <section class="card">
+        <h2>All leagues</h2>
+        <p class="status">Every league wuff observes, across platforms. Registry: <code>data/config/leagues.json</code> (rebuild with <code>python3 -m app leagues-init --force</code>).</p>
+        {% if leagues %}
+        <ul class="team-list">
+          {% for l in leagues %}
+          <li>
+            <a href="{{ l.href }}">{{ l.name }}</a>
+            <span class="pill">{{ l.platform }}</span>
+            {% if l.isDefault %}<span class="pill">default</span>{% endif %}
+            <span class="status">{{ l.teams }} teams{% if l.season %} · {{ l.season }}{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="status">No leagues registered. Run <code>python3 -m app leagues-init</code>.</p>
+        {% endif %}
+      </section>
+{% endblock %}

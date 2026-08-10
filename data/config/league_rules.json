@@ -63,6 +63,7 @@
   "codeMap": {
     "app/strategy.py": "Core keeper eligibility + selection logic. Keeper round rules (ineligible rounds, keeper-slot rounds) come from LeagueFormat fields, not module constants. roster_keeper_insight() builds per-player analysis, select_best_keepers() picks the top N per league_format rules.",
     "app/league_registry.py": "League registry: every league wuff observes across platforms (yahoo/sleeper/espn), loaded from data/config/leagues.json. League dataclass wraps a LeagueFormat; get_league()/load_leagues()/default_league_id(). CLI: leagues, leagues-init.",
+    "app/repository.py": "Per-league data access seam: get_repository(league_id) returns a LeagueDataRepository (rosters/draft_years/standings/rankings/draft_picks). YahooJsonRepository wraps the original data/raw/ loaders; SleeperJsonRepository reshapes data/raw/sleeper/{id}/ snapshots to the same interface. web.py reads go through this, not direct file loads; a future DB becomes another backend here.",
     "app/draft_history.py": "Loads data/raw/draft_history/*.json, computes consecutive_keeper_years() for the cap rule.",
     "app/draft_picks.py": "Loads data/raw/draft_picks/*.json, who owns which round picks.",
     "app/standings.py": "Loads data/raw/standings/*.json and derives the next season's snake draft order (worst record picks first, reverses each round). Snake draft, confirmed.",
