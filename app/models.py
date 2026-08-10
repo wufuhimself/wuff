@@ -67,6 +67,21 @@ class DbLeague(Base):
         )
 
 
+class SyncRun(Base):
+    """One snapshot-sync attempt for one league. Keyed by platform ids, not a
+    DbLeague FK, because scheduled syncs also cover the local
+    sleeper_leagues.json leagues that have no DB row."""
+    __tablename__ = 'sync_runs'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    platform: Mapped[str] = mapped_column(String(16), nullable=False)
+    platform_league_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default='running')
+    detail: Mapped[Optional[str]] = mapped_column(String(500))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+
 class UserLeague(Base):
     __tablename__ = 'user_leagues'
     __table_args__ = (UniqueConstraint('user_id', 'league_id', name='uq_user_league'),)

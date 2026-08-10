@@ -6,14 +6,24 @@ raw dicts in, raw dicts out. Normalization into wuff's own shapes lives
 in sleeper_manager.py.
 """
 
+import os
 from typing import Any, Dict, List
 
 import requests
 
+from .rate_limit import RateLimiter
+
 BASE_URL = 'https://api.sleeper.app/v1'
+
+# Sleeper asks all clients to stay under 1000 calls/min. One global budget
+# for this process (web + background sync + CLI share it), set well under
+# the ceiling to leave headroom.
+MAX_CALLS_PER_MIN = int(os.environ.get('SLEEPER_MAX_CALLS_PER_MIN', '600'))
+_rate_limiter = RateLimiter(MAX_CALLS_PER_MIN, per_seconds=60.0)
 
 
 def _get(path: str) -> Any:
+    _rate_limiter.acquire()
     resp = requests.get(f'{BASE_URL}{path}', timeout=30)
     resp.raise_for_status()
     return resp.json()

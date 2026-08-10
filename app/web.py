@@ -15,20 +15,17 @@ from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .league_context import load_league_format
 from .league_registry import default_league_id, load_leagues
-from .models import DbLeague, UserLeague
+from .models import DbLeague, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
 from .repository import get_repository
 from .roster_store import load_roster, save_roster as persist_roster
 from .sleeper_manager import (
-    load_players_cache,
     load_sleeper_leagues_config,
     load_synced_drafts,
     load_synced_league,
     load_synced_rosters,
-    refresh_players_cache,
-    sync_league,
 )
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .strategy import (
@@ -36,6 +33,7 @@ from .strategy import (
     roster_keeper_insight,
     save_yahoo_rankings,
 )
+from .sync_scheduler import ensure_scheduler_started, queue_league_sync
 from .token_store import get_valid_token
 from .yahoo_client import fetch_yahoo_rankings, fetch_yahoo_roster_players
 
@@ -46,6 +44,12 @@ init_db()
 init_auth(app)
 
 LEAGUE_RULES_FILE = CONFIG_DIR / 'league_rules.json'
+
+
+@app.before_request
+def _start_background_sync():
+    # Idempotent fast path after first call; disabled via WUFF_DISABLE_SCHEDULER=1.
+    ensure_scheduler_started()
 
 
 def load_dashboard_state():
@@ -730,20 +734,46 @@ def my_leagues():
             .order_by(DbLeague.name)
             .all()
         )
-        entries = [
-            {
+        entries = []
+        for row in rows:
+            last_run = (
+                session.query(SyncRun)
+                .filter_by(platform=row.platform, platform_league_id=row.platform_league_id)
+                .order_by(SyncRun.started_at.desc())
+                .first()
+            )
+            entries.append({
                 'name': row.name,
                 'platform': row.platform,
+                'platformLeagueId': row.platform_league_id,
                 'season': row.season,
                 'teams': row.total_teams,
                 'href': f'/sleeper/{row.platform_league_id}' if row.platform == 'sleeper' else '/',
-            }
-            for row in rows
-        ]
+                'lastSyncAt': last_run.started_at.strftime('%Y-%m-%d %H:%M UTC') if last_run else None,
+                'lastSyncStatus': last_run.status if last_run else None,
+            })
     return render_template(
         'my_leagues.html', active='my-leagues', leagues=entries,
         message=request.args.get('message', ''),
     )
+
+
+@app.route('/my/leagues/sync/<platform_league_id>', methods=['POST'])
+@login_required
+def my_league_sync(platform_league_id: str):
+    with SessionLocal() as session:
+        follows = (
+            session.query(UserLeague)
+            .join(DbLeague, UserLeague.league_id == DbLeague.id)
+            .filter(UserLeague.user_id == current_user.id,
+                    DbLeague.platform_league_id == platform_league_id)
+            .one_or_none()
+        )
+    if follows is None:
+        return redirect(url_for('my_leagues', message='Not one of your leagues.'))
+    queued = queue_league_sync(platform_league_id)
+    note = 'Sync started in background.' if queued else 'Synced.'
+    return redirect(url_for('my_leagues', message=note))
 
 
 @app.route('/my/onboard', methods=['GET', 'POST'])
@@ -812,24 +842,9 @@ def onboard_import():
                 session.add(UserLeague(user_id=current_user.id, league_id=league.id))
         session.commit()
 
-    synced = _sync_sleeper_snapshots(selected)
-    return redirect(url_for('my_leagues', message=f'Imported {len(selected)} league(s), synced {synced}.'))
-
-
-def _sync_sleeper_snapshots(platform_league_ids) -> int:
-    """Pull fresh snapshots for the given Sleeper leagues; count successes."""
-    players_cache = load_players_cache()
-    if not players_cache:
-        refresh_players_cache()
-        players_cache = load_players_cache()
-    synced = 0
-    for platform_league_id in platform_league_ids:
-        try:
-            sync_league(platform_league_id, players_cache)
-            synced += 1
-        except Exception:  # pylint: disable=broad-exception-caught
-            continue
-    return synced
+    for platform_league_id in selected:
+        queue_league_sync(platform_league_id)
+    return redirect(url_for('my_leagues', message=f'Imported {len(selected)} league(s); sync running in background.'))
 
 
 @app.route('/leagues')

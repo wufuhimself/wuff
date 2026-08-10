@@ -9,7 +9,11 @@
           <li>
             <a href="{{ l.href }}">{{ l.name }}</a>
             <span class="pill">{{ l.platform }}</span>
-            <span class="status">{% if l.teams %}{{ l.teams }} teams{% endif %}{% if l.season %} · {{ l.season }}{% endif %}</span>
+            <span class="status">{% if l.teams %}{{ l.teams }} teams{% endif %}{% if l.season %} · {{ l.season }}{% endif %}
+              {% if l.lastSyncAt %} · synced {{ l.lastSyncAt }} ({{ l.lastSyncStatus }}){% else %} · never synced{% endif %}</span>
+            <form method="post" action="/my/leagues/sync/{{ l.platformLeagueId }}" style="display:inline">
+              <button type="submit">Sync now</button>
+            </form>
           </li>
           {% endfor %}
         </ul>
