@@ -125,7 +125,7 @@
       </nav>
       {% elif league_display_name is defined %}
       <nav class="league-nav">
-        <span class="platform-tag">sleeper</span>
+        <span class="platform-tag">{{ league_platform | default('sleeper') }}</span>
         <span class="league-name">{{ league_display_name }}</span>
         <a href="#" class="active">Overview</a>
       </nav>

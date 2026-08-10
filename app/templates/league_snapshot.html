@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}{{ league.name if league else league_id }} — Sleeper{% endblock %}
+{% block title %}{{ league.name if league else league_id }} — wuff{% endblock %}
 {% block content %}
       <section class="card">
         <h2>{{ league.name if league else league_id }}</h2>
         <p class="status">
-          <a href="/sleeper">All Sleeper leagues</a>
-          {% if league %}&nbsp;·&nbsp;{{ league.season }} · {{ league.status }} · {{ entry.format if entry else '' }}{% endif %}
+          <a href="/leagues">All leagues</a>
+          {% if league %}&nbsp;·&nbsp;{{ league.season }} · {{ league.status }}{% if entry and entry.format %} · {{ entry.format }}{% endif %}{% endif %}
         </p>
       </section>
 

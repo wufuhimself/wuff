@@ -82,6 +82,21 @@ class SyncRun(Base):
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
 
+class EspnCredential(Base):
+    """A user's espn_s2/SWID cookie pair for one private ESPN league, stored
+    encrypted (app/crypto.py). Sync uses any stored credential for a league;
+    cookies are per-ESPN-account, so each user keeps their own row."""
+    __tablename__ = 'espn_credentials'
+    __table_args__ = (UniqueConstraint('user_id', 'platform_league_id', name='uq_espn_credential'),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    platform_league_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    espn_s2_encrypted: Mapped[str] = mapped_column(String(2000), nullable=False)
+    swid_encrypted: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
 class KeeperMark(Base):
     """A user-marked keeper decision: 'this team is keeping this player.'
     Feeds the keeper board as an override on top of the computed picks, and

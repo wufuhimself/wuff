@@ -15,13 +15,15 @@ API pacing is enforced globally in sleeper_client, not here.
 import os
 import threading
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from . import espn_manager
+from .crypto import decrypt_value
 from .db import SessionLocal
 from .free_rankings import refresh_free_rankings
-from .models import DbLeague, SyncRun
+from .models import DbLeague, EspnCredential, SyncRun
 from .paths import SLEEPER_PLAYERS_CACHE_FILE
 from .sleeper_manager import (
     load_players_cache,
@@ -59,16 +61,47 @@ def _fresh_players_cache() -> dict:
     return load_players_cache()
 
 
-def sync_one_league(platform_league_id: str) -> str:
+def _espn_sync_args(platform_league_id: str) -> Tuple[int, Optional[str], Optional[str]]:
+    """Season + decrypted cookies for an ESPN league (cookies None when the
+    league is public / no credential stored)."""
+    season = datetime.now().year
+    espn_s2 = swid = None
+    with SessionLocal() as session:
+        row = session.query(DbLeague).filter_by(platform='espn', platform_league_id=platform_league_id).one_or_none()
+        if row is not None and row.season:
+            try:
+                season = int(row.season)
+            except ValueError:
+                pass
+        credential = (
+            session.query(EspnCredential)
+            .filter_by(platform_league_id=platform_league_id)
+            .order_by(EspnCredential.created_at.desc())
+            .first()
+        )
+    if credential is not None:
+        try:
+            espn_s2 = decrypt_value(credential.espn_s2_encrypted)
+            swid = decrypt_value(credential.swid_encrypted)
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass  # key rotated; try public access
+    return season, espn_s2, swid
+
+
+def sync_one_league(platform: str, platform_league_id: str) -> str:
     """Sync one league's snapshots, recording a SyncRun. Returns final status."""
     with SessionLocal() as session:
-        run = SyncRun(platform='sleeper', platform_league_id=platform_league_id, status='running')
+        run = SyncRun(platform=platform, platform_league_id=platform_league_id, status='running')
         session.add(run)
         session.commit()
         run_id = run.id
 
     try:
-        summary = sync_league(platform_league_id, _fresh_players_cache())
+        if platform == 'espn':
+            season, espn_s2, swid = _espn_sync_args(platform_league_id)
+            summary = espn_manager.sync_league(platform_league_id, season, espn_s2=espn_s2, swid=swid)
+        else:
+            summary = sync_league(platform_league_id, _fresh_players_cache())
         status = 'ok'
         detail = f"{summary.get('rosterCount', 0)} rosters, {len(summary.get('drafts', []))} draft(s)"
     except Exception as exc:  # pylint: disable=broad-exception-caught
@@ -85,25 +118,30 @@ def sync_one_league(platform_league_id: str) -> str:
     return status
 
 
-def leagues_to_sync() -> List[str]:
-    """Every Sleeper league wuff knows: DB-imported plus the local config set."""
-    ids: List[str] = []
+def leagues_to_sync() -> List[Tuple[str, str]]:
+    """Every syncable league wuff knows, as (platform, platform_league_id):
+    DB-imported Sleeper + ESPN leagues plus the local Sleeper config set."""
+    pairs: List[Tuple[str, str]] = []
     with SessionLocal() as session:
-        for (platform_league_id,) in session.query(DbLeague.platform_league_id).filter_by(platform='sleeper'):
-            ids.append(platform_league_id)
+        rows = (
+            session.query(DbLeague.platform, DbLeague.platform_league_id)
+            .filter(DbLeague.platform.in_(['sleeper', 'espn']))
+            .all()
+        )
+        pairs.extend((platform, platform_league_id) for platform, platform_league_id in rows)
     for entry in load_sleeper_leagues_config().get('leagues', []):
         league_id = entry.get('leagueId')
-        if league_id and league_id not in ids:
-            ids.append(league_id)
-    return ids
+        if league_id and ('sleeper', league_id) not in pairs:
+            pairs.append(('sleeper', league_id))
+    return pairs
 
 
 def sync_all_due() -> int:
     """The periodic sweep: sync every known league. Returns count attempted."""
-    ids = leagues_to_sync()
-    for platform_league_id in ids:
-        sync_one_league(platform_league_id)
-    return len(ids)
+    pairs = leagues_to_sync()
+    for platform, platform_league_id in pairs:
+        sync_one_league(platform, platform_league_id)
+    return len(pairs)
 
 
 def refresh_rankings_job() -> None:
@@ -147,17 +185,17 @@ def ensure_scheduler_started() -> bool:
     return True
 
 
-def queue_league_sync(platform_league_id: str) -> bool:
+def queue_league_sync(platform_league_id: str, platform: str = 'sleeper') -> bool:
     """Sync a league in the background; inline fallback when scheduler disabled.
     Returns True when queued, False when it ran inline."""
     if ensure_scheduler_started() and _scheduler is not None:
         _scheduler.add_job(
             sync_one_league,
-            args=[platform_league_id],
-            id=f'sleeper-sync-{platform_league_id}',
+            args=[platform, platform_league_id],
+            id=f'{platform}-sync-{platform_league_id}',
             replace_existing=True,
             misfire_grace_time=300,
         )
         return True
-    sync_one_league(platform_league_id)
+    sync_one_league(platform, platform_league_id)
     return False

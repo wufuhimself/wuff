@@ -9,13 +9,14 @@ from typing import Optional
 from flask import Flask, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
-from . import sleeper_client
+from . import espn_manager, sleeper_client
 from .auth import get_or_create_user, init_auth
+from .crypto import encrypt_value
 from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .league_context import load_league_format
 from .league_registry import default_league_id, get_league, load_leagues
-from .models import DbLeague, KeeperMark, SyncRun, UserLeague
+from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
 from .rankings_pdf import parse_rankings_pdf
@@ -55,6 +56,14 @@ def _start_background_sync():
 def _default_league_platform_ids() -> tuple:
     league = get_league()
     return league.platform, league.platform_league_id
+
+
+def _league_href(platform: str, platform_league_id: str) -> str:
+    if platform == 'sleeper':
+        return f'/sleeper/{platform_league_id}'
+    if platform == 'espn':
+        return f'/espn/{platform_league_id}'
+    return '/'
 
 
 def load_keeper_marks() -> dict:
@@ -811,7 +820,7 @@ def my_leagues():
                 'platformLeagueId': row.platform_league_id,
                 'season': row.season,
                 'teams': row.total_teams,
-                'href': f'/sleeper/{row.platform_league_id}' if row.platform == 'sleeper' else '/',
+                'href': _league_href(row.platform, row.platform_league_id),
                 'lastSyncAt': last_run.started_at.strftime('%Y-%m-%d %H:%M UTC') if last_run else None,
                 'lastSyncStatus': last_run.status if last_run else None,
             })
@@ -825,16 +834,16 @@ def my_leagues():
 @login_required
 def my_league_sync(platform_league_id: str):
     with SessionLocal() as session:
-        follows = (
-            session.query(UserLeague)
-            .join(DbLeague, UserLeague.league_id == DbLeague.id)
+        followed = (
+            session.query(DbLeague)
+            .join(UserLeague, UserLeague.league_id == DbLeague.id)
             .filter(UserLeague.user_id == current_user.id,
                     DbLeague.platform_league_id == platform_league_id)
             .one_or_none()
         )
-    if follows is None:
+    if followed is None:
         return redirect(url_for('my_leagues', message='Not one of your leagues.'))
-    queued = queue_league_sync(platform_league_id)
+    queued = queue_league_sync(platform_league_id, followed.platform)
     note = 'Sync started in background.' if queued else 'Synced.'
     return redirect(url_for('my_leagues', message=note))
 
@@ -868,7 +877,8 @@ def onboard():
         return render_template('onboard.html', active='my-leagues', discovered=discovered,
                                username=username, season=season, error=None)
     return render_template('onboard.html', active='my-leagues', discovered=None,
-                           username='', season=default_season, error=None)
+                           username='', season=default_season, error=None,
+                           message=request.args.get('message', ''))
 
 
 @app.route('/my/onboard/import', methods=['POST'])
@@ -906,8 +916,62 @@ def onboard_import():
         session.commit()
 
     for platform_league_id in selected:
-        queue_league_sync(platform_league_id)
+        queue_league_sync(platform_league_id, 'sleeper')
     return redirect(url_for('my_leagues', message=f'Imported {len(selected)} league(s); sync running in background.'))
+
+
+@app.route('/my/onboard/espn', methods=['POST'])
+@login_required
+def onboard_espn():
+    league_id = request.form.get('league_id', '').strip()
+    season_raw = request.form.get('season', '').strip() or str(datetime.now().year)
+    espn_s2 = request.form.get('espn_s2', '').strip() or None
+    swid = request.form.get('swid', '').strip() or None
+    if not league_id.isdigit() or not season_raw.isdigit():
+        return redirect(url_for('onboard', message='ESPN league ID and season must be numbers.'))
+    season = int(season_raw)
+
+    # Sync inline — it doubles as validation (bad id / private league fail here).
+    try:
+        summary = espn_manager.sync_league(league_id, season, espn_s2=espn_s2, swid=swid)
+    except PermissionError as exc:
+        return redirect(url_for('onboard', message=str(exc)))
+    except LookupError as exc:
+        return redirect(url_for('onboard', message=str(exc)))
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        return redirect(url_for('onboard', message=f'ESPN import failed: {exc}'))
+
+    with SessionLocal() as session:
+        league = session.query(DbLeague).filter_by(platform='espn', platform_league_id=league_id).one_or_none()
+        if league is None:
+            league = DbLeague(
+                slug=f'espn-{league_id}',
+                platform='espn',
+                platform_league_id=league_id,
+                name=summary.get('name') or f'ESPN league {league_id}',
+                season=str(season),
+                total_teams=summary.get('rosterCount'),
+            )
+            session.add(league)
+            session.flush()
+        link = session.query(UserLeague).filter_by(user_id=current_user.id, league_id=league.id).one_or_none()
+        if link is None:
+            session.add(UserLeague(user_id=current_user.id, league_id=league.id))
+        if espn_s2 and swid:
+            credential = (
+                session.query(EspnCredential)
+                .filter_by(user_id=current_user.id, platform_league_id=league_id)
+                .one_or_none()
+            )
+            if credential is None:
+                credential = EspnCredential(user_id=current_user.id, platform_league_id=league_id,
+                                            espn_s2_encrypted='', swid_encrypted='')
+                session.add(credential)
+            credential.espn_s2_encrypted = encrypt_value(espn_s2)
+            credential.swid_encrypted = encrypt_value(swid)
+        session.commit()
+
+    return redirect(url_for('my_leagues', message=f"Imported {summary.get('name') or league_id} from ESPN."))
 
 
 @app.route('/leagues')
@@ -921,11 +985,30 @@ def leagues_view():
             'season': league.season,
             'teams': league.format.teams,
             'isDefault': league.league_id == default_id,
-            'href': '/' if league.platform == 'yahoo' else f'/sleeper/{league.platform_league_id}',
+            'href': _league_href(league.platform, league.platform_league_id),
         })
     provider_order = [p for p in ('yahoo', 'sleeper', 'espn') if p in providers]
     return render_template('leagues.html', active='leagues', providers=providers,
                            provider_order=provider_order)
+
+
+def _structure_rosters(rosters: list, league: dict) -> None:
+    """In-place display prep: starters in lineup-slot order (snapshot starters
+    arrays align with the league's non-bench roster positions), bench sorted
+    by position then name."""
+    position_sort = {'QB': 0, 'RB': 1, 'WR': 2, 'TE': 3, 'K': 4, 'DEF': 5}
+    slot_labels = [p for p in (league.get('rosterPositions') or []) if p not in ('BN', 'IR', 'TAXI')]
+    for roster in rosters:
+        starters = roster.get('starters') or []
+        starter_ids = {p.get('playerId') for p in starters}
+        bench = [p for p in roster.get('players') or [] if p.get('playerId') not in starter_ids]
+        bench.sort(key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9),
+                                  p.get('playerName') or ''))
+        roster['bench'] = bench
+        roster['starterSlots'] = [
+            (slot_labels[i] if i < len(slot_labels) else (p.get('position') or ''), p)
+            for i, p in enumerate(starters)
+        ]
 
 
 @app.route('/sleeper')
@@ -959,28 +1042,34 @@ def sleeper_league_view(league_id: str):
     drafts = load_synced_drafts(league_id)
     for draft in drafts:
         draft['picks'] = sorted(draft.get('picks') or [], key=lambda p: (p.get('round') or 0, p.get('pick') or 0))
-
-    # Structure each roster for display: starters in lineup-slot order (Sleeper's
-    # starters array aligns with the league's non-bench roster positions), bench
-    # sorted by position then name.
-    position_sort = {'QB': 0, 'RB': 1, 'WR': 2, 'TE': 3, 'K': 4, 'DEF': 5}
-    slot_labels = [p for p in (league.get('rosterPositions') or []) if p not in ('BN', 'IR', 'TAXI')]
-    for roster in rosters_sorted:
-        starters = roster.get('starters') or []
-        starter_ids = {p.get('playerId') for p in starters}
-        bench = [p for p in roster.get('players') or [] if p.get('playerId') not in starter_ids]
-        bench.sort(key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9),
-                                  p.get('playerName') or ''))
-        roster['bench'] = bench
-        roster['starterSlots'] = [
-            (slot_labels[i] if i < len(slot_labels) else (p.get('position') or ''), p)
-            for i, p in enumerate(starters)
-        ]
+    _structure_rosters(rosters_sorted, league)
 
     display_name = (entry or {}).get('name') or league.get('name') or league_id
-    return render_template('sleeper_league.html', active='sleeper', league_id=league_id,
+    return render_template('league_snapshot.html', active='sleeper', league_id=league_id,
                             entry=entry, league=league, rosters=rosters_sorted, drafts=drafts,
-                            league_display_name=display_name, error=None)
+                            league_display_name=display_name, league_platform='sleeper', error=None)
+
+
+@app.route('/espn/<league_id>')
+def espn_league_view(league_id: str):
+    league = espn_manager.load_synced_league(league_id)
+    if league is None:
+        return render_template('league_snapshot.html', active='espn', league_id=league_id,
+                                entry=None, league=None, rosters=[], drafts=[],
+                                league_display_name=league_id, league_platform='espn',
+                                error='Not synced yet — import this league from /my/onboard first.')
+
+    rosters = espn_manager.load_synced_rosters(league_id)
+    rosters_sorted = sorted(rosters, key=lambda r: (-(r.get('wins') or 0), r.get('losses') or 0))
+    drafts = espn_manager.load_synced_drafts(league_id)
+    for draft in drafts:
+        draft['picks'] = sorted(draft.get('picks') or [], key=lambda p: (p.get('round') or 0, p.get('pick') or 0))
+    _structure_rosters(rosters_sorted, league)
+
+    return render_template('league_snapshot.html', active='espn', league_id=league_id,
+                            entry=None, league=league, rosters=rosters_sorted, drafts=drafts,
+                            league_display_name=league.get('name') or league_id,
+                            league_platform='espn', error=None)
 
 
 @app.route('/draft-history')

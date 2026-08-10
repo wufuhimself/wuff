@@ -15,11 +15,11 @@ Normalized shapes every backend serves:
 import json
 from typing import Any, Dict, List, Optional
 
+from . import espn_manager, sleeper_manager
 from .draft_history import load_draft_years
 from .draft_picks import load_draft_pick_origins, load_draft_picks
 from .league_registry import League, get_league
 from .paths import RANKINGS_COMBINED_FILE, RAW_STANDINGS_DIR, YAHOO_LEAGUE_ROSTERS_JSON
-from .sleeper_manager import load_synced_drafts, load_synced_league, load_synced_rosters
 from .standings import load_standings
 from .strategy import load_yahoo_rankings
 
@@ -85,24 +85,27 @@ class YahooJsonRepository(LeagueDataRepository):
         return load_draft_pick_origins(year)
 
 
-class SleeperJsonRepository(LeagueDataRepository):
-    """Reads the data/raw/sleeper/{league_id}/ snapshots sleeper-sync writes,
-    reshaped to the normalized interface shapes."""
+class SnapshotJsonRepository(LeagueDataRepository):
+    """Shared backend over the snapshot layout sleeper_manager defines
+    (rosters.json / draft_*.json / league.json under a per-league dir).
+    Subclasses point `snapshots` at the platform's manager module."""
+
+    snapshots = sleeper_manager
 
     @property
     def _platform_id(self) -> str:
         return self.league.platform_league_id
 
     def rosters(self) -> List[Dict[str, Any]]:
-        return load_synced_rosters(self._platform_id)
+        return self.snapshots.load_synced_rosters(self._platform_id)
 
     def draft_years(self) -> Dict[int, List[dict]]:
         team_by_roster_id = {
             roster.get('rosterId'): roster.get('teamName')
-            for roster in load_synced_rosters(self._platform_id)
+            for roster in self.snapshots.load_synced_rosters(self._platform_id)
         }
         years: Dict[int, List[dict]] = {}
-        for draft in load_synced_drafts(self._platform_id):
+        for draft in self.snapshots.load_synced_drafts(self._platform_id):
             try:
                 season = int(draft.get('season'))
             except (TypeError, ValueError):
@@ -115,7 +118,7 @@ class SleeperJsonRepository(LeagueDataRepository):
         return years
 
     def standings_years(self) -> List[int]:
-        league = load_synced_league(self._platform_id)
+        league = self.snapshots.load_synced_league(self._platform_id)
         if league is None:
             return []
         try:
@@ -127,7 +130,7 @@ class SleeperJsonRepository(LeagueDataRepository):
         if year not in self.standings_years():
             return None
         rosters = sorted(
-            load_synced_rosters(self._platform_id),
+            self.snapshots.load_synced_rosters(self._platform_id),
             key=lambda r: (-(r.get('wins') or 0), r.get('losses') or 0, -(r.get('fpts') or 0)),
         )
         return [
@@ -152,16 +155,26 @@ class SleeperJsonRepository(LeagueDataRepository):
         return payload if isinstance(payload, list) else []
 
     def draft_picks(self, year: int) -> Optional[Dict[str, Any]]:
-        return {}  # Sleeper doesn't expose traded-pick ownership by round
+        return {}  # snapshot platforms don't expose traded-pick ownership by round
 
     def draft_pick_origins(self, year: int) -> Optional[Dict[str, Any]]:
         return {}
+
+
+class SleeperJsonRepository(SnapshotJsonRepository):
+    snapshots = sleeper_manager
+
+
+class EspnJsonRepository(SnapshotJsonRepository):
+    snapshots = espn_manager
 
 
 def get_repository(league_id: Optional[str] = None) -> LeagueDataRepository:
     league = get_league(league_id)
     if league.platform == 'sleeper':
         return SleeperJsonRepository(league)
+    if league.platform == 'espn':
+        return EspnJsonRepository(league)
     if league.platform == 'yahoo':
         return YahooJsonRepository(league)
     raise ValueError(f"No repository backend for platform '{league.platform}' (league '{league.league_id}').")

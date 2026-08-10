@@ -109,11 +109,16 @@ The first version strangers can touch.
 ESPN first (2026-08-10 reorder): Yahoo won't grant even read-only API access,
 so it can't gate the second platform.
 
-- **ESPN:** no official API. Public leagues via the free JSON endpoints;
-  private leagues require the user to paste `espn_s2` + `SWID` cookies.
-  Fragile and a ToS gray zone — ship labeled **beta**, expect breakage each
-  season. Use the community `espn-api` library's endpoint knowledge as
-  reference.
+- ✅ **ESPN importer, beta** (2026-08-10): `app/espn_client.py` (unofficial
+  JSON endpoints ESPN's own web app uses) + `app/espn_manager.py` (writes
+  the same snapshot shapes as Sleeper, so the repository backend and the
+  shared league-snapshot template needed no changes). Onboarding: league ID
+  (+ season) for public leagues; private leagues take pasted `espn_s2`/`SWID`
+  cookies, stored encrypted (`app/crypto.py` Fernet — set
+  `WUFF_ENCRYPTION_KEY` in production). Background sweep is
+  platform-aware and re-syncs ESPN leagues with the stored credentials.
+  ⚠️ Unofficial API — expect seasonal breakage; validated against mocked
+  payloads, needs a real ESPN league for live validation.
 - **Yahoo (whenever approval lands):** 3-legged OAuth per user, tokens
   encrypted per-user in the DB (`cryptography` is already a dependency;
   `oauth_server.py` / `token_store.py` are the seeds). Requires an approved

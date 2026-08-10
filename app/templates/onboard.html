@@ -3,7 +3,7 @@
 {% block content %}
       <section class="card">
         <h2>Import Sleeper leagues</h2>
-        <p class="status">Sleeper's API is public — just a username, no password or app connection needed. Yahoo and ESPN import are on the roadmap.</p>
+        <p class="status">Sleeper's API is public — just a username, no password or app connection needed.</p>
         {% if error %}<div class="message">{{ error }}</div>{% endif %}
         <form method="post" action="/my/onboard">
           <input type="text" name="username" placeholder="Sleeper username" value="{{ username }}" required>
@@ -32,5 +32,25 @@
           <p class="status">No leagues found for that username/season.</p>
           {% endif %}
         {% endif %}
+      </section>
+
+      <section class="card">
+        <h2>Import an ESPN league <span class="pill">beta</span></h2>
+        <p class="status">ESPN has no official API — public leagues import with just the league ID
+          (find it in your league's URL: <code>leagueId=...</code>). Private leagues additionally need
+          your <code>espn_s2</code> and <code>SWID</code> browser cookies (log in at espn.com → developer
+          tools → cookies). Cookies are stored encrypted and used only to sync this league.</p>
+        <form method="post" action="/my/onboard/espn">
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <input type="text" name="league_id" placeholder="League ID" required>
+            <input type="text" name="season" value="{{ season }}" size="6" title="Season">
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <input type="text" name="espn_s2" placeholder="espn_s2 cookie (private leagues only)" style="flex: 1 1 260px;">
+            <input type="text" name="swid" placeholder="SWID cookie, with braces {...}">
+          </div>
+          <button type="submit">Import ESPN league</button>
+        </form>
+        <p class="status">Yahoo import lands when Yahoo grants API access.</p>
       </section>
 {% endblock %}
