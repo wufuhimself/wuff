@@ -37,11 +37,8 @@ from .team_mapper import (
     save_team_mapping,
     load_team_mapping,
 )
-from .fantasypros_manager import (
-    fetch_and_save_rankings as fantasypros_fetch_rankings,
-    fetch_and_save_projections as fantasypros_fetch_projections,
-)
 from .adp_manager import import_and_save_adp
+from .free_rankings import refresh_free_rankings
 from .strategy import (
     forecast_opponent_keepers,
     league_keeper_board,
@@ -308,24 +305,13 @@ def parse_args() -> argparse.Namespace:
     backfill_standings_mcp_parser.add_argument('--start-year', type=int, default=2020, help='Start year (default: 2020)')
     backfill_standings_mcp_parser.add_argument('--end-year', type=int, default=2025, help='End year (default: 2025)')
 
-    fantasypros_rankings_parser = subparsers.add_parser(
-        'fantasypros-rankings',
-        help='Fetch consensus rankings from FantasyPros API (requires FANTASYPROS_API_KEY env var)',
+    free_rankings_parser = subparsers.add_parser(
+        'refresh-free-rankings',
+        help='Refresh rankings/ADP from free sources (FFC ADP + Sleeper tail); runs daily in the web app',
     )
-    fantasypros_rankings_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
-    fantasypros_rankings_parser.add_argument('--sport', default='NFL', help='Sport (NFL, MLB, NBA, NHL, PGA, NCAAF; default: NFL)')
-    fantasypros_rankings_parser.add_argument('--week', type=int, default=0, help='Week number (0 for preseason; default: 0)')
-
-    fantasypros_projections_parser = subparsers.add_parser(
-        'fantasypros-projections',
-        help='Fetch player projections from FantasyPros API (requires FANTASYPROS_API_KEY env var)',
-    )
-    fantasypros_projections_parser.add_argument('season', type=int, help='Season year (e.g. 2025)')
-    fantasypros_projections_parser.add_argument('--sport', default='NFL', help='Sport (NFL, MLB, NBA, NHL, PGA, NCAAF; default: NFL)')
-    fantasypros_projections_parser.add_argument('--positions', default='QB,RB,WR,TE,K,DEF',
-        help='Colon-delimited positions to fetch (default: QB,RB,WR,TE,K,DEF)'
-    )
-    fantasypros_projections_parser.add_argument('--week', type=int, default=None, help='Week number (None for preseason)')
+    free_rankings_parser.add_argument('--scoring', default='ppr', choices=['ppr', 'half-ppr', 'standard'])
+    free_rankings_parser.add_argument('--teams', type=int, default=12)
+    free_rankings_parser.add_argument('--year', type=int, default=None, help='Season year (default: current)')
 
     subparsers.add_parser('parse-rosters', help='Interactively parse Yahoo Fantasy rosters from pasted text')
 
@@ -1450,36 +1436,18 @@ def _cmd_backfill_standings_mcp(args) -> None:
 
 
 
-def _cmd_fantasypros_rankings(args) -> None:
+def _cmd_refresh_free_rankings(args) -> None:
     try:
-        fantasypros_fetch_rankings(sport=args.sport, season=args.season, week=args.week)
-        print('Rankings saved to data/raw/rankings/fantasypros_*.json')
-        print('Run combine-rankings to merge with other sources.')
+        summary = refresh_free_rankings(scoring=args.scoring, teams=args.teams, year=args.year)
+        print(f"Board: {summary['total']} players ({summary['ffc']} from FFC ADP, "
+              f"{summary['sleeperTail']} Sleeper depth), {summary['adpEntries']} ADP entries."
+              f"{' QB historical adjustment applied.' if summary['qbAdjusted'] else ''}")
     except ValueError as e:
         print(f'Error: {e}', file=sys.stderr)
         sys.exit(1)
-    except Exception as e:
-        print(f'Error fetching FantasyPros rankings: {e}', file=sys.stderr)
-        import traceback
-        traceback.print_exc()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f'Error refreshing free rankings: {e}', file=sys.stderr)
         sys.exit(1)
-
-
-
-def _cmd_fantasypros_projections(args) -> None:
-    try:
-        positions = args.positions.split(',')
-        fantasypros_fetch_projections(sport=args.sport, season=args.season, positions=positions, week=args.week)
-        print('Projections saved to data/raw/rankings/fantasypros_*_projections*.json')
-    except ValueError as e:
-        print(f'Error: {e}', file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f'Error fetching FantasyPros projections: {e}', file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
 
 
 def _cmd_parse_rosters(_args) -> None:
@@ -1737,8 +1705,7 @@ _COMMAND_HANDLERS = {
     'keeper-strategy': _cmd_keeper_strategy,
     'map-teams': _cmd_map_teams,
     'backfill-standings-mcp': _cmd_backfill_standings_mcp,
-    'fantasypros-rankings': _cmd_fantasypros_rankings,
-    'fantasypros-projections': _cmd_fantasypros_projections,
+    'refresh-free-rankings': _cmd_refresh_free_rankings,
     'parse-rosters': _cmd_parse_rosters,
     'import-adp': _cmd_import_adp,
     'keepers-board-export': _cmd_keepers_board_export,

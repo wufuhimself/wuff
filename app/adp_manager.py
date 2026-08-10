@@ -3,9 +3,9 @@
 ADP = where players actually go in real drafts (market consensus). Used to
 enrich keeper forecasts and mock draft picks with an ADP field.
 
-Workflow:
-1. Save ADP CSV to data/raw/adp/fantasypros_adp.csv
-2. Import: python3 -m app import-adp <csv_path>
+Primary path: `refresh-free-rankings` (app/free_rankings.py) writes
+adp_combined.json daily from the free FFC ADP API. `import-adp <csv_path>`
+remains for one-off manual CSV imports.
 """
 import csv
 import json

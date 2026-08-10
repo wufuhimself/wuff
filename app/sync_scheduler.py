@@ -20,6 +20,7 @@ from typing import List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from .db import SessionLocal
+from .free_rankings import refresh_free_rankings
 from .models import DbLeague, SyncRun
 from .paths import SLEEPER_PLAYERS_CACHE_FILE
 from .sleeper_manager import (
@@ -105,6 +106,14 @@ def sync_all_due() -> int:
     return len(ids)
 
 
+def refresh_rankings_job() -> None:
+    """Daily free-sources rankings/ADP refresh (see app/free_rankings.py)."""
+    try:
+        refresh_free_rankings()
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass  # transient API failure; yesterday's board stays in place
+
+
 def ensure_scheduler_started() -> bool:
     """Start the background scheduler once per process. False when disabled."""
     global _scheduler  # pylint: disable=global-statement
@@ -121,6 +130,15 @@ def ensure_scheduler_started() -> bool:
                 minutes=SYNC_INTERVAL_MINUTES,
                 id='sleeper-sync-sweep',
                 next_run_time=datetime.now() + timedelta(seconds=60),
+                max_instances=1,
+                coalesce=True,
+            )
+            scheduler.add_job(
+                refresh_rankings_job,
+                'interval',
+                hours=24,
+                id='free-rankings-daily',
+                next_run_time=datetime.now() + timedelta(seconds=120),
                 max_instances=1,
                 coalesce=True,
             )

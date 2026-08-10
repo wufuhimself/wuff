@@ -18,18 +18,24 @@ python3 -m app refresh-yahoo-rankings
 python3 -m app refresh-yahoo-rankings --count 300
 ```
 
-**Import rankings from CSV** (e.g., FantasyPros, ESPN):
+**Refresh from free sources (the standard path)**:
+
+```bash
+python3 -m app refresh-free-rankings
+```
+
+**Import rankings from a user-supplied CSV**:
 
 ```bash
 python3 -m app import-rankings-csv ./rankings.csv
-python3 -m app import-rankings-csv ./rankings.csv --source FantasyPros
+python3 -m app import-rankings-csv ./rankings.csv --source MyRankings
 ```
 
 **Import rankings from PDF**:
 
 ```bash
 python3 -m app import-rankings-pdf ./rankings.pdf
-python3 -m app import-rankings-pdf ./rankings.pdf --source "FantasyPros"
+python3 -m app import-rankings-pdf ./rankings.pdf --source "MyRankings"
 ```
 
 **Combine all ranking sources** into a consensus file:
@@ -41,35 +47,31 @@ python3 -m app combine-rankings
 This reads all CSV/JSON/PDF files from `data/raw/rankings/` (except `rankings_combined.json`),
 normalizes player IDs, and averages ranks across sources into `data/raw/rankings/rankings_combined.json`.
 
-## Standard workflow (2026+): PPR base + historical QB adjustment
+## Standard workflow (2026-08-10+): free sources, refreshed daily
 
-As of 2026 the standard draft-forecasting rankings are **straight PPR** (not
-superflex-inflated), with the top QBs nudged up to match where a QB of that
-rank has actually gone in this league's own draft history — not a hand-tuned
-"push QBs down" rule. This replaced the old superflex-CSV + `board_adjustments.json`
-QB-knockback approach (that older path still exists via `adjust-rankings` /
-`rankings_adjusted.json` but is no longer the default for the post-keeper board
-or keeper selection).
+FantasyPros data was removed 2026-08-10 (licensing — can't redistribute on a
+public site). The standard board now comes from **free sources**: FFC's free
+PPR ADP API (real mock-draft market data) plus a Sleeper search-rank tail
+for depth, with the historical QB adjustment applied automatically.
 
 ```bash
-# 1. Import a straight PPR rankings CSV (e.g. FantasyPros "ALL" export) as the base
-python3 -m app import-rankings-csv ./FantasyPros_2026_Draft_ALL_Rankings.csv --source "FantasyPros 2026 Draft PPR"
+# One command does it all: fetch FFC ADP + Sleeper tail, write
+# yahoo_rankings.json (QB-adjusted working board), rankings_combined.json
+# (pure market board), and adp_combined.json.
+python3 -m app refresh-free-rankings
+python3 -m app refresh-free-rankings --scoring half-ppr --teams 10
 
-# 2. Nudge the top-N QBs (default 7) up to their historical draft-slot target,
-#    computed fresh from data/raw/draft_history/*.json each run (excludes keeper-slot
-#    rounds, so a QB's keeper round never counts as fresh draft demand). Overwrites
-#    yahoo_rankings.json AND mirrors a single-source copy into rankings_combined.json
-#    (needed because keepers-board-export reads rankings_combined.json, and generic
-#    combine-rankings would otherwise dilute this with any stale superflex/ESPN CSVs
-#    still sitting in data/raw/rankings/).
-python3 -m app apply-qb-adjustment
-python3 -m app apply-qb-adjustment --top-n 5              # fewer QBs adjusted
-python3 -m app apply-qb-adjustment --years 2022 2023 2024 2025  # pin specific draft years
-
-# 3. Regenerate the keeper board + draft board from these rankings (see keeper-analysis skill)
+# Regenerate the keeper board + draft board from these rankings
 python3 -m app keepers-board
 python3 -m app keepers-board-export
 ```
+
+The web app runs `refresh-free-rankings` automatically once a day via the
+background scheduler — the manual command is for immediate refreshes.
+
+`apply-qb-adjustment` still exists for re-tuning the QB shift on an already
+saved board (`--top-n`, `--years` flags) but refresh-free-rankings already
+applies it.
 
 Do **not** run generic `combine-rankings` after this unless you intend to go back to a
 multi-source blend — it re-averages every CSV/JSON/PDF in `data/raw/rankings/`
@@ -80,7 +82,7 @@ overwrite the single-source PPR+QB-adjusted `rankings_combined.json` that
 ## Legacy workflow (multi-source consensus, superflex-era)
 
 1. **Refresh Yahoo** to get the latest projected rankings
-2. **Import manual CSVs** from other sites (FantasyPros, ESPN, etc.) as needed
+2. **Import manual CSVs** from other sites as needed
 3. **Combine all** to get consensus ranking across sources
 
 Output files go to `data/raw/rankings/`. Keeper and draft board commands automatically use

@@ -96,7 +96,7 @@ Modules for combining rankings from multiple sources and importing ADP:
 
 ### Rankings ingestion (`app/rankings_manager.py`)
 
-Combines multiple ranking sources (Yahoo, ESPN, FantasyPros, etc) in any format (JSON/CSV/PDF) into a single normalized file.
+Combines multiple ranking sources in any format (JSON/CSV/PDF) into a single normalized file. **Standard source as of 2026-08-10 is `python3 -m app refresh-free-rankings`** (`app/free_rankings.py`): free FFC ADP API + Sleeper search-rank tail, QB historical adjustment auto-applied, refreshed daily by the web app's background scheduler. FantasyPros data removed 2026-08-10 (licensing — can't redistribute on a public site).
 
 **Workflow:**
 1. Save each ranking source to `data/raw/rankings/{source}_rankings.{json|csv|pdf}`
@@ -121,7 +121,7 @@ Imports Average Draft Position (market consensus) from a CSV, used to enrich
 keeper forecasts and mock draft picks with an ADP field.
 
 ```bash
-python3 -m app import-adp data/raw/adp/fantasypros_adp.csv
+python3 -m app import-adp path/to/your_adp.csv
 ```
 
 Saves normalized ADP to `data/raw/adp/adp_combined.json`.
