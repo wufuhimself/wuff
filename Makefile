@@ -2,17 +2,22 @@ VENV ?= .venv
 PYTHON := $(VENV)/bin/python3
 PIP := $(VENV)/bin/pip
 
-.PHONY: install clean auth-server auth token run cli web web-debug web-network gems lint install-dev
+.PHONY: install clean auth-server auth token run cli web web-debug web-network gems lint install-dev install-hooks
 
-install:
+install: install-hooks
 	python3 -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
 
-install-dev:
+install-dev: install-hooks
 	python3 -m venv $(VENV)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements-dev.txt
+
+# Points git at the versioned githooks/ dir so pylint runs automatically
+# before each commit that touches app/*.py. Safe to re-run.
+install-hooks:
+	git config core.hooksPath githooks
 
 lint: install-dev
 	$(VENV)/bin/pylint app
