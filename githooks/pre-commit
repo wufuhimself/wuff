@@ -1,0 +1,23 @@
+#!/bin/sh
+# Runs pylint (via `make lint`) before allowing a commit, but only when the
+# commit touches Python files under app/. Skips silently otherwise so
+# doc-only / data-only commits stay fast.
+#
+# Installed via `make install-hooks` (sets core.hooksPath to this dir).
+
+staged_py=$(git diff --cached --name-only --diff-filter=ACM -- 'app/*.py')
+
+if [ -z "$staged_py" ]; then
+    exit 0
+fi
+
+echo "Running pylint on staged changes (make lint)..."
+make lint
+status=$?
+
+if [ $status -ne 0 ]; then
+    echo ""
+    echo "pylint failed — commit blocked. Fix the issues above, or bypass with 'git commit --no-verify'."
+fi
+
+exit $status

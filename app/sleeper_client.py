@@ -6,7 +6,7 @@ raw dicts in, raw dicts out. Normalization into wuff's own shapes lives
 in sleeper_manager.py.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import requests
 

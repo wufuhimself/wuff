@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -89,7 +87,6 @@ from .mcp_client import (
     get_sync_all_team_rosters,
     get_sync_standings_for_year,
 )
-from .config import config
 
 
 def _next_draft_season() -> int:
@@ -366,7 +363,10 @@ def parse_args() -> argparse.Namespace:
     )
     sleeper_sync_parser.add_argument('--league-id', help='Sync a single league by ID (default: all leagues in sleeper_leagues.json)')
 
-    subparsers.add_parser('sleeper-refresh-players', help="Refresh the cached Sleeper player_id -> name/position/team dict (run occasionally, it's a ~5MB fetch)")
+    subparsers.add_parser(
+        'sleeper-refresh-players',
+        help="Refresh the cached Sleeper player_id -> name/position/team dict (run occasionally, it's a ~5MB fetch)",
+    )
 
     return parser.parse_args()
 
@@ -1642,11 +1642,11 @@ def _cmd_resolve_outcomes(args) -> None:
 
 
 def _cmd_sleeper_discover(args) -> None:
-    config = sleeper_discover_leagues(args.username, args.season)
-    print(f"Found {len(config['leagues'])} league(s) for '{args.username}' ({args.season}):")
-    for league in config['leagues']:
+    sleeper_config = sleeper_discover_leagues(args.username, args.season)
+    print(f"Found {len(sleeper_config['leagues'])} league(s) for '{args.username}' ({args.season}):")
+    for league in sleeper_config['leagues']:
         print(f"  {league['leagueId']}  [{league['format']}]  {league['name']}")
-    print(f'\nSaved to data/config/sleeper_leagues.json. Edit display names/format there if needed.')
+    print('\nSaved to data/config/sleeper_leagues.json. Edit display names/format there if needed.')
 
 
 def _cmd_sleeper_sync(args) -> None:
@@ -1661,7 +1661,7 @@ def _cmd_sleeper_sync(args) -> None:
     print(f'\nSynced {len(results)} league(s) to data/raw/sleeper/.')
 
 
-def _cmd_sleeper_refresh_players(args) -> None:
+def _cmd_sleeper_refresh_players(_args) -> None:
     count = sleeper_refresh_players_cache()
     print(f'Cached {count} players to data/raw/sleeper/players_cache.json.')
 
