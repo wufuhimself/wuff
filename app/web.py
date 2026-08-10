@@ -14,7 +14,7 @@ from .auth import get_or_create_user, init_auth
 from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .league_context import load_league_format
-from .league_registry import default_league_id, load_leagues
+from .league_registry import default_league_id, get_league, load_leagues
 from .models import DbLeague, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
 from .rankings_csv import parse_rankings_csv
@@ -50,6 +50,15 @@ LEAGUE_RULES_FILE = CONFIG_DIR / 'league_rules.json'
 def _start_background_sync():
     # Idempotent fast path after first call; disabled via WUFF_DISABLE_SCHEDULER=1.
     ensure_scheduler_started()
+
+
+@app.context_processor
+def _inject_league_context():
+    try:
+        name = get_league().name
+    except (KeyError, OSError):
+        name = 'My league'
+    return {'default_league_name': name}
 
 
 def load_dashboard_state():
@@ -850,18 +859,19 @@ def onboard_import():
 @app.route('/leagues')
 def leagues_view():
     default_id = default_league_id()
-    entries = []
+    providers: dict = {}
     for league in load_leagues().values():
-        entries.append({
+        providers.setdefault(league.platform, []).append({
             'leagueId': league.league_id,
-            'platform': league.platform,
             'name': league.name,
             'season': league.season,
             'teams': league.format.teams,
             'isDefault': league.league_id == default_id,
             'href': '/' if league.platform == 'yahoo' else f'/sleeper/{league.platform_league_id}',
         })
-    return render_template('leagues.html', active='leagues', leagues=entries)
+    provider_order = [p for p in ('yahoo', 'sleeper', 'espn') if p in providers]
+    return render_template('leagues.html', active='leagues', providers=providers,
+                           provider_order=provider_order)
 
 
 @app.route('/sleeper')
@@ -896,8 +906,10 @@ def sleeper_league_view(league_id: str):
     for draft in drafts:
         draft['picks'] = sorted(draft.get('picks') or [], key=lambda p: (p.get('round') or 0, p.get('pick') or 0))
 
+    display_name = (entry or {}).get('name') or league.get('name') or league_id
     return render_template('sleeper_league.html', active='sleeper', league_id=league_id,
-                            entry=entry, league=league, rosters=rosters_sorted, drafts=drafts, error=None)
+                            entry=entry, league=league, rosters=rosters_sorted, drafts=drafts,
+                            league_display_name=display_name, error=None)
 
 
 @app.route('/draft-history')
