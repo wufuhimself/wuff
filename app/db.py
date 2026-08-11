@@ -34,6 +34,9 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)  # pylint: disa
 # any production deploy.)
 _COLUMN_BACKFILLS = [
     ('leagues', 'rules_json', 'VARCHAR(4000)'),
+    # Pre-existing rows have no action -- backfill default matches their old,
+    # only-possible meaning ("this player is kept").
+    ('keeper_marks', 'action', "VARCHAR(8) NOT NULL DEFAULT 'include'"),
 ]
 
 

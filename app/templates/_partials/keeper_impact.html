@@ -1,0 +1,20 @@
+{% if keeper_impact %}
+{% for impact in keeper_impact %}
+<div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc; text-align: center;">
+  <div style="font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 700; color: #0a2f5c; margin-bottom: 0.5rem;">
+    <span class="pill pos-{{ impact.position.lower() }}" style="font-size: clamp(0.9rem, 3vw, 1.1rem); padding: 0.4rem 0.7rem;">{{ impact.position }}</span>
+  </div>
+  <div style="font-size: clamp(1rem, 3vw, 1.3rem); margin-bottom: 0.5rem;">
+    <span style="color: #15803d; font-weight: 600;">{{ impact.kept }}</span>
+    <span style="color: #667085;">of {{ impact.elite_tier }}</span>
+    kept
+  </div>
+  <div style="font-size: clamp(0.9rem, 2.5vw, 1rem); color: #0a2f5c; font-weight: 600; margin-bottom: 0.3rem;">
+    {{ impact.available }} available
+  </div>
+  <div style="font-size: clamp(0.75rem, 2vw, 0.85rem); color: #667085;">
+    {{ impact.pct_kept }}% locked via keepers
+  </div>
+</div>
+{% endfor %}
+{% endif %}

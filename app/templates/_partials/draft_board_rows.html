@@ -1,0 +1,9 @@
+{% for row in remaining_board %}
+<tr>
+  <td class="number">{{ row.draftOrder }}</td>
+  <td class="playerName">{{ row.playerName }}</td>
+  <td><span class="pill pos-{{ (row.position or '').lower() }}">{{ row.position }}</span></td>
+  <td>{{ row.team or '' }}</td>
+  <td class="number">{{ row.ranking }}</td>
+</tr>
+{% endfor %}

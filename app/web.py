@@ -31,6 +31,7 @@ from .sleeper_manager import (
 )
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .strategy import (
+    _normalize_name,
     league_keeper_board,
     roster_keeper_insight,
     save_yahoo_rankings,
@@ -67,12 +68,17 @@ def _league_href(platform: str, platform_league_id: str) -> str:
     return '/'
 
 
-def load_keeper_marks(platform: Optional[str] = None, platform_league_id: Optional[str] = None) -> dict:
-    """User-marked keepers for a league (default league when unspecified),
-    as {team: [player, ...]}."""
+def load_keeper_marks(platform: Optional[str] = None, platform_league_id: Optional[str] = None) -> tuple:
+    """User-set keeper decisions for a league (default league when unspecified).
+
+    Returns (include_marks, exclude_marks), each {team: [player_name, ...]}.
+    'include' forces a player onto that team's keeper board; 'exclude' forbids
+    the algorithm from auto-picking a player, freeing the slot for the next
+    best eligible one."""
     if platform is None or platform_league_id is None:
         platform, platform_league_id = _default_league_platform_ids()
-    marks: dict = {}
+    include_marks: dict = {}
+    exclude_marks: dict = {}
     with SessionLocal() as session:
         rows = (
             session.query(KeeperMark)
@@ -81,8 +87,9 @@ def load_keeper_marks(platform: Optional[str] = None, platform_league_id: Option
             .all()
         )
     for row in rows:
-        marks.setdefault(row.team_name, []).append(row.player_name)
-    return marks
+        target = exclude_marks if row.action == 'exclude' else include_marks
+        target.setdefault(row.team_name, []).append(row.player_name)
+    return include_marks, exclude_marks
 
 
 @app.context_processor
@@ -119,9 +126,10 @@ def index():
     rankings = repo.rankings()
     if rankings:
         league_format = load_league_format()
+        include_marks, exclude_marks = load_keeper_marks()
         per_team, remaining_board = league_keeper_board(
-            league_rosters, rankings, league_format, keeper_count=2,
-            keeper_prefs_override=load_keeper_marks(),
+            league_rosters, rankings, league_format, keeper_count=league_format.keeper_slots,
+            keeper_prefs_override=include_marks, keeper_excludes_override=exclude_marks,
         )
         remaining_board = remaining_board[:100]
 
@@ -434,10 +442,18 @@ def forecast_from_keeper_export(keeper_export_data, rankings=None):
     return forecasts
 
 
-def calculate_keeper_impact(keeper_forecasts):
+def calculate_keeper_impact(keeper_forecasts, league_format=None):  # pylint: disable=unused-argument
     """Calculate how many elite players at each position are locked up as keepers.
 
     Shows impact on draft board by counting HIGH confidence keepers per position.
+
+    league_format: accepted but not yet used for the tier-size math below --
+    TODO: elite tier sizes assume a ~12-team/SUPERFLEX-shaped league and will
+    misrepresent impact % for a differently-sized imported league (e.g. a
+    Sleeper dynasty league with a different team count/starter shape). Scaling
+    this correctly is a product decision (what "elite tier" means per
+    position), not a mechanical fix -- revisit when a non-12-team league
+    actually needs accurate impact numbers.
     """
     # Define elite tier sizes (how many top players per position matter for strategy)
     elite_tiers = {
@@ -615,6 +631,82 @@ def forecast_keeper_decisions(per_team, adp_map):
     return forecasts
 
 
+def _keeper_board_state(
+    league=None, *, keeper_count: Optional[int] = None, draft_years=None, include_file_prefs: bool = True,
+) -> dict:
+    """Compute the full keeper-board state for either the default Yahoo league
+    (league=None) or a resolved League. Used by keepers_board_view(),
+    league_keepers(), and keeper_mark() so the AJAX response and the full-page
+    render can never drift out of sync.
+
+    Returns {'error': str} if rosters/rankings aren't available yet, otherwise
+    {'repo', 'league_format', 'per_team', 'remaining_board', 'keeper_forecasts',
+    'keeper_impact', 'include_marks', 'exclude_marks', 'error': None}.
+    """
+    if league is None:
+        repo = get_repository()
+        league_format = load_league_format()
+        platform, platform_league_id = _default_league_platform_ids()
+    else:
+        repo = repository_for(league)
+        league_format = league.format
+        platform, platform_league_id = league.platform, league.platform_league_id
+
+    league_rosters = repo.rosters()
+    if not league_rosters:
+        return {'error': (
+            f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. '
+            'Run `python3 -m app parse-rosters` first.'
+        ) if league is None else 'No synced rosters yet -- sync the league first.'}
+
+    rankings = repo.rankings()
+    if not rankings:
+        return {'error': (
+            'No saved rankings. Run `python3 -m app.cli refresh-yahoo-rankings` or '
+            '`import-rankings-csv` first.'
+        ) if league is None else 'No synced rankings yet -- sync the league first.'}
+
+    include_marks, exclude_marks = load_keeper_marks(platform, platform_league_id)
+    resolved_keeper_count = keeper_count if keeper_count is not None else league_format.keeper_slots
+    resolved_draft_years = draft_years if draft_years is not None else (repo.draft_years() if league is not None else None)
+    per_team, remaining_board = league_keeper_board(
+        league_rosters, rankings, league_format, keeper_count=resolved_keeper_count,
+        keeper_prefs_override=include_marks, keeper_excludes_override=exclude_marks,
+        draft_years=resolved_draft_years, include_file_prefs=include_file_prefs,
+    )
+    remaining_board = remaining_board[:100]
+
+    adp_map = load_adp_map()
+    rank_map = {r.get('playerName', '').lower(): r.get('ranking') for r in rankings}
+    for team_entry in per_team:
+        for chosen in team_entry.get('chosen', []):
+            pos_rank = chosen.get('positionRank')
+            if pos_rank:
+                chosen['posRank'] = f"{chosen.get('position', 'UNK')}{pos_rank}"
+            enrich_with_adp([chosen], adp_map)
+            chosen['ranking'] = rank_map.get(chosen.get('playerName', '').lower())
+        for alternate in team_entry.get('alternates', []):
+            enrich_with_adp([alternate], adp_map)
+            alternate['ranking'] = rank_map.get(alternate.get('playerName', '').lower())
+    for row in remaining_board:
+        enrich_with_adp([row], adp_map)
+
+    keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
+    keeper_impact = calculate_keeper_impact(keeper_forecasts, league_format=league_format)
+
+    return {
+        'repo': repo,
+        'league_format': league_format,
+        'per_team': per_team,
+        'remaining_board': remaining_board,
+        'keeper_forecasts': keeper_forecasts,
+        'keeper_impact': keeper_impact,
+        'include_marks': include_marks,
+        'exclude_marks': exclude_marks,
+        'error': None,
+    }
+
+
 @app.route('/keepers-board')
 def keepers_board_view():
     # Get available keeper export versions
@@ -626,57 +718,19 @@ def keepers_board_view():
     if selected_version:
         keeper_export_data = load_keeper_export(selected_version)
 
-    repo = get_repository()
-    league_rosters = repo.rosters()
-    if not league_rosters:
+    state = _keeper_board_state()
+    if state['error']:
         return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[],
                              keeper_versions=keeper_versions, selected_version=selected_version,
-                             keeper_export_data=keeper_export_data, error=(
-            f'No saved league roster snapshot at {YAHOO_LEAGUE_ROSTERS_JSON}. '
-            'Run `python3 -m app parse-rosters` first.'
-        ))
+                             keeper_export_data=keeper_export_data, error=state['error'])
 
+    repo = state['repo']
+    league_format = state['league_format']
+    per_team = state['per_team']
+    remaining_board = state['remaining_board']
+    include_marks = state['include_marks']
     rankings = repo.rankings()
-    if not rankings:
-        return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[], error=(
-            'No saved rankings. Run `python3 -m app.cli refresh-yahoo-rankings` or '
-            '`import-rankings-csv` first.'
-        ))
-
-    league_format = load_league_format()
-    keeper_marks = load_keeper_marks()
-    per_team, remaining_board = league_keeper_board(
-        league_rosters, rankings, league_format, keeper_count=2,
-        keeper_prefs_override=keeper_marks,
-    )
-
-    remaining_board = remaining_board[:100]
-
-    # Load ADP and enrich player data
     adp_map = load_adp_map()
-    # Build ranking map by player name for quick lookup
-    rank_map = {}
-    for r in rankings:
-        name_key = r.get('playerName', '').lower()
-        rank_map[name_key] = r.get('ranking')
-
-    for team_entry in per_team:
-        for chosen in team_entry.get('chosen', []):
-            pos_rank = chosen.get('positionRank')
-            if pos_rank:
-                position = chosen.get('position', 'UNK')
-                chosen['posRank'] = f'{position}{pos_rank}'
-            enrich_with_adp([chosen], adp_map)
-            # Add ranking
-            player_key = chosen.get('playerName', '').lower()
-            chosen['ranking'] = rank_map.get(player_key)
-        for alternate in team_entry.get('alternates', []):
-            enrich_with_adp([alternate], adp_map)
-            player_key = alternate.get('playerName', '').lower()
-            alternate['ranking'] = rank_map.get(player_key)
-
-    for row in remaining_board:
-        enrich_with_adp([row], adp_map)
 
     teams = league_format.teams if league_format else 12
     live_rounds = 13
@@ -710,7 +764,7 @@ def keepers_board_view():
         row['isMyPick'] = row.get('draftOrder') in my_picks
         row['round'] = ((row.get('draftOrder', 1) - 1) // teams) + 1
 
-    # Use export-derived forecast if keeper export is loaded, otherwise compute from per_team
+    # Use export-derived forecast if keeper export is loaded, otherwise use the computed state.
     organized_keeper_data = None
     if keeper_export_data:
         keeper_forecasts = forecast_from_keeper_export(keeper_export_data, rankings=rankings)
@@ -732,40 +786,59 @@ def keepers_board_view():
                 player_name = alt.get('playerName', '').lower()
                 if player_name in adp_map:
                     alt['adp'] = adp_map[player_name]
-        keeper_impact = calculate_keeper_impact(keeper_forecasts)
+        keeper_impact = calculate_keeper_impact(keeper_forecasts, league_format=league_format)
     else:
-        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
-        keeper_impact = calculate_keeper_impact(keeper_forecasts)
+        keeper_forecasts = state['keeper_forecasts']
+        keeper_impact = state['keeper_impact']
 
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
+        remaining_board=remaining_board,
         keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
         my_team=my_team, team_names=team_names, error=None,
         keeper_versions=keeper_versions, selected_version=selected_version,
-        keeper_export_data=organized_keeper_data, keeper_marks=keeper_marks,
+        keeper_export_data=organized_keeper_data, keeper_marks=include_marks,
     )
 
 
 @app.route('/keepers-board/mark', methods=['POST'])
 @login_required
 def keeper_mark():
+    """Toggle one player's keeper checkbox for one team. `checked` is the
+    desired end state (the box the user just clicked into); the server infers
+    whether that requires an include row, an exclude row, or clearing any
+    existing override, by comparing against the player's current
+    algorithm-computed status for that team. Returns JSON with pre-rendered
+    HTML fragments for the pieces of the page that changed, so the client can
+    patch the DOM without a reload."""
     team = request.form.get('team', '').strip()
     player = request.form.get('player', '').strip()
-    action = request.form.get('action', 'mark')
+    checked = request.form.get('checked', '').strip() == '1'
     league_slug = request.form.get('league_slug', '').strip()
 
+    league = None
     if league_slug:
         league = resolve_league(league_slug)
         if league is None:
-            return redirect(url_for('leagues_view'))
-        platform, platform_league_id = league.platform, league.platform_league_id
-        back = url_for('league_keepers', league_id=league_slug)
-    else:
-        platform, platform_league_id = _default_league_platform_ids()
-        back = url_for('keepers_board_view')
+            return {'error': 'Unknown league.'}, 404
 
     if not team or not player:
-        return redirect(back)
+        return {'error': 'Missing team or player.'}, 400
+
+    platform, platform_league_id = (
+        (league.platform, league.platform_league_id) if league is not None else _default_league_platform_ids()
+    )
+    include_file_prefs = league is None
+
+    state_before = _keeper_board_state(league, include_file_prefs=include_file_prefs)
+    if state_before['error']:
+        return {'error': state_before['error']}, 409
+
+    team_entry = next((t for t in state_before['per_team'] if t['team'] == team), None)
+    was_auto_chosen = bool(team_entry) and any(
+        _normalize_name(c.get('playerName', '')) == _normalize_name(player) for c in team_entry['chosen']
+    )
+
     with SessionLocal() as session:
         existing = (
             session.query(KeeperMark)
@@ -773,13 +846,34 @@ def keeper_mark():
                        team_name=team, player_name=player)
             .one_or_none()
         )
-        if action == 'unmark' and existing is not None:
-            session.delete(existing)
-        elif action == 'mark' and existing is None:
-            session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
-                                   team_name=team, player_name=player))
+        if checked == was_auto_chosen:
+            # Toggling back to the algorithm's own answer -- clear any override.
+            if existing is not None:
+                session.delete(existing)
+        else:
+            action = 'include' if checked else 'exclude'
+            if existing is not None:
+                existing.action = action
+            else:
+                session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
+                                       team_name=team, player_name=player, action=action))
         session.commit()
-    return redirect(back)
+
+    state_after = _keeper_board_state(league, include_file_prefs=include_file_prefs)
+    if state_after['error']:
+        return {'error': state_after['error']}, 409
+
+    return {
+        'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_after['keeper_impact']),
+        'boardRowsHtml': render_template('_partials/draft_board_rows.html', remaining_board=state_after['remaining_board']),
+        'forecastHtml': render_template(
+            '_partials/keeper_forecast_cards.html', keeper_forecasts=state_after['keeper_forecasts'],
+            keeper_marks=state_after['include_marks'], league_slug=league_slug,
+        ),
+        'perTeamHtml': render_template(
+            '_partials/keeper_per_team_cards.html', per_team=state_after['per_team'], league_slug=league_slug,
+        ),
+    }
 
 
 @app.route('/settings')
@@ -1008,27 +1102,18 @@ def league_keepers(league_id: str):
     ctx = _league_page_ctx(league, 'keepers')
     if league.format.keeper_slots <= 0:
         return render_template('league_keepers.html', active='league-keepers', per_team=[],
-                               remaining_board=[], keeper_marks={}, not_configured=True,
+                               remaining_board=[], keeper_impact=[], keeper_marks={}, not_configured=True,
                                error=None, **ctx)
 
-    repo = repository_for(league)
-    rosters = repo.rosters()
-    rankings = repo.rankings()
-    if not rosters or not rankings:
+    state = _keeper_board_state(league, include_file_prefs=False)
+    if state['error']:
         return render_template('league_keepers.html', active='league-keepers', per_team=[],
-                               remaining_board=[], keeper_marks={}, not_configured=False,
-                               error='No synced rosters or rankings yet — sync the league first.', **ctx)
+                               remaining_board=[], keeper_impact=[], keeper_marks={}, not_configured=False,
+                               error=state['error'], **ctx)
 
-    marks = load_keeper_marks(league.platform, league.platform_league_id)
-    per_team, remaining_board = league_keeper_board(
-        rosters, rankings, league.format,
-        keeper_count=league.format.keeper_slots,
-        keeper_prefs_override=marks,
-        draft_years=repo.draft_years(),
-        include_file_prefs=False,
-    )
-    return render_template('league_keepers.html', active='league-keepers', per_team=per_team,
-                           remaining_board=remaining_board[:100], keeper_marks=marks,
+    return render_template('league_keepers.html', active='league-keepers', per_team=state['per_team'],
+                           remaining_board=state['remaining_board'], keeper_impact=state['keeper_impact'],
+                           keeper_marks=state['include_marks'],
                            not_configured=False, error=None, **ctx)
 
 
@@ -1263,9 +1348,10 @@ def draft_order_board_view(standings_year: int):
     round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
     rounds = snake_draft_order(round1_order, live_rounds)
 
+    include_marks, exclude_marks = load_keeper_marks()
     _, remaining_board = league_keeper_board(
-        league_rosters, rankings, league_format, keeper_count=2,
-        keeper_prefs_override=load_keeper_marks(),
+        league_rosters, rankings, league_format, keeper_count=league_format.keeper_slots,
+        keeper_prefs_override=include_marks, keeper_excludes_override=exclude_marks,
     )
     board_by_rank = {row.get('draftOrder'): row for row in remaining_board}
 

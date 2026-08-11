@@ -1,21 +1,7 @@
 {% extends "base.html" %}
+{% from "_keeper_macros.html" import keeper_checkbox with context %}
 {% block title %}Keepers — wuff{% endblock %}
 {% block content %}
-      {% macro mark_button(team, player, marked) %}
-      {% if current_user.is_authenticated %}
-      <form method="post" action="/keepers-board/mark" style="display:inline; margin-left:0.3rem;">
-        <input type="hidden" name="team" value="{{ team }}">
-        <input type="hidden" name="player" value="{{ player }}">
-        <input type="hidden" name="action" value="{{ 'unmark' if marked else 'mark' }}">
-        <button type="submit" title="{{ 'Remove keeper mark' if marked else 'Mark as this team’s keeper' }}"
-                style="border:none; cursor:pointer; border-radius:999px; padding:0.1rem 0.5rem; font-size:0.7rem; font-weight:700; background:{{ '#0a2f5c' if marked else '#e6e8ee' }}; color:{{ 'white' if marked else '#444' }};">
-          {{ '★ kept — unmark' if marked else '☆ mark keeper' }}
-        </button>
-      </form>
-      {% elif marked %}
-      <span class="pill" style="background:#0a2f5c; color:white;">★ kept</span>
-      {% endif %}
-      {% endmacro %}
       {% if keeper_versions %}
       <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #0066cc;">
         <label for="keeper-version" style="font-size: 0.9rem; font-weight: 500; display: block; margin-bottom: 0.5rem;">Keeper Export Version</label>
@@ -83,30 +69,11 @@
       {% if per_team %}
       <section class="card">
         <h2>Keeper impact by position</h2>
-        <span class="status">How many elite players will be locked up as keepers (12 teams × 2 keepers each).</span>
+        <span class="status">How many elite players will be locked up as keepers ({{ team_names | length }} teams). Check/uncheck a player below to see this update live.</span>
 
-        {% if keeper_impact %}
-        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); margin-top: 1rem;">
-          {% for impact in keeper_impact %}
-          <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc; text-align: center;">
-            <div style="font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 700; color: #0a2f5c; margin-bottom: 0.5rem;">
-              <span class="pill pos-{{ impact.position.lower() }}" style="font-size: clamp(0.9rem, 3vw, 1.1rem); padding: 0.4rem 0.7rem;">{{ impact.position }}</span>
-            </div>
-            <div style="font-size: clamp(1rem, 3vw, 1.3rem); margin-bottom: 0.5rem;">
-              <span style="color: #15803d; font-weight: 600;">{{ impact.kept }}</span>
-              <span style="color: #667085;">of {{ impact.elite_tier }}</span>
-              kept
-            </div>
-            <div style="font-size: clamp(0.9rem, 2.5vw, 1rem); color: #0a2f5c; font-weight: 600; margin-bottom: 0.3rem;">
-              {{ impact.available }} available
-            </div>
-            <div style="font-size: clamp(0.75rem, 2vw, 0.85rem); color: #667085;">
-              {{ impact.pct_kept }}% locked via keepers
-            </div>
-          </div>
-          {% endfor %}
+        <div id="keeper-impact-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); margin-top: 1rem;">
+          {% include "_partials/keeper_impact.html" %}
         </div>
-        {% endif %}
       </section>
 
       <section class="card">
@@ -115,54 +82,64 @@
           {% if keeper_export_data %}
             From keeper export ({{ selected_version }})
           {% else %}
-            Based on position tier scarcity
+            Algorithm's best pick per team, shown pre-checked. Uncheck to drop a keeper, check another eligible player to add them — updates below happen live.
           {% endif %}
         </span>
 
-        {% if keeper_forecasts %}
-        <div style="display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); margin-top: 1rem;">
-          {% for forecast in keeper_forecasts %}
-          <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc;">
-            <h3 style="margin: 0 0 0.75rem 0; font-size: clamp(0.95rem, 3vw, 1.1rem);">{{ forecast.team }}</h3>
-            <div style="margin-bottom: 0.5rem;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: #667085; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Keepers</div>
-              {% for keeper in forecast.keepers %}
-              {% set pos_bg = {'QB': '#dbeafe', 'RB': '#dcfce7', 'WR': '#f3e8ff', 'TE': '#fed7aa', 'K': '#fef3c7', 'DEF': '#fecaca'} %}
-              {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
-              <div style="margin-bottom: 0.5rem; padding: 0.6rem; background: {{ pos_bg.get(keeper.position, '#f0f0f0') }}; border-radius: 6px;">
-                <div style="font-weight: 600; margin-bottom: 0.2rem; color: {{ pos_color.get(keeper.position, '#333') }}; font-size: 0.95rem;">{{ keeper.playerName }} <span class="pill pos-{{ keeper.position.lower() }}">{{ keeper.position }}{{ keeper.posRank }}</span>
-                  {{ mark_button(forecast.team, keeper.playerName, keeper.playerName in (keeper_marks or {}).get(forecast.team, [])) }}
-                </div>
-                <div style="font-size: 0.75rem; color: {{ pos_color.get(keeper.position, '#333') }}; margin-top: 0.25rem;">
-                  {% if keeper.adp %}ADP {{ "%.0f"|format(keeper.adp) }}{% else %}No ADP{% endif %}{% if keeper.reasoning %} · {{ keeper.reasoning }}{% endif %}
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-            {% if forecast.alternates %}
-            <div style="border-top: 1px solid #e6e8ee; padding-top: 0.5rem;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: #999; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em;">Next options</div>
-              {% for alt in forecast.alternates %}
-              {% set pos_bg = {'QB': '#e6f0ff', 'RB': '#e8f8e8', 'WR': '#f9f0ff', 'TE': '#ffe8d4', 'K': '#fffff0', 'DEF': '#ffe8e8'} %}
-              {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
-              <div style="margin-bottom: 0.5rem; padding: 0.6rem; background: {{ pos_bg.get(alt.position, '#f5f5f5') }}; border-radius: 6px; opacity: 0.85;">
-                <div style="font-weight: 600; margin-bottom: 0.2rem; color: {{ pos_color.get(alt.position, '#666') }}; font-size: 0.9rem;">{{ alt.playerName }} <span class="pill pos-{{ alt.position.lower() }}" style="opacity: 0.8;">{{ alt.position }}{{ alt.posRank }}</span>
-                  {{ mark_button(forecast.team, alt.playerName, alt.playerName in (keeper_marks or {}).get(forecast.team, [])) }}
-                </div>
-                <div style="font-size: 0.75rem; color: {{ pos_color.get(alt.position, '#666') }}; margin-top: 0.25rem;">
-                  {% if alt.adp %}ADP {{ "%.0f"|format(alt.adp) }}{% else %}No ADP{% endif %}
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-            {% endif %}
-          </div>
-          {% endfor %}
+        <div id="keeper-forecast-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); margin-top: 1rem;">
+          {% include "_partials/keeper_forecast_cards.html" %}
         </div>
-        {% else %}
-        <p class="status">No forecast data available.</p>
-        {% endif %}
+      </section>
+
+      <section class="card">
+        <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | length }}</span></h2>
+        <table class="table compact">
+          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>NFL</th><th>Rank</th></tr></thead>
+          <tbody id="draft-board-body">
+            {% include "_partials/draft_board_rows.html" %}
+          </tbody>
+        </table>
       </section>
 
       {% endif %}
+<script>
+document.addEventListener('change', function (event) {
+  var box = event.target;
+  if (!box.classList || !box.classList.contains('js-keeper-toggle')) return;
+  var body = new URLSearchParams({
+    team: box.dataset.team,
+    player: box.dataset.player,
+    checked: box.checked ? '1' : '0',
+    league_slug: box.dataset.leagueSlug || '',
+  });
+  box.disabled = true;
+  fetch('/keepers-board/mark', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+    body: body.toString(),
+  }).then(function (resp) {
+    var ct = resp.headers.get('content-type') || '';
+    if (!resp.ok || ct.indexOf('application/json') === -1) {
+      // Auth redirect or server error masked as 200 HTML -- fall back to a full
+      // reload so the user sees the real, server-authoritative state.
+      window.location.reload();
+      return null;
+    }
+    return resp.json();
+  }).then(function (data) {
+    if (!data) return;
+    if (data.error) { window.location.reload(); return; }
+    var impact = document.getElementById('keeper-impact-grid');
+    if (impact && data.impactHtml !== undefined) impact.innerHTML = data.impactHtml;
+    var board = document.getElementById('draft-board-body');
+    if (board && data.boardRowsHtml !== undefined) board.innerHTML = data.boardRowsHtml;
+    var forecast = document.getElementById('keeper-forecast-grid');
+    if (forecast && data.forecastHtml !== undefined) forecast.innerHTML = data.forecastHtml;
+  }).catch(function () {
+    window.location.reload();
+  }).finally(function () {
+    box.disabled = false;
+  });
+});
+</script>
 {% endblock %}

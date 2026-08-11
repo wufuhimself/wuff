@@ -101,9 +101,12 @@ class EspnCredential(Base):
 
 
 class KeeperMark(Base):
-    """A user-marked keeper decision: 'this team is keeping this player.'
-    Feeds the keeper board as an override on top of the computed picks, and
-    marked players are removed from the post-keeper draft board."""
+    """A user-set keeper decision for one (team, player): 'include' forces
+    this player onto the team's keeper board (overriding/supplementing the
+    computed picks); 'exclude' forbids the algorithm from auto-selecting this
+    player, freeing their slot for the next-best eligible player. A team with
+    no rows is fully algorithm-controlled. At most one row per (league, team,
+    player) — toggling a checkbox upserts or deletes that single row."""
     __tablename__ = 'keeper_marks'
     __table_args__ = (
         UniqueConstraint('platform', 'platform_league_id', 'team_name', 'player_name', name='uq_keeper_mark'),
@@ -114,6 +117,7 @@ class KeeperMark(Base):
     platform_league_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     team_name: Mapped[str] = mapped_column(String(255), nullable=False)
     player_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    action: Mapped[str] = mapped_column(String(8), nullable=False, default='include')  # 'include' | 'exclude'
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 

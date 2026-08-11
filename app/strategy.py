@@ -397,12 +397,17 @@ def select_best_keepers(
     keeper_count: int = 2,
     league_format: Optional[LeagueFormat] = None,
     preferred_keeper_names: Optional[List[str]] = None,
+    excluded_keeper_names: Optional[List[str]] = None,
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    excluded_set = {_normalize_name(name) for name in (excluded_keeper_names or [])}
+
     locked = [item for item in insight if item.get('keeperLocked') is True]
     eligible = [
         item
         for item in insight
-        if item.get('keeperEligible') is True and item.get('keeperLocked') is not True
+        if item.get('keeperEligible') is True
+        and item.get('keeperLocked') is not True
+        and _normalize_name(item.get('playerName', '')) not in excluded_set
     ]
 
     costless = league_format is not None and not _uses_draft_round_as_keeper_cost(league_format)
@@ -484,10 +489,15 @@ def league_keeper_board(
     league_format: LeagueFormat,
     keeper_count: int = 2,
     keeper_prefs_override: Optional[Dict[str, List[str]]] = None,
+    keeper_excludes_override: Optional[Dict[str, List[str]]] = None,
     draft_years: Optional[Dict[int, List[dict]]] = None,
     include_file_prefs: bool = True,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Compute the best keepers for every team in a saved league-roster snapshot.
+
+    keeper_excludes_override: {team_name: [player_name, ...]} of players the user has
+      explicitly unchecked -- forbidden from auto-fill/alternates for that team, same
+      per-team shape as keeper_prefs_override.
 
     Returns (per_team, remaining_board):
       per_team: one entry per team with its chosen keepers and alternates.
@@ -535,9 +545,11 @@ def league_keeper_board(
                                         league_format=league_format, draft_years=draft_years)
         # User marks (keeper_prefs_override) beat the config-file prefs for a team.
         preferred_names = (keeper_prefs_override or {}).get(team_name) or keeper_prefs.get(team_name)
+        excluded_names = (keeper_excludes_override or {}).get(team_name)
         chosen, alternates = select_best_keepers(
             insight, keeper_count=keeper_count, league_format=league_format,
             preferred_keeper_names=preferred_names,
+            excluded_keeper_names=excluded_names,
         )
         per_team.append({'team': team_name, 'chosen': chosen, 'alternates': alternates})
         chosen_names.update(normalize(c['playerName']) for c in chosen)
