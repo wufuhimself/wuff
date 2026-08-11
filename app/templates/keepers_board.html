@@ -120,7 +120,7 @@ document.addEventListener('change', function (event) {
   }).then(function (resp) {
     var ct = resp.headers.get('content-type') || '';
     if (!resp.ok || ct.indexOf('application/json') === -1) {
-      // Auth redirect or server error masked as 200 HTML -- fall back to a full
+      // Server error or unexpected non-JSON response -- fall back to a full
       // reload so the user sees the real, server-authoritative state.
       window.location.reload();
       return null;

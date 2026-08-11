@@ -802,7 +802,6 @@ def keepers_board_view():
 
 
 @app.route('/keepers-board/mark', methods=['POST'])
-@login_required
 def keeper_mark():
     """Toggle one player's keeper checkbox for one team. `checked` is the
     desired end state (the box the user just clicked into); the server infers
