@@ -1,4 +1,4 @@
-{% from "_keeper_macros.html" import keeper_checkbox with context %}
+{% from "_keeper_macros.html" import keeper_toggle with context %}
 {% if keeper_forecasts %}
 {% for forecast in keeper_forecasts %}
 <div style="border: 1px solid #e6e8ee; border-radius: 8px; padding: 1rem; background: #fafbfc;">
@@ -10,7 +10,7 @@
     {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
     <div style="margin-bottom: 0.5rem; padding: 0.6rem; background: {{ pos_bg.get(keeper.position, '#f0f0f0') }}; border-radius: 6px;">
       <div style="font-weight: 600; margin-bottom: 0.2rem; color: {{ pos_color.get(keeper.position, '#333') }}; font-size: 0.95rem;">{{ keeper.playerName }} <span class="pill pos-{{ keeper.position.lower() }}">{{ keeper.position }}{{ keeper.posRank }}</span>
-        {{ keeper_checkbox(forecast.team, keeper.playerName, True, league_slug) }}
+        {{ keeper_toggle(forecast.team, keeper.playerName, True, league_slug) }}
       </div>
       <div style="font-size: 0.75rem; color: {{ pos_color.get(keeper.position, '#333') }}; margin-top: 0.25rem;">
         {% if keeper.adp %}ADP {{ "%.0f"|format(keeper.adp) }}{% else %}No ADP{% endif %}{% if keeper.reasoning %} · {{ keeper.reasoning }}{% endif %}
@@ -26,7 +26,7 @@
     {% set pos_color = {'QB': '#1e40af', 'RB': '#15803d', 'WR': '#6b21a8', 'TE': '#9a3412', 'K': '#92400e', 'DEF': '#991b1b'} %}
     <div style="margin-bottom: 0.5rem; padding: 0.6rem; background: {{ pos_bg.get(alt.position, '#f5f5f5') }}; border-radius: 6px; opacity: 0.85;">
       <div style="font-weight: 600; margin-bottom: 0.2rem; color: {{ pos_color.get(alt.position, '#666') }}; font-size: 0.9rem;">{{ alt.playerName }} <span class="pill pos-{{ alt.position.lower() }}" style="opacity: 0.8;">{{ alt.position }}{{ alt.posRank }}</span>
-        {{ keeper_checkbox(forecast.team, alt.playerName, False, league_slug) }}
+        {{ keeper_toggle(forecast.team, alt.playerName, False, league_slug) }}
       </div>
       <div style="font-size: 0.75rem; color: {{ pos_color.get(alt.position, '#666') }}; margin-top: 0.25rem;">
         {% if alt.adp %}ADP {{ "%.0f"|format(alt.adp) }}{% else %}No ADP{% endif %}

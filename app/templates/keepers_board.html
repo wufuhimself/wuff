@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_keeper_macros.html" import keeper_checkbox with context %}
+{% from "_keeper_macros.html" import keeper_toggle with context %}
 {% block title %}Keepers — wuff{% endblock %}
 {% block content %}
       {% if keeper_versions %}
@@ -103,16 +103,17 @@
 
       {% endif %}
 <script>
-document.addEventListener('change', function (event) {
-  var box = event.target;
-  if (!box.classList || !box.classList.contains('js-keeper-toggle')) return;
+document.addEventListener('click', function (event) {
+  var btn = event.target.closest && event.target.closest('.js-keeper-toggle');
+  if (!btn) return;
+  var nowKept = btn.dataset.kept !== '1';  // click flips the current state
   var body = new URLSearchParams({
-    team: box.dataset.team,
-    player: box.dataset.player,
-    checked: box.checked ? '1' : '0',
-    league_slug: box.dataset.leagueSlug || '',
+    team: btn.dataset.team,
+    player: btn.dataset.player,
+    checked: nowKept ? '1' : '0',
+    league_slug: btn.dataset.leagueSlug || '',
   });
-  box.disabled = true;
+  btn.disabled = true;
   fetch('/keepers-board/mark', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
@@ -137,9 +138,10 @@ document.addEventListener('change', function (event) {
     if (forecast && data.forecastHtml !== undefined) forecast.innerHTML = data.forecastHtml;
   }).catch(function () {
     window.location.reload();
-  }).finally(function () {
-    box.disabled = false;
   });
+  // Note: no re-enable of `btn` here -- it's being replaced wholesale by the
+  // innerHTML swap above (its team's card is inside one of the three
+  // containers just re-rendered), so there's nothing stale left to re-enable.
 });
 </script>
 {% endblock %}

@@ -1,10 +1,11 @@
-{% macro keeper_checkbox(team, player, checked, league_slug='') %}
-<label class="keeper-checkbox" style="display:inline-flex; align-items:center; margin-left:0.4rem; cursor:pointer;" title="{{ 'Uncheck to drop this keeper' if checked else 'Check to keep this player' }}">
-  <input type="checkbox"
-         class="js-keeper-toggle"
-         data-team="{{ team }}"
-         data-player="{{ player }}"
-         data-league-slug="{{ league_slug }}"
-         {% if checked %}checked{% endif %}>
-</label>
+{% macro keeper_toggle(team, player, kept, league_slug='') %}
+<button type="button"
+        class="js-keeper-toggle pill{{ ' pill-kept' if kept else ' pill-add' }}"
+        data-team="{{ team }}"
+        data-player="{{ player }}"
+        data-kept="{{ '1' if kept else '0' }}"
+        data-league-slug="{{ league_slug }}"
+        title="{{ 'Click to remove as keeper' if kept else 'Click to make this the keeper' }}">
+  {{ '★ kept' if kept else '+ keep' }}
+</button>
 {% endmacro %}

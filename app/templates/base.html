@@ -68,6 +68,12 @@
       .message { background: #e7f3ff; color: #0b3d91; border-left: 4px solid var(--blue); padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
       .error { background: #fdeceb; color: #8a1f11; border-left: 4px solid #d64541; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
       .pill { display: inline-block; background: #eef1f7; color: #444; border-radius: 999px; padding: 0.25rem 0.6rem; font-size: clamp(0.65rem, 1.5vw, 0.8rem); margin-right: 0.35rem; font-weight: 600; white-space: nowrap; }
+      button.pill { font-family: inherit; border: none; cursor: pointer; line-height: 1.4; transition: filter .1s, opacity .1s; min-height: 0; }
+      button.pill:disabled { cursor: default; opacity: 0.55; }
+      .pill-kept { background: var(--navy); color: white; }
+      .pill-kept:hover:not(:disabled) { filter: brightness(1.15); }
+      .pill-add { background: white; color: var(--muted); border: 1px dashed var(--border) !important; }
+      .pill-add:hover:not(:disabled) { background: #eef4ff; color: var(--blue); border-color: var(--blue) !important; }
       .team-list { list-style: none; padding: 0; margin: 0; }
       .team-list li { padding: 0.5rem 0; border-bottom: 1px solid #eee; font-size: clamp(0.9rem, 2vw, 1rem); }
       .team-list li:last-child { border-bottom: none; }

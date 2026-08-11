@@ -1,4 +1,4 @@
-{% from "_keeper_macros.html" import keeper_checkbox with context %}
+{% from "_keeper_macros.html" import keeper_toggle with context %}
 {% for entry in per_team %}
 <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: #fafbfc; min-width: 0;">
   <h3 style="margin: 0 0 0.5rem 0; font-size: clamp(0.95rem, 3vw, 1.05rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ entry.team }}">{{ entry.team }}</h3>
@@ -7,7 +7,7 @@
     <span class="pill pos-{{ (player.position or '').lower() }}">{{ player.position }}</span>
     <strong>{{ player.playerName }}</strong>
     {% if player.ranking %}<span class="status" style="display:inline;">#{{ player.ranking }}</span>{% endif %}
-    {{ keeper_checkbox(entry.team, player.playerName, True, league_slug) }}
+    {{ keeper_toggle(entry.team, player.playerName, True, league_slug) }}
   </div>
   {% endfor %}
   {% if entry.alternates %}
@@ -17,7 +17,7 @@
     <span class="pill pos-{{ (player.position or '').lower() }}">{{ player.position }}</span>
     {{ player.playerName }}
     {% if player.ranking %}<span class="status" style="display:inline;">#{{ player.ranking }}</span>{% endif %}
-    {{ keeper_checkbox(entry.team, player.playerName, False, league_slug) }}
+    {{ keeper_toggle(entry.team, player.playerName, False, league_slug) }}
   </div>
   {% endfor %}
   {% endif %}
