@@ -3,13 +3,25 @@
 {% block content %}
       <section class="card">
         <h2>Mock Draft 2026 <span class="pill" title="The General: recruits allies, simulates battles">⚔️ The General</span></h2>
+        {% if message %}<p class="status">{{ message }}</p>{% endif %}
         {% if error %}<p class="error">{{ error }}</p>{% endif %}
-        {% if not error %}
         <p class="status">Forecast based on keeper predictions, adjusted rankings, position needs, manager tendencies (2022-2025), and TE/DEF strategy.</p>
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <form method="POST" action="{{ url_for('refresh_rankings') }}?next=mock-draft" style="display:inline;">
+            <button class="button" type="submit">Refresh Rankings</button>
+          </form>
+          <form method="POST" action="{{ url_for('run_mock_draft_action') }}" style="display:inline;">
+            <button class="button" type="submit">{% if ran %}Re-run{% else %}Run{% endif %} Mock Draft</button>
+          </form>
+          {% if not error and picks %}
           <button class="button" onclick="toggleView('by-round')">View by Round</button>
           <button class="button" onclick="toggleView('by-team')">View by Team</button>
+          {% endif %}
         </div>
+        {% if not error and not picks and ran %}
+        <p class="status">No picks generated -- check keeper predictions and rankings files exist.</p>
+        {% elif not error and not picks %}
+        <p class="status">Click "Run Mock Draft" to simulate the 2026 draft against current rankings and keeper predictions.</p>
         {% endif %}
       </section>
 

@@ -34,8 +34,10 @@ POSITION_LIMITS = {
 
 
 def load_current_teams(filepath: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
-    """Load keeper predictions as canonical team source.
-    Returns {current_team_name: {manager, keeper1, keeper2}}"""
+    """Load keeper predictions as canonical team source (CLI/CSV fallback path).
+    Returns {current_team_name: {manager, keeper1, keeper2}}
+    Prefer live_current_teams_from_keeper_board() when a Flask request context
+    is available -- this CSV is a stale, pre-/keepers-board snapshot format."""
     if filepath is None:
         filepath = PROCESSED_DIR / 'keeper_predictions_2026.csv'
 
@@ -53,6 +55,32 @@ def load_current_teams(filepath: Optional[Path] = None) -> Dict[str, Dict[str, s
                     'keeper1': row.get('Keeper 1', '').strip(),
                     'keeper2': row.get('Keeper 2', '').strip(),
                 }
+    return teams
+
+
+def current_teams_from_keeper_board(per_team: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
+    """Build the same {team_name: {manager, keeper1, keeper2}} shape
+    load_current_teams() returns from the CSV, but from live keeper-board
+    state (app.web._keeper_board_state()['per_team']) instead -- so the mock
+    draft reflects whatever is actually checked on /keepers-board right now,
+    not a one-time CSV export. keeper1/keeper2 only (mock_draft.py's keeper
+    slots are fixed at 2/team); manager is left blank since nothing downstream
+    reads it. A team with 0 or 1 chosen keepers just gets fewer keeper slots
+    filled -- simulate_draft() already tolerates empty keeper names."""
+    teams = {}
+    for entry in per_team:
+        team_name = entry.get('team', '')
+        if not team_name:
+            continue
+        chosen = entry.get('chosen', [])
+        keeper_names = [c.get('playerName', '') for c in chosen[:2]]
+        while len(keeper_names) < 2:
+            keeper_names.append('')
+        teams[team_name] = {
+            'manager': '',
+            'keeper1': keeper_names[0],
+            'keeper2': keeper_names[1],
+        }
     return teams
 
 
@@ -468,9 +496,16 @@ def simulate_draft(
     return mock_picks
 
 
-def run_mock_draft() -> List[Dict[str, Any]]:
-    """End-to-end: load data, simulate draft, return picks."""
-    current_teams = load_current_teams()
+def run_mock_draft(current_teams: Optional[Dict[str, Dict[str, str]]] = None) -> List[Dict[str, Any]]:
+    """End-to-end: load data, simulate draft, return picks.
+
+    current_teams: {team_name: {manager, keeper1, keeper2}}. Defaults to the
+    stale keeper_predictions_2026.csv (load_current_teams()) for CLI/back-compat
+    use; the web route passes current_teams_from_keeper_board(...) built from
+    the live /keepers-board state instead, so the sim reflects actual clicked
+    keeper picks rather than a one-time CSV export."""
+    if current_teams is None:
+        current_teams = load_current_teams()
     keeper_predictions = {team: [v['keeper1'], v['keeper2']] for team, v in current_teams.items()}
     rankings_lookup, rankings_all = load_adjusted_rankings()
     # Use trade-aware draft order

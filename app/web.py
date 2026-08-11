@@ -155,13 +155,14 @@ def refresh_rankings():
     Sleeper has no public ADP endpoint of its own, see free_rankings.py's
     module docstring) and write them as the app's working rankings board.
     Also runs automatically once a day via sync_scheduler; this is the
-    on-demand trigger, now on /keepers-board instead of the removed
-    /settings page."""
+    on-demand trigger -- lives on /keepers-board and /mock-draft (?next=
+    picks which page the redirect lands back on)."""
+    next_view = 'mock_draft_view' if request.args.get('next') == 'mock-draft' else 'keepers_board_view'
     try:
         summary = refresh_free_rankings(scoring='ppr')
     except (RuntimeError, ValueError) as exc:
-        return redirect(url_for('keepers_board_view', message=f'Rankings refresh failed: {exc}'))
-    return redirect(url_for('keepers_board_view', message=(
+        return redirect(url_for(next_view, message=f'Rankings refresh failed: {exc}'))
+    return redirect(url_for(next_view, message=(
         f"Refreshed {summary['total']} rankings ({summary['ffc']} FFC ADP, "
         f"{summary['sleeperTail']} Sleeper depth)."
     )))
@@ -1162,9 +1163,25 @@ def draft_order_board_view(standings_year: int):
 
 @app.route('/mock-draft')
 def mock_draft_view():
-    from .mock_draft import run_mock_draft
+    """Empty state by default -- simulating 180 picks isn't free, so it's an
+    explicit action (POST /actions/run-mock-draft) rather than run-on-every-GET.
+    ?ran=1 (set by that action's redirect) renders the just-computed result."""
+    if request.args.get('ran') != '1':
+        return render_template(
+            'mock_draft.html', active='mock-draft', picks=[], picks_by_round={}, picks_by_team={},
+            error=None, ran=False, message=request.args.get('message', ''),
+        )
+
+    from .mock_draft import run_mock_draft, current_teams_from_keeper_board
     try:
-        picks = run_mock_draft()
+        # Live keeper picks from /keepers-board (keeper_marks DB overrides +
+        # auto-fill), not the stale keeper_predictions_2026.csv -- so the sim
+        # reflects whatever is actually checked right now.
+        board_state = _keeper_board_state()
+        if board_state.get('error'):
+            raise RuntimeError(board_state['error'])
+        current_teams = current_teams_from_keeper_board(board_state['per_team'])
+        picks = run_mock_draft(current_teams)
         picks_by_round = {}
         picks_by_team = {}
         for pick in picks:
@@ -1181,9 +1198,21 @@ def mock_draft_view():
         return render_template(
             'mock_draft.html', active='mock-draft', picks=picks,
             picks_by_round=picks_by_round, picks_by_team=picks_by_team, error=None,
+            ran=True, message=request.args.get('message', ''),
         )
     except Exception as e:
-        return render_template('mock_draft.html', active='mock-draft', picks=[], picks_by_round={}, picks_by_team={}, error=str(e))
+        return render_template(
+            'mock_draft.html', active='mock-draft', picks=[], picks_by_round={}, picks_by_team={},
+            error=str(e), ran=True, message=request.args.get('message', ''),
+        )
+
+
+@app.route('/actions/run-mock-draft', methods=['POST'])
+def run_mock_draft_action():
+    """On-demand trigger for the mock draft sim -- picks up whatever rankings
+    and keeper predictions are on disk right now (run /actions/refresh-rankings
+    first if you want fresh ADP baked in)."""
+    return redirect(url_for('mock_draft_view', ran='1'))
 
 
 if __name__ == '__main__':
