@@ -49,7 +49,7 @@
     "draftPicksNote": "Which team owns how many picks in each round for a given draft year (accounts for traded picks). Currently have 2026.",
     "standingsDir": "data/raw/standings/",
     "standingsFilePattern": "data/raw/standings/{year}.json",
-    "standingsNote": "Final regular-season standings by team. Draft order for the FOLLOWING season is the inverse of these standings (worst record picks 1st), snaking each round. Use app/standings.py draft_order_from_standings() + snake_draft_order() rather than hardcoding an order. Fetch via 'fetch-standings <year> --league-key KEY' or 'backfill-standings' (requires valid Yahoo OAuth token). Currently have 2024-2025.",
+    "standingsNote": "Final regular-season standings by team. Draft order for the FOLLOWING season is the inverse of these standings (worst record picks 1st), snaking each round. Use app/standings.py draft_order_from_standings() + snake_draft_order() rather than hardcoding an order. Fetch via 'fetch-standings <year> --league-key KEY' or 'backfill-standings' (requires valid Yahoo OAuth token). Currently have 2021-2025.",
     "nflStatsWeeklyDir": "data/raw/nfl_stats/weekly/",
     "nflStatsSeasonalDir": "data/raw/nfl_stats/seasonal/",
     "nflStatsRostersDir": "data/raw/nfl_stats/rosters/",

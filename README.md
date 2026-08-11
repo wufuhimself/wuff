@@ -38,7 +38,7 @@ hero he consults:
 | 🔮 **The Oracle** | Keeper forecasting — who to keep, scored and ranked | `/keepers-board`, `/league/<slug>/keepers` |
 | 🛡️ **The Paladin** | Standings & rosters — keeps the realm's order straight | `/standings`, `/`, `/sleeper/<id>`, `/espn/<id>` |
 | ⚔️ **The General** | Mock draft — recruits allies, simulates the battle ahead | `/mock-draft` |
-| 📜 **The Maester** | Draft history & draft order — keeper of records, past seasons on the shelf | `/draft-history`, `/draft-order`, `/draft-picks` |
+| 📜 **The Maester** | Draft history, draft order & draft-outcome analysis — keeper of records, past seasons on the shelf | `/draft-history`, `/draft-order`, `/draft-picks`, `/league/<slug>/draft-analysis` |
 | 📯 **The Herald** | Multi-league management — announces and onboards new realms | `/leagues`, `/my/leagues`, `/my/onboard`, `/sleeper` |
 | 🕰️ **The Augur** | Forecast accuracy tracking (no web page yet) | `app/outcome_log.py`, `resolve-outcomes` |
 
@@ -92,6 +92,11 @@ python3 -m app import-adp path/to/your_adp.csv
 # Analyze historical draft data
 python3 -m app draft-history 2025 --live-only
 python3 -m app draft-order 2025
+
+# Did draft slot predict finish? Which positions in round N did?
+# --league works on any registered league (omit for the default one)
+python3 -m app draft-slot-outcomes
+python3 -m app position-round-outcomes 1 --league frank-gore
 ```
 
 ### **😴 Sleeper leagues (readonly, no auth needed)**
@@ -116,6 +121,7 @@ Run `make web` or `make web-debug` for hot-reload during development.
 - `/` — Dashboard with roster, rankings, and keeper insight
 - `/keepers-board` — 🔮 The Oracle: interactive keeper card picker for the Yahoo league (click to toggle kept)
 - `/league/<slug>/keepers` — 🔮 The Oracle, for any registered league
+- `/league/<slug>/draft-analysis` — 📜 The Maester: draft slot vs final rank, and position-by-round outcomes, for any registered league
 - `/mock-draft` — ⚔️ The General: full 15-round mock draft simulator (BPA + manager tendencies)
 - `/draft-history` — 📜 The Maester: historical draft results by year
 - `/standings` — 🛡️ The Paladin: league standings and performance

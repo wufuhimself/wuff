@@ -167,11 +167,21 @@ so it can't gate the second platform.
   into `app/keeper_service.py` — both were named/placed for a single-league
   app and would have made the draft-board/mock-draft ports below repeat the
   same Yahoo-coupling cleanup keeper board already needed once.
-- **Draft board, mock draft, draft analysis:** port after keeper; they're
-  already mostly league-shaped. `mock_draft.py` and `draft_analysis.py`
-  haven't had the same RosterPlayer/service-module pass yet — check for the
-  same coupling pattern (a Yahoo-named type or a business-logic function
-  living in `web.py`) before assuming they're clean.
+- ✅ **Draft analysis per league** (2026-08-11): `draft_slot_vs_final_rank()`
+  and `position_in_round_vs_final_rank()` take an optional `repo` and read
+  that league's own draft history + standings through `app/repository.py`
+  (omit it and you get the default league, so old callers are unchanged).
+  CLI `draft-slot-outcomes` / `position-round-outcomes` gained `--league`,
+  which is the flag Phase 0 listed as remaining work — use it as the pattern
+  for the rest of the CLI analysis commands. Web: `/league/<slug>/draft-analysis`
+  + per-league subnav entry, with an empty state for leagues that don't yet
+  have a season with BOTH draft results and final standings (that's the real
+  gate on this analysis, not platform).
+- **Mock draft:** still to port. `app/mock_draft.py` reads
+  `RAW_STANDINGS_DIR`/`RAW_DRAFT_HISTORY_DIR` directly and has hardcoded
+  2025/2026 season constants plus `get_draft_order_2026*()` function names;
+  `run_mock_draft()` takes no league. Bigger job than draft analysis was —
+  budget for the manager-profile logic assuming Yahoo team names too.
 - **Rankings sourcing (licensing-safe):**
   - (a) each user uploads their own CSV/PDF — current flow, zero legal risk,
     most friction; and
