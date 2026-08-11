@@ -1,7 +1,5 @@
 # 🧙‍♂️ Gridiron Sage
 
-*(repo name is `wuff` — the app's display name and persona is the **Gridiron Sage**, the fantasy football wizard.)*
-
 *A grimoire for keeper decisions, draft boards, and roster strategy — cast across leagues, not bound to one platform.*
 
 ## 🔮 What this is
