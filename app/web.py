@@ -842,9 +842,37 @@ def draft_order_board_view(standings_year: int):
     )
 
 
+def _simulate_mock_draft(league=None) -> dict:
+    """Run the mock draft for a league and group the picks for rendering.
+
+    league=None is the default (Yahoo) league. Keepers come from live
+    keeper-board state (keeper_marks DB overrides + auto-fill), not the stale
+    keeper_predictions CSV, so the sim reflects whatever is checked right now.
+    Returns {'picks', 'picks_by_round', 'picks_by_team', 'error'}."""
+    from .mock_draft import current_teams_from_keeper_board, run_mock_draft
+
+    board_state = keeper_board_state(league, include_file_prefs=league is None)
+    if board_state.get('error'):
+        return {'picks': [], 'picks_by_round': {}, 'picks_by_team': {}, 'error': board_state['error']}
+
+    current_teams = current_teams_from_keeper_board(board_state['per_team'])
+    picks = run_mock_draft(
+        current_teams,
+        repo=board_state['repo'],
+        league_format=board_state['league_format'],
+    )
+
+    picks_by_round: dict = {}
+    picks_by_team: dict = {}
+    for pick in picks:
+        picks_by_round.setdefault(pick['round'], []).append(pick)
+        picks_by_team.setdefault(pick['team'], []).append(pick)
+    return {'picks': picks, 'picks_by_round': picks_by_round, 'picks_by_team': picks_by_team, 'error': None}
+
+
 @app.route('/mock-draft')
 def mock_draft_view():
-    """Empty state by default -- simulating 180 picks isn't free, so it's an
+    """Empty state by default -- simulating a full draft isn't free, so it's an
     explicit action (POST /actions/run-mock-draft) rather than run-on-every-GET.
     ?ran=1 (set by that action's redirect) renders the just-computed result."""
     if request.args.get('ran') != '1':
@@ -853,46 +881,50 @@ def mock_draft_view():
             error=None, ran=False, message=request.args.get('message', ''),
         )
 
-    from .mock_draft import run_mock_draft, current_teams_from_keeper_board
     try:
-        # Live keeper picks from /keepers-board (keeper_marks DB overrides +
-        # auto-fill), not the stale keeper_predictions_2026.csv -- so the sim
-        # reflects whatever is actually checked right now.
-        board_state = keeper_board_state()
-        if board_state.get('error'):
-            raise RuntimeError(board_state['error'])
-        current_teams = current_teams_from_keeper_board(board_state['per_team'])
-        picks = run_mock_draft(current_teams)
-        picks_by_round = {}
-        picks_by_team = {}
-        for pick in picks:
-            round_num = pick['round']
-            if round_num not in picks_by_round:
-                picks_by_round[round_num] = []
-            picks_by_round[round_num].append(pick)
+        result = _simulate_mock_draft()
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        result = {'picks': [], 'picks_by_round': {}, 'picks_by_team': {}, 'error': str(exc)}
 
-            team = pick['team']
-            if team not in picks_by_team:
-                picks_by_team[team] = []
-            picks_by_team[team].append(pick)
+    return render_template(
+        'mock_draft.html', active='mock-draft', ran=True,
+        message=request.args.get('message', ''), **result,
+    )
 
+
+@app.route('/league/<league_id>/mock-draft')
+def league_mock_draft(league_id: str):
+    """Mock draft for any registered league (Phase 3 port). Same explicit-run
+    pattern as /mock-draft: empty until ?ran=1."""
+    league = resolve_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+    if league.platform == 'yahoo':
+        return redirect(url_for('mock_draft_view', **request.args))
+
+    ctx = _league_page_ctx(league, 'mock-draft')
+    if request.args.get('ran') != '1':
         return render_template(
-            'mock_draft.html', active='mock-draft', picks=picks,
-            picks_by_round=picks_by_round, picks_by_team=picks_by_team, error=None,
-            ran=True, message=request.args.get('message', ''),
-        )
-    except Exception as e:
-        return render_template(
-            'mock_draft.html', active='mock-draft', picks=[], picks_by_round={}, picks_by_team={},
-            error=str(e), ran=True, message=request.args.get('message', ''),
-        )
+            'league_mock_draft.html', active='league-mock-draft', picks=[], picks_by_round={},
+            picks_by_team={}, error=None, ran=False, **ctx)
+
+    try:
+        result = _simulate_mock_draft(league)
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        result = {'picks': [], 'picks_by_round': {}, 'picks_by_team': {}, 'error': str(exc)}
+
+    return render_template('league_mock_draft.html', active='league-mock-draft', ran=True, **result, **ctx)
 
 
 @app.route('/actions/run-mock-draft', methods=['POST'])
 def run_mock_draft_action():
     """On-demand trigger for the mock draft sim -- picks up whatever rankings
     and keeper predictions are on disk right now (run /actions/refresh-rankings
-    first if you want fresh ADP baked in)."""
+    first if you want fresh ADP baked in). league_slug posts back to that
+    league's own page instead of the default one."""
+    league_slug = request.form.get('league_slug', '').strip()
+    if league_slug:
+        return redirect(url_for('league_mock_draft', league_id=league_slug, ran='1'))
     return redirect(url_for('mock_draft_view', ran='1'))
 
 

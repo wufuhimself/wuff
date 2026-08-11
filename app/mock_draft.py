@@ -1,36 +1,65 @@
-"""Mock draft simulator: forecasts 2026 draft based on keepers, rankings, position needs, team patterns."""
+"""Mock draft simulator: forecasts a draft from keepers, rankings, position needs, team patterns.
+
+Per-league since 2026-08-11 (Phase 3 port, docs/roadmap.md). Team count, round
+count, keeper-slot rounds, starter slots and position limits all come from the
+league's LeagueFormat (app/league_context.py) rather than the frank-gore
+constants they used to be hardcoded to; historical data comes through a
+repository (app/repository.py). Entry point: run_mock_draft(repo=..., league_format=...),
+both defaulting to the default league so old callers are unchanged.
+
+Position limits are derived from the league's own starter slots rather than
+being a fixed table -- a 3-WR superflex league and a 2-WR single-QB league
+should not draft to the same roster shape.
+"""
 import json
 import csv
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
 from collections import defaultdict
 
-from .paths import PROCESSED_DIR, RAW_STANDINGS_DIR, RAW_DRAFT_HISTORY_DIR, RAW_RANKINGS_DIR, RAW_DRAFT_PICKS_DIR
-
-
-LEAGUE_STARTERS = {
-    'QB': 1,
-    'RB': 2,
-    'WR': 3,
-    'TE': 1,
-    'SUPERFLEX': 1,
-    'DST': 1,  # Defense/ST
-}
+from .league_context import LeagueFormat, load_league_format
+from .paths import PROCESSED_DIR, RAW_RANKINGS_DIR
+from .repository import LeagueDataRepository, get_repository
 
 SUPERFLEX_ELIGIBLE = {'QB'}
 TOP_DEFENSES = {'SF', 'KC', 'BUF', 'DEN', 'BAL', 'TB'}  # Elite defenses worth drafting
 
-# Draft position limits: teams won't exceed these, but still draft BPA (best player available)
-# If a team hits a position limit, that position's players get heavy scoring penalty,
-# making the next-best available player (different position) more attractive.
-POSITION_LIMITS = {
-    'QB': 3,   # Cover starter + SUPERFLEX depth
-    'RB': 7,   # No hard limit (but penalized past 7)
-    'WR': 7,   # No hard limit (but penalized past 7)
-    'TE': 2,   # Cover starter + backup
-    'DST': 1,  # Defense starter only
-    'K': 0,    # Never draft kicker (league dropped K in 2024)
-}
+# Bench depth allowed beyond a position's starter slots before the scoring
+# function starts penalizing more of it. Tuned against the frank-gore board;
+# they're roster-construction preferences, not league rules, so they stay
+# shared across leagues while the starter counts they build on don't.
+_BENCH_DEPTH = {'QB': 1, 'RB': 5, 'WR': 4, 'TE': 1, 'DST': 0, 'K': 0}
+
+
+def position_limits_for(league_format: LeagueFormat) -> Dict[str, int]:
+    """How many of each position a team will roster before heavy penalty.
+
+    starter slots (+ SUPERFLEX for QB) + bench depth. Replaces the old fixed
+    POSITION_LIMITS table, which encoded frank-gore's 1QB/2RB/3WR/1TE/superflex
+    shape and would draft a wrong-shaped roster for any other league.
+    K is always 0 in leagues with no K slot -- never draft a kicker there."""
+    limits = {}
+    for pos, bench in _BENCH_DEPTH.items():
+        starters = league_format.slot_count('DEF' if pos == 'DST' else pos)
+        if pos == 'QB':
+            starters += league_format.slot_count('SUPERFLEX')
+        limits[pos] = (starters + bench) if starters else 0
+    return limits
+
+
+def starter_slots_for(league_format: LeagueFormat) -> Dict[str, int]:
+    """The starter slots the need-scoring cares about, in mock_draft's own
+    position vocabulary (DST rather than DEF, SUPERFLEX kept separate)."""
+    slots = {
+        'QB': league_format.slot_count('QB'),
+        'RB': league_format.slot_count('RB'),
+        'WR': league_format.slot_count('WR'),
+        'TE': league_format.slot_count('TE'),
+        'SUPERFLEX': league_format.slot_count('SUPERFLEX'),
+        'DST': league_format.slot_count('DEF'),
+    }
+    return {pos: count for pos, count in slots.items() if count}
 
 
 def load_current_teams(filepath: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
@@ -108,162 +137,100 @@ def load_adjusted_rankings(filepath: Optional[Path] = None) -> Tuple[Dict[str, D
     return lookup, rankings
 
 
-def get_draft_order_2026(standings_year: int = 2025, current_teams: Optional[Dict] = None) -> List[str]:
-    """Derive 2026 draft order from standings (inverse, snake).
-    Uses current_teams to normalize standing team names to keeper prediction names."""
-    standings_path = RAW_STANDINGS_DIR / f'{standings_year}.json'
-    if not standings_path.exists():
-        raise FileNotFoundError(f'Standings not found: {standings_path}')
+def _normalized_team_order(standings: List[Dict[str, Any]], current_team_names: set) -> List[str]:
+    """Worst-record-first team order from a standings list, with team names
+    normalized to their current display names.
 
-    if current_teams is None:
-        current_teams = load_current_teams()
-
-    with open(standings_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    standings = data.get('standings', [])
+    Team display names change year to year while the manager slots don't (see
+    teamNames2025Note in league_rules.json), so a standings entry can carry a
+    "now displayed as 'X'" note pointing at the current name."""
     standings = sorted(standings, key=lambda x: x.get('rank', 0))
 
-    # Map standings team names to keeper_predictions team names
-    # Standings may use old names (e.g., "more like lamer jackson" for "Wuf")
-    current_team_names = set(current_teams.keys())
+    def normalize(entry: Dict[str, Any]) -> str:
+        team = entry.get('team', '')
+        if team in current_team_names:
+            return team
+        match = re.search(r"displayed as '([^']+)'", entry.get('note', '') or '')
+        if match and match.group(1) in current_team_names:
+            return match.group(1)
+        return team
 
-    def normalize_team(standings_team: str) -> str:
-        """Map standings team name to current name. Check standing notes for renames."""
-        if standings_team in current_team_names:
-            return standings_team
-        # Check if standings entry has a note about team rename
-        for entry in standings:
-            if entry.get('team') == standings_team:
-                note = entry.get('note', '')
-                if 'now displayed as' in note:
-                    # Extract new name from note (e.g., "This is the team now displayed as 'Wuf'.")
-                    import re
-                    match = re.search(r"displayed as '([^']+)'", note)
-                    if match:
-                        new_name = match.group(1)
-                        if new_name in current_team_names:
-                            return new_name
-        return standings_team
+    return [normalize(entry) for entry in reversed(standings)]
 
-    # Reverse to get worst-first order, normalize team names
-    teams = [normalize_team(s.get('team', '')) for s in reversed(standings)]
 
-    # Apply snake order (15 rounds)
+def build_draft_order(
+    repo: LeagueDataRepository,
+    league_format: LeagueFormat,
+    current_teams: Optional[Dict] = None,
+    standings_year: Optional[int] = None,
+) -> List[str]:
+    """Snake draft order (one entry per pick) for this league's next draft.
+
+    Worst record picks first, snaking each round, for league_format's own team
+    and round counts. Honors traded-pick ownership when the league has a
+    draft_picks file for the upcoming season; falls back to a plain snake when
+    it doesn't (which is every non-Yahoo platform -- see repository.py).
+
+    standings_year defaults to the league's most recent saved standings; the
+    draft being ordered is the following season's."""
+    if standings_year is None:
+        available = repo.standings_years()
+        if not available:
+            raise FileNotFoundError(
+                f"No saved standings for league '{repo.league.league_id}' -- can't derive a draft order.")
+        standings_year = available[0]
+
+    standings = repo.standings(standings_year)
+    if not standings:
+        raise FileNotFoundError(f"No standings for {standings_year} in league '{repo.league.league_id}'.")
+
+    current_team_names = set(current_teams.keys()) if current_teams else set()
+    team_order = _normalized_team_order(standings, current_team_names)
+
+    # Traded-pick ownership for the draft that follows those standings.
+    # repo.draft_picks() is already normalized to {teamName: {round: count}}
+    # (see draft_picks.load_draft_picks); platforms that don't track traded
+    # picks return {} and every team just picks once per round.
+    team_picks = repo.draft_picks(standings_year + 1) or {}
+
     draft_order = []
-    for round_num in range(1, 16):
-        if round_num % 2 == 1:
-            draft_order.extend(teams)
-        else:
-            draft_order.extend(reversed(teams))
-
-    return draft_order
-
-
-def get_draft_order_2026_with_trades(standings_year: int = 2025, current_teams: Optional[Dict] = None) -> List[str]:
-    """Build draft order accounting for traded picks.
-    Reads picksByRound from draft_picks.json to determine how many picks each team has each round,
-    then respects snake order from standings."""
-
-    # Load draft picks to see who owns what
-    picks_path = RAW_DRAFT_PICKS_DIR / '2026.json'
-    if not picks_path.exists():
-        # Fallback to standings-based order if no trades file
-        return get_draft_order_2026(standings_year=standings_year, current_teams=current_teams)
-
-    with open(picks_path, encoding='utf-8') as f:
-        picks_data = json.load(f)
-
-    # Get standings order (draft order is reverse standings: worst to best)
-    standings_file = RAW_STANDINGS_DIR / f'{standings_year}.json'
-    if not standings_file.exists():
-        raise FileNotFoundError(f'Standings not found: {standings_file}')
-
-    with open(standings_file, encoding='utf-8') as f:
-        standings_data = json.load(f)
-
-    standings = sorted(standings_data.get('standings', []), key=lambda x: x.get('rank', 0))
-
-    # Build standings team name -> normalized name mapping
-    standings_to_normalized = {}
-    for entry in standings:
-        standings_team = entry.get('team', '')
-        standings_to_normalized[standings_team] = standings_team
-        # Check for rename note
-        note = entry.get('note', '')
-        if 'now displayed as' in note:
-            import re
-            match = re.search(r"displayed as '([^']+)'", note)
-            if match:
-                new_name = match.group(1)
-                standings_to_normalized[standings_team] = new_name
-
-    # Reverse for draft order (worst team picks first)
-    team_order = [standings_to_normalized.get(s.get('team', ''), s.get('team', '')) for s in reversed(standings)]
-
-    # Build lookup: team_name -> picksByRound
-    team_picks = {}
-    for team_entry in picks_data.get('teams', []):
-        team_name = team_entry.get('teamName', '')
-        picks_by_round = {int(k): v for k, v in team_entry.get('picksByRound', {}).items()}
-        team_picks[team_name] = picks_by_round
-
-    # Build actual draft order accounting for traded picks
-    draft_order = []
-
-    # For each round, add teams in snake order, respecting their pick count
-    for round_num in range(1, 16):
-        # Determine team order for this round (snake pattern)
-        if round_num % 2 == 1:
-            # Odd rounds: forward order
-            round_team_order = team_order
-        else:
-            # Even rounds: reverse order
-            round_team_order = list(reversed(team_order))
-
-        # Add teams according to their pick count this round
+    for round_num in range(1, league_format.total_draft_rounds + 1):
+        round_team_order = team_order if round_num % 2 == 1 else list(reversed(team_order))
         for team in round_team_order:
-            num_picks = team_picks.get(team, {}).get(round_num, 0)
+            # No traded-pick data: everyone picks exactly once per round.
+            num_picks = team_picks.get(team, {}).get(round_num, 1) if team_picks else 1
             for _ in range(num_picks):
                 draft_order.append(team)
 
     return draft_order
 
 
-def build_manager_profiles(rankings_lookup: Dict[str, Dict]) -> Dict[str, Dict[str, Dict[int, float]]]:
-    """Build manager personality profiles from historical draft data (2022-2025).
-    Returns {team_name: {position: {round: frequency}}}
-    Note: profiles keyed by historical team names; caller should match current teams if needed."""
+def build_manager_profiles(
+    rankings_lookup: Dict[str, Dict], repo: Optional[LeagueDataRepository] = None,
+) -> Dict[str, Dict[str, Dict[int, float]]]:
+    """Build manager personality profiles from this league's own draft history.
 
+    Returns {team_name: {position: {round: frequency}}} -- how often each team
+    has taken each position in each round. Uses every season the league has
+    draft data for (was hardcoded to 2022-2025).
+
+    Profiles are keyed by whatever team name that season's draft used; names
+    drift year to year, so a team that got renamed simply has a thinner
+    profile rather than a wrong one."""
     profiles = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
-    draft_history_dir = RAW_DRAFT_HISTORY_DIR
+    repo = repo if repo is not None else get_repository()
 
-    if not draft_history_dir.exists():
-        return profiles
-
-    for year in range(2022, 2026):
-        history_file = draft_history_dir / f'{year}.json'
-        if not history_file.exists():
-            continue
-
-        with open(history_file, encoding='utf-8') as f:
-            data = json.load(f)
-
-        picks = data.get('picks', [])
+    for picks in repo.draft_years().values():
         for pick in picks:
             team = pick.get('team', '')
-            round_num = pick.get('round', 0)
-            player = pick.get('playerName', '').lower().strip()
-
             if not team:
                 continue
-
-            # Look up position from rankings
-            player_data = rankings_lookup.get(player)
-            if player_data:
-                pos = player_data.get('position', 'UNK')
-                if pos != 'UNK':
-                    profiles[team][pos][round_num] += 1
+            player_data = rankings_lookup.get(str(pick.get('playerName', '')).lower().strip())
+            if not player_data:
+                continue
+            pos = player_data.get('position', 'UNK')
+            if pos != 'UNK':
+                profiles[team][pos][pick.get('round', 0)] += 1
 
     # Normalize to frequencies
     for team in profiles:
@@ -277,8 +244,15 @@ def build_manager_profiles(rankings_lookup: Dict[str, Dict]) -> Dict[str, Dict[s
 
 
 def build_position_need_scores(keeper_names: List[str], rankings_lookup: Dict,
-                                 taken_this_round: List[str]) -> Dict[str, float]:
-    """Score position needs: higher score = more need. Used as tiebreak."""
+                                 taken_this_round: List[str],
+                                 starter_slots: Optional[Dict[str, int]] = None) -> Dict[str, float]:
+    """Score position needs: higher score = more need. Used as tiebreak.
+
+    starter_slots defaults to the default league's starter shape; pass
+    starter_slots_for(league_format) for any other league."""
+    if starter_slots is None:
+        starter_slots = starter_slots_for(load_league_format())
+
     keeper_positions = defaultdict(int)
 
     for keeper_name in keeper_names:
@@ -289,7 +263,7 @@ def build_position_need_scores(keeper_names: List[str], rankings_lookup: Dict,
 
     # Count current coverage
     position_needs = {}
-    for pos, slot_count in LEAGUE_STARTERS.items():
+    for pos, slot_count in starter_slots.items():
         kept = keeper_positions.get(pos, 0)
         taken = sum(1 for p in taken_this_round if rankings_lookup.get(p.lower(), {}).get('position') == pos)
         need = max(0, slot_count - kept - taken)
@@ -324,8 +298,15 @@ def score_pick(
     manager_profiles: Dict[str, Dict[str, Dict[int, float]]],
     te_taken_by_team: bool,
     position_counts: Dict[str, int],
+    position_limits: Dict[str, int],
+    late_round_start: int,
 ) -> float:
-    """Score a player for this team/round. Higher = better pick."""
+    """Score a player for this team/round. Higher = better pick.
+
+    position_limits: from position_limits_for(league_format) -- how deep this
+    league's roster shape wants to go at each position.
+    late_round_start: first round considered 'late' for the defense boost,
+    scaled to the league's draft length rather than a fixed round 12."""
 
     pos = player.get('position', 'UNK')
     rank = player.get('adjustedRank', player.get('ranking', 999))
@@ -346,9 +327,9 @@ def score_pick(
     if round_num <= 6 and not te_taken_by_team and pos == 'TE':
         te_boost = 15.0
 
-    # Tiebreak 4: Elite defenses in late rounds (round 12+)
+    # Tiebreak 4: Elite defenses in the late rounds
     def_boost = 0
-    if round_num >= 12 and pos == 'DST':
+    if round_num >= late_round_start and pos == 'DST':
         nfl_team = player.get('team', '')
         if nfl_team in TOP_DEFENSES:
             def_boost = 8.0
@@ -357,11 +338,12 @@ def score_pick(
     # This makes maxed-out positions unattractive, so BPA shifts to available positions.
     # E.g., if team at 3 QBs, a rank-10 QB gets -80 penalty → rank-20 RB looks better.
     position_penalty = 0
-    pos_limit = POSITION_LIMITS.get(pos, 999)
+    pos_limit = position_limits.get(pos, 999)
     pos_count = position_counts.get(pos, 0)
 
-    if pos == 'K':
-        # Never draft kicker (league has no K slot)
+    if pos_limit == 0:
+        # League has no slot for this position at all (e.g. K in a league that
+        # dropped kickers) -- never draft it.
         position_penalty = -1000
     elif pos_count >= pos_limit:
         # Team at or over limit: heavy penalty (discourages this position)
@@ -383,8 +365,22 @@ def simulate_draft(
     rankings_all: List[Dict],
     draft_order: List[str],
     manager_profiles: Dict[str, Dict[str, Dict[int, float]]],
+    league_format: Optional[LeagueFormat] = None,
 ) -> List[Dict[str, Any]]:
-    """Simulate 15-round draft. Returns list of picks."""
+    """Simulate this league's draft. Returns list of picks.
+
+    Round/team counts and which rounds are keeper slots come from
+    league_format (defaults to the default league's). The simulation runs for
+    as many picks as draft_order actually contains, so a league with traded
+    picks -- where a round isn't exactly one pick per team -- still lines up."""
+    league_format = league_format if league_format is not None else load_league_format()
+    teams = league_format.teams
+    keeper_rounds = league_format.keeper_slot_round_set
+    position_limits = position_limits_for(league_format)
+    starter_slots = starter_slots_for(league_format)
+    # "Late" defense-boost rounds: the final fifth of the draft, i.e. round 12
+    # of 15 -- the value this was hardcoded to before the per-league port.
+    late_round_start = max(1, (league_format.total_draft_rounds * 4) // 5)
 
     # Track which players have been taken
     taken_players = set()
@@ -407,14 +403,14 @@ def simulate_draft(
 
     mock_picks = []
 
-    # 180 picks total (15 rounds x 12 teams, though with trades some teams have multiple per round)
-    for pick_num in range(1, 181):
-        round_num = (pick_num - 1) // 12 + 1
-        # With trades, draft_order is a sequential list, not a repeating 12-team pattern
-        team = draft_order[pick_num - 1]
+    # One iteration per entry in draft_order: teams x rounds normally, but with
+    # traded picks a round isn't evenly one-per-team, so the order list is the
+    # authority on how many picks there are, not teams * rounds.
+    for pick_num, team in enumerate(draft_order, start=1):
+        round_num = (pick_num - 1) // teams + 1
 
         # Check if this is a keeper round for this team
-        is_keeper_round = round_num in [14, 15]
+        is_keeper_round = round_num in keeper_rounds
         if is_keeper_round and team in keepers_to_add and keepers_to_add[team]:
             # Auto-pick keeper
             keeper = keepers_to_add[team].pop(0)
@@ -426,7 +422,7 @@ def simulate_draft(
             mock_picks.append({
                 'round': round_num,
                 'pick': pick_num,
-                'pickInRound': (pick_num - 1) % 12 + 1,
+                'pickInRound': (pick_num - 1) % teams + 1,
                 'team': team,
                 'playerName': keeper.get('playerName', ''),
                 'position': keeper_pos,
@@ -444,11 +440,16 @@ def simulate_draft(
             continue
 
         # Regular draft pick: calculate needs + preferences
-        position_needs = build_position_need_scores(keeper_predictions.get(team, []), rankings_lookup, taken_by_team[team])
+        position_needs = build_position_need_scores(
+            keeper_predictions.get(team, []), rankings_lookup, taken_by_team[team], starter_slots)
 
-        # Find best available player
+        # Find best available player. Floor is -inf, not -1: a team that has
+        # maxed out every position it wants still has to use the pick, and
+        # every candidate can legitimately score negative once position
+        # penalties apply (-1000 for a position the league has no slot for).
+        # A -1 floor silently produced no pick at all for those slots.
         best_player = None
-        best_score = -1
+        best_score = float('-inf')
 
         for player in rankings_all:
             player_key = player.get('playerName', '').lower().strip()
@@ -462,6 +463,8 @@ def simulate_draft(
                 manager_profiles=manager_profiles,
                 te_taken_by_team=te_taken_by_team[team],
                 position_counts=position_counts[team],
+                position_limits=position_limits,
+                late_round_start=late_round_start,
             )
 
             if score > best_score:
@@ -484,7 +487,7 @@ def simulate_draft(
             mock_picks.append({
                 'round': round_num,
                 'pick': pick_num,
-                'pickInRound': (pick_num - 1) % 12 + 1,
+                'pickInRound': (pick_num - 1) % teams + 1,
                 'team': team,
                 'playerName': best_player.get('playerName', ''),
                 'position': pos,
@@ -496,33 +499,46 @@ def simulate_draft(
     return mock_picks
 
 
-def run_mock_draft(current_teams: Optional[Dict[str, Dict[str, str]]] = None) -> List[Dict[str, Any]]:
+def run_mock_draft(
+    current_teams: Optional[Dict[str, Dict[str, str]]] = None,
+    repo: Optional[LeagueDataRepository] = None,
+    league_format: Optional[LeagueFormat] = None,
+) -> List[Dict[str, Any]]:
     """End-to-end: load data, simulate draft, return picks.
 
     current_teams: {team_name: {manager, keeper1, keeper2}}. Defaults to the
     stale keeper_predictions_2026.csv (load_current_teams()) for CLI/back-compat
     use; the web route passes current_teams_from_keeper_board(...) built from
-    the live /keepers-board state instead, so the sim reflects actual clicked
-    keeper picks rather than a one-time CSV export."""
+    the live keeper-board state instead, so the sim reflects actual clicked
+    keeper picks rather than a one-time CSV export.
+
+    repo/league_format default to the default league, so existing callers get
+    the original behavior; pass both to simulate any other registered league."""
+    repo = repo if repo is not None else get_repository()
+    league_format = league_format if league_format is not None else load_league_format()
+
     if current_teams is None:
         current_teams = load_current_teams()
     keeper_predictions = {team: [v['keeper1'], v['keeper2']] for team, v in current_teams.items()}
     rankings_lookup, rankings_all = load_adjusted_rankings()
-    # Use trade-aware draft order
-    draft_order = get_draft_order_2026_with_trades(current_teams=current_teams)
-    manager_profiles = build_manager_profiles(rankings_lookup)
+    draft_order = build_draft_order(repo, league_format, current_teams=current_teams)
+    manager_profiles = build_manager_profiles(rankings_lookup, repo=repo)
 
-    mock_picks = simulate_draft(keeper_predictions, rankings_lookup, rankings_all, draft_order, manager_profiles)
-    return mock_picks
+    return simulate_draft(
+        keeper_predictions, rankings_lookup, rankings_all, draft_order, manager_profiles,
+        league_format=league_format,
+    )
 
 
-def export_mock_draft(picks: List[Dict[str, Any]], output_dir: Optional[Path] = None) -> Path:
+def export_mock_draft(
+    picks: List[Dict[str, Any]], output_dir: Optional[Path] = None, filename: str = 'mock_draft.csv',
+) -> Path:
     """Export mock draft to CSV."""
     if output_dir is None:
         output_dir = PROCESSED_DIR
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = output_dir / 'mock_draft_2026.csv'
+    csv_path = output_dir / filename
 
     with open(csv_path, 'w', newline='', encoding='utf-8') as f:
         fieldnames = ['round', 'pickInRound', 'team', 'playerName', 'position', 'rank', 'nflTeam', 'isKeeper']

@@ -24,6 +24,10 @@ class LeagueFormat:
     keeper_slots: int = 2
     keeper_ineligible_rounds: List[int] = field(default_factory=lambda: [1, 2])
     keeper_slot_rounds: List[int] = field(default_factory=lambda: [14, 15])
+    # Total rounds in this league's draft, keeper slots included. None = infer
+    # from keeper_slot_rounds (their max) when keepers occupy the last rounds,
+    # else fall back to 15. Used by the mock draft simulator.
+    draft_rounds: Optional[int] = None
     roster_positions: List[str] = field(default_factory=list)
     scoring: Dict[str, float] = field(
         default_factory=lambda: {
@@ -61,6 +65,24 @@ class LeagueFormat:
     @property
     def keeper_slot_round_set(self) -> set:
         return set(self.keeper_slot_rounds)
+
+    @property
+    def total_draft_rounds(self) -> int:
+        """Rounds in this league's draft, keeper slots included.
+
+        Explicit draft_rounds wins. Otherwise infer from keeper_slot_rounds
+        (frank-gore's [14, 15] means a 15-round draft) since those are, by
+        definition, the last rounds when keeper_slots_at_draft_end is set.
+        Falls back to 15 for a league with neither."""
+        if self.draft_rounds:
+            return int(self.draft_rounds)
+        if self.keeper_slots_at_draft_end and self.keeper_slot_rounds:
+            return max(self.keeper_slot_rounds)
+        return 15
+
+    @property
+    def total_draft_picks(self) -> int:
+        return self.teams * self.total_draft_rounds
 
     def summary(self) -> str:
         parts = [f'{self.teams}-team']
@@ -101,6 +123,7 @@ def league_format_from_payload(payload: object) -> LeagueFormat:
         keeper_slots=int(payload.get('keeper_slots', defaults.keeper_slots)),
         keeper_ineligible_rounds=[int(r) for r in payload.get('keeper_ineligible_rounds', defaults.keeper_ineligible_rounds)],
         keeper_slot_rounds=[int(r) for r in payload.get('keeper_slot_rounds', defaults.keeper_slot_rounds)],
+        draft_rounds=int(payload['draft_rounds']) if payload.get('draft_rounds') else None,
         roster_positions=list(payload.get('roster_positions', [])),
         scoring={key: float(value) for key, value in payload.get('scoring', defaults.scoring).items()},
         starters={key.upper(): int(value) for key, value in starters.items()},

@@ -1,17 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Mock draft — Gridiron Sage{% endblock %}
+{% block title %}{{ league_display_name }} mock draft — Gridiron Sage{% endblock %}
 {% block content %}
       <section class="card">
         <h2>Mock draft <span class="pill" title="The General: recruits allies, simulates battles">⚔️ The General</span></h2>
-        {% if message %}<p class="status">{{ message }}</p>{% endif %}
         {% if error %}<p class="error">{{ error }}</p>{% endif %}
-        <p class="status">Forecast from live keeper selections, current rankings, position needs,
-          this league's own manager tendencies, and TE/DEF strategy.</p>
+        <p class="status">Forecast from this league's keeper selections, current rankings,
+          position needs, and its own managers' historical draft tendencies. Uses this league's
+          real team count, round count and starter slots — not another league's shape.</p>
         <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <form method="POST" action="{{ url_for('refresh_rankings') }}?next=mock-draft" style="display:inline;">
-            <button class="button" type="submit">Refresh rankings</button>
-          </form>
           <form method="POST" action="{{ url_for('run_mock_draft_action') }}" style="display:inline;">
+            <input type="hidden" name="league_slug" value="{{ league_slug }}">
             <button class="button" type="submit">{% if ran %}Re-run{% else %}Run{% endif %} mock draft</button>
           </form>
           {% if not error and picks %}
@@ -20,10 +18,11 @@
           {% endif %}
         </div>
         {% if not error and not picks and ran %}
-        <p class="status">No picks generated — check that keeper selections and rankings exist.</p>
+        <p class="status">No picks generated. This league needs synced rosters, saved standings
+          (to derive a draft order) and keeper rules set in
+          <a href="/league/{{ league_slug }}/settings">league settings</a>.</p>
         {% elif not error and not picks %}
-        <p class="status">Click "Run mock draft" to simulate the draft against current rankings
-          and whatever keepers are selected on the keeper board right now.</p>
+        <p class="status">Click "Run mock draft" to simulate this league's next draft.</p>
         {% endif %}
       </section>
 

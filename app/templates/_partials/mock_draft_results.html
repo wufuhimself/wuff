@@ -1,0 +1,61 @@
+{# Mock draft results, shared by /mock-draft and /league/<slug>/mock-draft.
+   Rounds and pick numbers come from the picks themselves, not hardcoded
+   league shape -- a 10- or 16-team league renders correctly here too. #}
+<div id="by-round-view">
+  {% for round_num in picks_by_round.keys()|sort %}
+  {% set round_picks = picks_by_round.get(round_num, []) %}
+  <section class="card">
+    <h3>Round {{ round_num }}
+      (Picks {{ round_picks[0].pick }}-{{ round_picks[-1].pick }})
+      {%- if round_picks | selectattr('isKeeper') | first %} — Keeper Slots{% endif %}</h3>
+    <table class="table compact">
+      <thead><tr><th>Pick</th><th>Team</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for pick in round_picks %}
+        <tr{% if pick.isKeeper %} class="my-pick"{% endif %}>
+          <td class="number">{{ pick.pick }}</td>
+          <td class="wrap">{{ pick.team }}</td>
+          <td class="playerName">{{ pick.playerName }}</td>
+          <td><span class="pill pos-{{ pick.position|lower }}">{{ pick.position }}</span></td>
+          <td class="number">{{ pick.rank }}</td>
+          <td>{{ pick.nflTeam }}</td>
+          <td><span class="pill">{% if pick.isKeeper %}Keeper{% else %}Draft{% endif %}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endfor %}
+</div>
+
+<div id="by-team-view" style="display: none;">
+  {% for team in picks_by_team.keys()|sort %}
+  {% set team_picks = picks_by_team.get(team, []) %}
+  <section class="card">
+    <h3>{{ team }}</h3>
+    <table class="table compact">
+      <thead><tr><th>Round</th><th>Overall Pick</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for pick in team_picks %}
+        <tr{% if pick.isKeeper %} class="my-pick"{% endif %}>
+          <td class="number">{{ pick.round }}</td>
+          <td class="number">{{ pick.pick }}</td>
+          <td class="playerName">{{ pick.playerName }}</td>
+          <td><span class="pill pos-{{ pick.position|lower }}">{{ pick.position }}</span></td>
+          <td class="number">{{ pick.rank }}</td>
+          <td>{{ pick.nflTeam }}</td>
+          <td><span class="pill">{% if pick.isKeeper %}Keeper{% else %}Draft{% endif %}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endfor %}
+</div>
+
+<script>
+function toggleView(view) {
+  document.getElementById('by-round-view').style.display = view === 'by-round' ? 'block' : 'none';
+  document.getElementById('by-team-view').style.display = view === 'by-team' ? 'block' : 'none';
+}
+</script>
