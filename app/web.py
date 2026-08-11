@@ -7,7 +7,7 @@ from flask import Flask, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from . import espn_manager, sleeper_client
-from .auth import get_or_create_user, init_auth
+from .auth import get_or_create_user, init_auth, login_manager
 from .crypto import encrypt_value
 from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
@@ -891,13 +891,15 @@ def league_keepers(league_id: str):
 
 
 @app.route('/league/<league_id>/settings', methods=['GET', 'POST'])
-@login_required
 def league_settings(league_id: str):
     league = resolve_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
 
     if request.method == 'POST':
+        if not current_user.is_authenticated:
+            return login_manager.unauthorized()
+
         def parse_rounds(raw: str) -> list:
             return [int(part) for part in raw.replace(',', ' ').split() if part.strip().isdigit()]
         save_league_rules(league, {

@@ -12,6 +12,10 @@
           {% if snapshot.rosterPositions %} · lineup {{ snapshot.rosterPositions | join(', ') }}{% endif %}
         </p>
         {% endif %}
+        {% if not current_user.is_authenticated %}
+        <p class="status">Log in to edit these rules — <a href="{{ url_for('login') }}">log in</a>.</p>
+        {% endif %}
+        <fieldset {% if not current_user.is_authenticated %}disabled{% endif %} style="border: none; padding: 0; margin: 0;">
         <form method="post" style="display: grid; gap: 0.75rem; max-width: 34rem; margin-top: 0.75rem;">
           <label>Teams
             <input type="number" name="teams" value="{{ fmt.teams }}" min="2" max="32" style="width: 6rem;">
@@ -30,5 +34,6 @@
           </label>
           <div><button type="submit" class="button">Save rules</button></div>
         </form>
+        </fieldset>
       </section>
 {% endblock %}
