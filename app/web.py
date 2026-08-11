@@ -115,90 +115,64 @@ def load_dashboard_state():
     }
 
 
+def _structure_yahoo_roster(raw_players: list) -> tuple:
+    """Split a Yahoo roster snapshot into (starterSlots, bench) the same way
+    _structure_rosters() does for Sleeper/ESPN: starters in lineup order if the
+    snapshot has live selectedPosition data (post-draft), otherwise every
+    player sorted by position into a single 'bench' list (pre-draft -- there's
+    no lineup yet, just a roster)."""
+    # Some saved roster snapshots have a "player Notes" suffix left over from
+    # parsing pasted Yahoo text (see strategy.py's league_keeper_board, which
+    # strips the same artifact) -- trim it here too so display names match.
+    players = [{**p, 'playerName': str(p.get('playerName', '')).replace('player Notes', '').strip()}
+               for p in raw_players]
+    position_sort = {'QB': 0, 'RB': 1, 'WR': 2, 'TE': 3, 'K': 4, 'DEF': 5}
+    starters = [p for p in players if p.get('selectedPosition') and p.get('selectedPosition') != 'BN']
+    if not starters:
+        bench = sorted(players, key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9),
+                                                p.get('playerName') or ''))
+        return [], bench
+    starter_ids = {p.get('playerId') for p in starters}
+    bench = [p for p in players if p.get('playerId') not in starter_ids]
+    bench.sort(key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9), p.get('playerName') or ''))
+    starter_slots = [(p.get('selectedPosition') or p.get('position') or '', p) for p in starters]
+    return starter_slots, bench
+
+
 @app.route('/')
 def index():
-    state = load_dashboard_state()
     repo = get_repository()
+    league = get_league()
 
-    # Load draft board data for post-keeper tables
+    available_years = repo.standings_years()
+    if not available_years:
+        return render_template('dashboard.html', active='dashboard', league=league,
+                                message=request.args.get('message', ''), standings_year=None,
+                                standings_rows=[], round1_order=[], error=None)
+
+    standings_year = available_years[0]
+    standings = repo.standings(standings_year)
     league_rosters = repo.rosters()
+    rosters_by_team = {
+        str(r.get('teamName', '')).rsplit(' - ', maxsplit=1)[-1]: r.get('players') or []
+        for r in league_rosters
+    }
 
-    rankings = repo.rankings()
-    if rankings:
-        league_format = load_league_format()
-        include_marks, exclude_marks = load_keeper_marks()
-        per_team, remaining_board = league_keeper_board(
-            league_rosters, rankings, league_format, keeper_count=league_format.keeper_slots,
-            keeper_prefs_override=include_marks, keeper_excludes_override=exclude_marks,
-        )
-        remaining_board = remaining_board[:100]
+    aliases = current_team_names(standings) if standings else {}
+    standings_rows = []
+    for row in sorted(standings or [], key=lambda r: r.get('rank') or 999):
+        display_name = aliases.get(row['team'], row['team'])
+        starter_slots, bench = _structure_yahoo_roster(rosters_by_team.get(display_name, []))
+        standings_rows.append({**row, 'displayName': display_name,
+                                'starterSlots': starter_slots, 'bench': bench})
 
-        adp_map = load_adp_map()
-        for row in remaining_board:
-            enrich_with_adp([row], adp_map)
+    round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)] if standings else []
 
-        teams = league_format.teams if league_format else 12
-
-        # Load draft order for team dropdown
-        available_years = repo.standings_years()
-        team_names = []
-        round1_order = []
-        origins_by_team = None
-        selected_team_picks = set()
-
-        if available_years:
-            standings = repo.standings(available_years[0])
-            if standings:
-                aliases = current_team_names(standings)
-                round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)]
-                team_names = round1_order
-
-                # Load draft picks for traded picks info (next season after standings year)
-                origins_by_team = repo.draft_pick_origins(available_years[0] + 1)
-
-        # Get selected team from query param or config default
-        selected_team = request.args.get('team')
-        if not selected_team and team_names:
-            # Default to my team from config (try current year first, fall back to any key)
-            my_team_config = {}
-            if LEAGUE_RULES_FILE.exists():
-                try:
-                    my_team_config = json.loads(LEAGUE_RULES_FILE.read_text()).get('myTeam', {})
-                except (json.JSONDecodeError, IOError):
-                    pass
-
-            # Try displayName keys in order (current year first, then 2025, then any)
-            current_year = datetime.now().year
-            selected_team = (
-                my_team_config.get(f'displayName{current_year}')
-                or my_team_config.get('displayName2025')
-                or next((v for k, v in my_team_config.items() if k.startswith('displayName')), None)
-                or team_names[0]
-            )
-
-        # Calculate picks for selected team
-        if selected_team and round1_order:
-            selected_team_picks = team_pick_numbers(selected_team, round1_order, 13, teams, origins_by_team)
-
-        # Mark selected team picks and add draft order info
-        for row in remaining_board:
-            row['isMyPick'] = row.get('draftOrder') in selected_team_picks
-            row['round'] = ((row.get('draftOrder', 1) - 1) // teams) + 1
-
-        board_by_rank = sorted(remaining_board, key=lambda x: x.get('ranking') or 999)
-        board_by_adp = sorted(remaining_board, key=lambda x: x.get('adp') or 999)
-
-        # Calculate keeper forecasts to show which players are removed
-        adp_map = load_adp_map()
-        keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
-
-        state['board_by_rank'] = board_by_rank
-        state['board_by_adp'] = board_by_adp
-        state['team_names'] = team_names
-        state['selected_team'] = selected_team
-        state['keeper_forecasts'] = keeper_forecasts
-
-    return render_template('dashboard.html', message=request.args.get('message', ''), active='dashboard', **state)
+    return render_template(
+        'dashboard.html', active='dashboard', league=league,
+        message=request.args.get('message', ''), standings_year=standings_year,
+        standings_rows=standings_rows, round1_order=round1_order, error=None,
+    )
 
 
 @app.route('/actions/refresh-rankings', methods=['POST'])
