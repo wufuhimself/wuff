@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_keeper_macros.html" import keeper_toggle with context %}
 {% block title %}{{ league_display_name }} keepers — wuff{% endblock %}
 {% block content %}
       {% if not_configured %}
@@ -24,11 +23,11 @@
 
       <section class="card">
         <h2>Recommended keepers by team</h2>
-        <p class="status">Ranked by consensus market board with this league's rules applied.
-          Algorithm's picks show pre-checked — uncheck to drop a keeper, check another eligible
-          player to add them. Updates below happen live.</p>
+        <p class="status">Top eligible players per team, ranked by consensus market board with
+          this league's rules applied. Click a card to make them the keeper; click a kept card
+          (thick border) to drop them — updates below happen live.</p>
         <div id="keeper-per-team-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); align-items: start; margin-top: 0.75rem;">
-          {% include "_partials/keeper_per_team_cards.html" %}
+          {% include "_partials/keeper_candidate_cards.html" %}
         </div>
       </section>
 
@@ -72,8 +71,8 @@ document.addEventListener('click', function (event) {
     if (impact && data.impactHtml !== undefined) impact.innerHTML = data.impactHtml;
     var board = document.getElementById('draft-board-body');
     if (board && data.boardRowsHtml !== undefined) board.innerHTML = data.boardRowsHtml;
-    var perTeam = document.getElementById('keeper-per-team-grid');
-    if (perTeam && data.perTeamHtml !== undefined) perTeam.innerHTML = data.perTeamHtml;
+    var cards = document.getElementById('keeper-per-team-grid');
+    if (cards && data.candidateCardsHtml !== undefined) cards.innerHTML = data.candidateCardsHtml;
   }).catch(function () {
     window.location.reload();
   });

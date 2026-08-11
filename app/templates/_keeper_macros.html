@@ -1,11 +1,13 @@
-{% macro keeper_toggle(team, player, kept, league_slug='') %}
+{% macro keeper_toggle(team, player, kept, league_slug='', position='', pos_rank='', ranking=none) %}
 <button type="button"
-        class="js-keeper-toggle pill{{ ' pill-kept' if kept else ' pill-add' }}"
+        class="js-keeper-toggle keeper-card{{ ' keeper-card-kept' if kept else '' }}"
         data-team="{{ team }}"
         data-player="{{ player }}"
         data-kept="{{ '1' if kept else '0' }}"
         data-league-slug="{{ league_slug }}"
-        title="{{ 'Click to remove as keeper' if kept else 'Click to make this the keeper' }}">
-  {{ '★ kept' if kept else '+ keep' }}
+        title="{{ 'Click to drop as keeper' if kept else 'Click to make this the keeper' }}">
+  <span class="pill pos-{{ (position or '').lower() }}">{{ pos_rank or position }}</span>
+  <strong>{{ player }}</strong>
+  {% if ranking %}<span class="status" style="display:inline;">#{{ ranking }}</span>{% endif %}
 </button>
 {% endmacro %}

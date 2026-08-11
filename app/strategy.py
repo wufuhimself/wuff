@@ -551,7 +551,20 @@ def league_keeper_board(
             preferred_keeper_names=preferred_names,
             excluded_keeper_names=excluded_names,
         )
-        per_team.append({'team': team_name, 'chosen': chosen, 'alternates': alternates})
+        # Every keeper-eligible player regardless of exclude state, in the same
+        # rank order select_best_keepers uses -- lets a UI build a fixed
+        # candidate list that doesn't lose/reorder players as the user
+        # includes/excludes them (an excluded player is still eligible, just
+        # not auto-picked). locked players aren't included since they aren't
+        # a real choice for the user to toggle.
+        eligible_pool = sorted(
+            (item for item in insight
+             if item.get('keeperEligible') is True and item.get('keeperLocked') is not True),
+            key=lambda item: item.get('ranking') if item.get('ranking') is not None else 9999,
+        )
+        per_team.append({
+            'team': team_name, 'chosen': chosen, 'alternates': alternates, 'eligiblePool': eligible_pool,
+        })
         chosen_names.update(normalize(c['playerName']) for c in chosen)
 
     remaining = sorted(
@@ -561,9 +574,9 @@ def league_keeper_board(
 
     position_ranks = _build_position_ranks(rankings)
 
-    # Add posRank to per_team chosen and alternates
+    # Add posRank to per_team chosen, alternates, and eligiblePool
     for entry in per_team:
-        for player_list in [entry['chosen'], entry['alternates']]:
+        for player_list in [entry['chosen'], entry['alternates'], entry['eligiblePool']]:
             for player in player_list:
                 player_name = str(player.get('playerName', ''))
                 position = _normalize_position(str(player.get('position', 'UNK')))

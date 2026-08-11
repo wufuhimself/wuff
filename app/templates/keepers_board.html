@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_keeper_macros.html" import keeper_toggle with context %}
 {% block title %}Keepers — wuff{% endblock %}
 {% block content %}
       {% if keeper_versions %}
@@ -78,16 +77,10 @@
 
       <section class="card">
         <h2>Keeper forecast by team</h2>
-        <span class="status">
-          {% if keeper_export_data %}
-            From keeper export ({{ selected_version }})
-          {% else %}
-            Algorithm's best pick per team, shown pre-checked. Uncheck to drop a keeper, check another eligible player to add them — updates below happen live.
-          {% endif %}
-        </span>
+        <span class="status">Top eligible players per team, ranked. Click a card to make them the keeper; click a kept card (thick border) to drop them — updates below happen live.</span>
 
-        <div id="keeper-forecast-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(4, 1fr); margin-top: 1rem;">
-          {% include "_partials/keeper_forecast_cards.html" %}
+        <div id="keeper-forecast-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); align-items: start; margin-top: 1rem;">
+          {% include "_partials/keeper_candidate_cards.html" %}
         </div>
       </section>
 
@@ -134,8 +127,8 @@ document.addEventListener('click', function (event) {
     if (impact && data.impactHtml !== undefined) impact.innerHTML = data.impactHtml;
     var board = document.getElementById('draft-board-body');
     if (board && data.boardRowsHtml !== undefined) board.innerHTML = data.boardRowsHtml;
-    var forecast = document.getElementById('keeper-forecast-grid');
-    if (forecast && data.forecastHtml !== undefined) forecast.innerHTML = data.forecastHtml;
+    var cards = document.getElementById('keeper-forecast-grid');
+    if (cards && data.candidateCardsHtml !== undefined) cards.innerHTML = data.candidateCardsHtml;
   }).catch(function () {
     window.location.reload();
   });

@@ -694,6 +694,24 @@ def _keeper_board_state(
     keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
     keeper_impact = calculate_keeper_impact(keeper_forecasts, league_format=league_format)
 
+    # Fixed candidate pool per team for the clickable card UI: top N eligible
+    # players by rank, drawn from eligiblePool (every keeper-eligible player,
+    # unaffected by include/exclude state -- see league_keeper_board) so the
+    # same cards stay in place and in the same order no matter which ones are
+    # currently toggled kept. Only `chosen` membership (which DOES reflect
+    # excludes) decides each card's kept state.
+    candidate_pool_size = max(5, resolved_keeper_count)
+    for team_entry in per_team:
+        chosen_ids = {c.get('playerId') for c in team_entry.get('chosen', [])}
+        pool = team_entry.get('eligiblePool', [])[:candidate_pool_size]
+        for player in pool:
+            enrich_with_adp([player], adp_map)
+            player['ranking'] = rank_map.get(player.get('playerName', '').lower())
+        team_entry['candidates'] = [
+            {**player, 'kept': player.get('playerId') in chosen_ids}
+            for player in pool
+        ]
+
     return {
         'repo': repo,
         'league_format': league_format,
@@ -865,12 +883,8 @@ def keeper_mark():
     return {
         'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_after['keeper_impact']),
         'boardRowsHtml': render_template('_partials/draft_board_rows.html', remaining_board=state_after['remaining_board']),
-        'forecastHtml': render_template(
-            '_partials/keeper_forecast_cards.html', keeper_forecasts=state_after['keeper_forecasts'],
-            keeper_marks=state_after['include_marks'], league_slug=league_slug,
-        ),
-        'perTeamHtml': render_template(
-            '_partials/keeper_per_team_cards.html', per_team=state_after['per_team'], league_slug=league_slug,
+        'candidateCardsHtml': render_template(
+            '_partials/keeper_candidate_cards.html', per_team=state_after['per_team'], league_slug=league_slug,
         ),
     }
 
