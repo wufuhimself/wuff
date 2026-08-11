@@ -814,7 +814,7 @@ def keepers_board_view():
 
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
-        remaining_board=remaining_board,
+        remaining_board=remaining_board, keeper_count=state['keeper_count'],
         keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
         my_team=my_team, team_names=team_names, error=None,
         keeper_versions=keeper_versions, selected_version=selected_version,
@@ -861,7 +861,17 @@ def keeper_mark():
     chosen_count = len(team_entry['chosen']) if team_entry else 0
 
     if checked and not was_auto_chosen and chosen_count >= state_before['keeper_count']:
-        return {'error': f"{team} already has {state_before['keeper_count']} keepers -- drop one first."}, 409
+        # Team's already at its keeper cap -- silently no-op rather than
+        # reject with an error; re-render exactly what's already there so the
+        # click just does nothing instead of surfacing a warning.
+        return {
+            'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_before['keeper_impact']),
+            'boardRowsHtml': render_template('_partials/draft_board_rows.html', remaining_board=state_before['remaining_board']),
+            'candidateCardsHtml': render_template(
+                '_partials/keeper_candidate_cards.html', per_team=state_before['per_team'],
+                league_slug=league_slug, keeper_count=state_before['keeper_count'],
+            ),
+        }
 
     already_has_marks = bool(
         (state_before['include_marks'] or {}).get(team) or (state_before['exclude_marks'] or {}).get(team)
@@ -908,7 +918,8 @@ def keeper_mark():
         'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_after['keeper_impact']),
         'boardRowsHtml': render_template('_partials/draft_board_rows.html', remaining_board=state_after['remaining_board']),
         'candidateCardsHtml': render_template(
-            '_partials/keeper_candidate_cards.html', per_team=state_after['per_team'], league_slug=league_slug,
+            '_partials/keeper_candidate_cards.html', per_team=state_after['per_team'],
+            league_slug=league_slug, keeper_count=state_after['keeper_count'],
         ),
     }
 
@@ -1150,7 +1161,7 @@ def league_keepers(league_id: str):
 
     return render_template('league_keepers.html', active='league-keepers', per_team=state['per_team'],
                            remaining_board=state['remaining_board'], keeper_impact=state['keeper_impact'],
-                           keeper_marks=state['include_marks'],
+                           keeper_count=state['keeper_count'], keeper_marks=state['include_marks'],
                            not_configured=False, error=None, **ctx)
 
 
