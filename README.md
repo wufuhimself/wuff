@@ -1,10 +1,12 @@
-# 🧙‍♂️ wuff — Fantasy Football GM tool
+# 🧙‍♂️ Gridiron Sage
+
+*(repo name is `wuff` — the app's display name and persona is the **Gridiron Sage**, the fantasy football wizard.)*
 
 *A grimoire for keeper decisions, draft boards, and roster strategy — cast across leagues, not bound to one platform.*
 
 ## 🔮 What this is
 
-Most fantasy tools are dashboards: they show data, you decide. wuff is conjured as an
+Most fantasy tools are dashboards: they show data, you decide. The Gridiron Sage is conjured as an
 **agent** — something that perceives league state, reasons about decisions using
 league-specific learned patterns (not just generic expert consensus), and is working
 toward eventually acting on those decisions itself. The core spell: a league's own
@@ -30,7 +32,7 @@ optimizer and trade evaluator (the two most common in-season decisions, neither 
 
 ## 🗡️ The band
 
-wuff is the wizard at the table — but he doesn't work alone. Each piece of the app is a
+The Gridiron Sage is the wizard at the table — but he doesn't work alone. Each piece of the app is a
 hero he consults:
 
 | Hero | Domain | Where |

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ league_display_name }} keepers — wuff{% endblock %}
+{% block title %}{{ league_display_name }} keepers — Gridiron Sage{% endblock %}
 {% block content %}
       {% if not_configured %}
       <section class="card">
         <h2>Keeper rules not set up yet</h2>
-        <p class="status">Tell wuff this league's keeper rules first —
+        <p class="status">Tell the Gridiron Sage this league's keeper rules first —
           <a href="/league/{{ league_slug }}/settings">open league settings</a> and set keeper
           slots above zero.</p>
       </section>
