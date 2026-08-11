@@ -570,11 +570,12 @@ def league_keeper_board(
         # rank order select_best_keepers uses -- lets a UI build a fixed
         # candidate list that doesn't lose/reorder players as the user
         # includes/excludes them (an excluded player is still eligible, just
-        # not auto-picked). locked players aren't included since they aren't
-        # a real choice for the user to toggle.
+        # not auto-picked). Locked players (roster-level, e.g. a known GM
+        # commitment) ARE included -- they're always kept and always shown,
+        # just not togglable, so the UI can't accidentally hide a real keeper.
         eligible_pool = sorted(
             (item for item in insight
-             if item.get('keeperEligible') is True and item.get('keeperLocked') is not True),
+             if item.get('keeperEligible') is True or item.get('keeperLocked') is True),
             key=lambda item: item.get('ranking') if item.get('ranking') is not None else 9999,
         )
         per_team.append({

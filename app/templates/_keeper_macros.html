@@ -1,4 +1,12 @@
-{% macro keeper_toggle(team, player, kept, league_slug='', position='', pos_rank='', ranking=none) %}
+{% macro keeper_toggle(team, player, kept, league_slug='', position='', pos_rank='', ranking=none, locked=false) %}
+{% if locked %}
+<div class="keeper-card keeper-card-kept keeper-card-locked" title="Locked keeper -- can't be changed here">
+  <span class="pill pos-{{ (position or '').lower() }}">{{ pos_rank or position }}</span>
+  <strong>{{ player }}</strong>
+  {% if ranking %}<span class="status" style="display:inline;">#{{ ranking }}</span>{% endif %}
+  <span class="status" style="display:inline; margin-left:0.35rem;">🔒 locked</span>
+</div>
+{% else %}
 <button type="button"
         class="js-keeper-toggle keeper-card{{ ' keeper-card-kept' if kept else '' }}"
         data-team="{{ team }}"
@@ -10,4 +18,5 @@
   <strong>{{ player }}</strong>
   {% if ranking %}<span class="status" style="display:inline;">#{{ ranking }}</span>{% endif %}
 </button>
+{% endif %}
 {% endmacro %}

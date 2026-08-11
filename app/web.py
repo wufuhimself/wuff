@@ -710,7 +710,11 @@ def _keeper_board_state(
             enrich_with_adp([player], adp_map)
             player['ranking'] = rank_map.get(player.get('playerName', '').lower())
         team_entry['candidates'] = [
-            {**player, 'kept': player.get('playerId') in chosen_ids}
+            {
+                **player,
+                'kept': player.get('playerId') in chosen_ids or player.get('keeperLocked') is True,
+                'locked': player.get('keeperLocked') is True,
+            }
             for player in pool
         ]
 

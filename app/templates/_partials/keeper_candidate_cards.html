@@ -5,7 +5,7 @@
 <div class="team-card{{ ' team-card-full' if at_cap else '' }}">
   <h3 style="margin: 0 0 0.5rem 0; font-size: clamp(0.95rem, 3vw, 1.05rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ entry.team }}">{{ entry.team }}</h3>
   {% for player in entry.candidates %}
-  {{ keeper_toggle(entry.team, player.playerName, player.kept, league_slug, player.position, player.posRank, player.ranking) }}
+  {{ keeper_toggle(entry.team, player.playerName, player.kept, league_slug, player.position, player.posRank, player.ranking, player.locked) }}
   {% endfor %}
 </div>
 {% endfor %}

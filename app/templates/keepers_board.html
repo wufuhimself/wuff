@@ -77,21 +77,12 @@
 
       <section class="card">
         <h2>Keeper selection by team</h2>
-        <span class="status">Every keeper-eligible player per team, ranked. Click a card to make them the keeper; click a kept card (thick border) to drop them — updates below happen live.</span>
+        <span class="status">Every keeper-eligible player per team, ranked. Click a card to make them the keeper; click a kept card (thick border) to drop them — updates below happen live.
+          The post-keeper draft board lives on the <a href="/">overview page</a>, which reflects whatever's selected here.</span>
 
         <div id="keeper-forecast-grid" class="team-grid-3" style="margin-top: 1rem;">
           {% include "_partials/keeper_candidate_cards.html" %}
         </div>
-      </section>
-
-      <section class="card">
-        <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | length }}</span></h2>
-        <table class="table compact">
-          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>NFL</th><th>Rank</th></tr></thead>
-          <tbody id="draft-board-body">
-            {% include "_partials/draft_board_rows.html" %}
-          </tbody>
-        </table>
       </section>
 
       {% endif %}
@@ -132,8 +123,6 @@ document.addEventListener('click', function (event) {
     var data = result.data;
     var impact = document.getElementById('keeper-impact-grid');
     if (impact && data.impactHtml !== undefined) impact.innerHTML = data.impactHtml;
-    var board = document.getElementById('draft-board-body');
-    if (board && data.boardRowsHtml !== undefined) board.innerHTML = data.boardRowsHtml;
     var cards = document.getElementById('keeper-forecast-grid');
     if (cards && data.candidateCardsHtml !== undefined) cards.innerHTML = data.candidateCardsHtml;
     // No re-enable of `btn` here on the success path -- it's replaced
