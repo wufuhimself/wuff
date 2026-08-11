@@ -1,9 +1,23 @@
+"""Historical draft-outcome analysis: does where you picked predict where you finished?
+
+Per-league since 2026-08-11 (Phase 3 port, docs/roadmap.md). Every entry point
+takes an optional `repo` (app/repository.py LeagueDataRepository) and reads that
+league's own draft history + standings through it. Omit `repo` and it falls back
+to the default league's repository, which is what the original Yahoo-only
+version did implicitly — so existing callers are unchanged.
+
+Note both analyses correlate against *final standings rank*, so they only
+produce output for seasons where the league has both draft data and saved
+standings. A freshly imported league with one synced season has nothing to
+correlate yet; that's an empty result, not an error.
+"""
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 from statistics import mean, median
 
-from .draft_history import load_draft_years, live_draft_picks
-from .standings import load_standings, current_team_names as get_current_team_names
+from .draft_history import live_draft_picks
+from .repository import LeagueDataRepository, get_repository
+from .standings import current_team_names as get_current_team_names
 from .nfl_stats import load_rosters
 
 
@@ -24,21 +38,25 @@ class RoundPositionOutcome:
     final_rank: int
 
 
-def draft_slot_vs_final_rank(years: Optional[List[int]] = None) -> List[DraftSlotOutcome]:
+def draft_slot_vs_final_rank(
+    years: Optional[List[int]] = None, repo: Optional[LeagueDataRepository] = None,
+) -> List[DraftSlotOutcome]:
     """Pair each team's round-1 draft slot with their final rank that season.
-    If years=None, use all years with both draft_history and standings data."""
+    If years=None, use all years this league has draft data for.
+    repo defaults to the default league's repository."""
+    repo = repo if repo is not None else get_repository()
+    draft_years = repo.draft_years()
     if years is None:
-        draft_history = load_draft_years()
-        years = sorted(draft_history.keys())
+        years = sorted(draft_years.keys())
 
     outcomes = []
 
     for year in years:
-        standings = load_standings(year)
+        standings = repo.standings(year)
         if standings is None:
             continue
 
-        picks = live_draft_picks(year)
+        picks = live_draft_picks(year, draft_years)
         if not picks:
             continue
 
@@ -113,20 +131,31 @@ def summarize_draft_slot_correlation(outcomes: List[DraftSlotOutcome]) -> Dict[s
     else:
         correlation = 0.0
 
+    years_covered = len({o.year for o in outcomes})
     return {
         'slot_to_avg': slot_to_avg,
         'correlation': round(correlation, 3),
         'n_samples': len(outcomes),
-        'caveat': 'Small sample: 12 teams × years with data. Treat as directional, not conclusive.',
+        'years_covered': years_covered,
+        'caveat': (
+            f'Small sample: {len(outcomes)} team-seasons across {years_covered} '
+            'season(s) with both draft and standings data. Treat as directional, '
+            'not conclusive.'
+        ),
     }
 
 
-def position_in_round_vs_final_rank(round_number: int, years: Optional[List[int]] = None) -> List[RoundPositionOutcome]:
+def position_in_round_vs_final_rank(
+    round_number: int, years: Optional[List[int]] = None, repo: Optional[LeagueDataRepository] = None,
+) -> List[RoundPositionOutcome]:
     """For a given round, pair position drafted with final team rank that season.
-    Requires Phase A rosters data for accurate position lookups."""
+    Requires nflverse rosters data (app/nfl_stats.py) for position lookups --
+    those are real-NFL data, shared across leagues, not per-league.
+    repo defaults to the default league's repository."""
+    repo = repo if repo is not None else get_repository()
+    draft_years = repo.draft_years()
     if years is None:
-        draft_history = load_draft_years()
-        years = sorted(draft_history.keys())
+        years = sorted(draft_years.keys())
 
     outcomes = []
 
@@ -138,17 +167,19 @@ def position_in_round_vs_final_rank(round_number: int, years: Optional[List[int]
             rosters_by_year[year] = rosters
 
     for year in years:
-        standings = load_standings(year)
+        standings = repo.standings(year)
         if standings is None:
             continue
 
-        picks = live_draft_picks(year)
+        picks = live_draft_picks(year, draft_years)
         if not picks:
             continue
 
         rosters = rosters_by_year.get(year)
         if not rosters:
-            print(f'  Warning: No rosters data for {year}, skipping position lookup')
+            # No nflverse roster snapshot for this season -- can't resolve
+            # positions, so skip the year. Silent: this is also called from a
+            # web route, where printing to stdout is noise.
             continue
 
         # Resolve within-year renames via 'note' field

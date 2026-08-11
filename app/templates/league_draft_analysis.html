@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ league_display_name }} draft analysis — Gridiron Sage{% endblock %}
+{% block content %}
+
+      {% if not has_data %}
+      <section class="card">
+        <h2>Not enough history yet <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        <p class="status">This analysis correlates draft decisions against where teams
+          <em>finished</em>, so it needs at least one season with both draft results and final
+          standings saved. Once this league has a completed season on record, the Maester will
+          have something to say about it.</p>
+      </section>
+      {% else %}
+
+      <section class="card">
+        <h2>Draft slot vs final rank <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        {% if slot_summary %}
+        <p class="status">Does picking early actually win leagues? Correlation of
+          <strong>{{ slot_summary.correlation }}</strong> across
+          {{ slot_summary.n_samples }} team-seasons ({{ slot_summary.years_covered }} season(s)).
+          Negative means later slots finished better; near zero means draft slot barely mattered.</p>
+
+        <div style="overflow-x: auto; margin-top: 1rem;">
+          <table>
+            <thead>
+              <tr><th>Round-1 slot</th><th>Avg final rank</th><th>Median</th><th>Seasons</th></tr>
+            </thead>
+            <tbody>
+              {% for slot, data in slot_summary.slot_to_avg | dictsort %}
+              <tr>
+                <td>{{ slot }}</td>
+                <td>{{ '%.1f' | format(data.avg_rank) }}</td>
+                <td>{{ data.median_rank | int }}</td>
+                <td>{{ data.n }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="status" style="margin-top: 0.75rem;">{{ slot_summary.caveat }}</p>
+        {% else %}
+        <p class="status">No seasons with both draft results and final standings yet.</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <h2>Position drafted in round {{ round_number }} vs final rank</h2>
+        <p class="status">What did teams take in this round, and where did those teams finish?
+          Lower average rank = better finish.</p>
+
+        <form method="get" style="margin: 0.75rem 0;">
+          <label for="round">Round</label>
+          <input type="number" id="round" name="round" min="1" max="20" value="{{ round_number }}">
+          <button type="submit">Show round</button>
+        </form>
+
+        {% if position_summary %}
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr><th>Position</th><th>Avg final rank</th><th>Median</th><th>Picks</th></tr>
+            </thead>
+            <tbody>
+              {% for position, data in position_summary | dictsort %}
+              <tr>
+                <td>{{ position }}</td>
+                <td>{{ '%.1f' | format(data.avg_rank) }}</td>
+                <td>{{ data.median_rank | int }}</td>
+                <td>{{ data.n }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="status" style="margin-top: 0.75rem;">Small samples — a position drafted fewer
+          than 3 times in this round isn't telling you much. Position lookups come from nflverse
+          roster data, so a season without that data saved is skipped entirely.</p>
+        {% else %}
+        <p class="status">No picks to analyze for round {{ round_number }}. Either no season has
+          both draft results and standings, or nflverse roster data isn't saved for those seasons.</p>
+        {% endif %}
+      </section>
+
+      {% endif %}
+{% endblock %}

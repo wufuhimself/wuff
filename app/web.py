@@ -9,6 +9,12 @@ from . import espn_manager, sleeper_client
 from .auth import get_or_create_user, init_auth, login_manager
 from .crypto import encrypt_value
 from .db import SessionLocal, init_db
+from .draft_analysis import (
+    draft_slot_vs_final_rank,
+    position_in_round_vs_final_rank,
+    summarize_draft_slot_correlation,
+    summarize_position_in_round,
+)
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .free_rankings import refresh_free_rankings
 from .keeper_service import (
@@ -23,7 +29,7 @@ from .league_registry import default_league_id, get_league, load_leagues
 from .league_service import resolve_league, save_league_rules
 from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON
-from .repository import get_repository
+from .repository import get_repository, repository_for
 from .sleeper_manager import (
     load_sleeper_leagues_config,
     load_synced_drafts,
@@ -536,6 +542,34 @@ def league_keepers(league_id: str):
                            remaining_board=state['remaining_board'], keeper_impact=state['keeper_impact'],
                            keeper_count=state['keeper_count'], keeper_marks=state['include_marks'],
                            not_configured=False, error=None, **ctx)
+
+
+@app.route('/league/<league_id>/draft-analysis')
+def league_draft_analysis(league_id: str):
+    """Did draft slot predict finish, and which positions in round N did?
+    (Phase 3 port -- runs on any registered league via its own repository.)
+
+    Both analyses correlate against final standings, so a league only has
+    something to show once it has at least one season with BOTH draft results
+    and saved standings; that's an empty state, not an error."""
+    league = resolve_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+
+    repo = repository_for(league)
+    round_number = request.args.get('round', default=1, type=int)
+
+    slot_outcomes = draft_slot_vs_final_rank(repo=repo)
+    slot_summary = summarize_draft_slot_correlation(slot_outcomes) if slot_outcomes else {}
+    position_outcomes = position_in_round_vs_final_rank(round_number, repo=repo)
+    position_summary = summarize_position_in_round(position_outcomes) if position_outcomes else {}
+
+    return render_template(
+        'league_draft_analysis.html', active='league-draft-analysis',
+        slot_summary=slot_summary, position_summary=position_summary,
+        round_number=round_number, has_data=bool(slot_outcomes or position_outcomes),
+        **_league_page_ctx(league, 'draft-analysis'),
+    )
 
 
 @app.route('/league/<league_id>/settings', methods=['GET', 'POST'])

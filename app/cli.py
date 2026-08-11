@@ -5,10 +5,11 @@ import csv
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .league_context import LeagueFormat, load_league_format, save_league_format
 from .league_registry import default_league_id, init_leagues_config, load_leagues
+from .repository import get_repository
 from .oauth_server import run_yahoo_oauth_server
 from .paths import (
     LEAGUE_SETTINGS_FILE,
@@ -91,6 +92,17 @@ def _next_draft_season() -> int:
     """The upcoming draft year: one past the latest season with draft_history data."""
     years = load_draft_years()
     return max(years.keys()) + 1 if years else 2026
+
+
+def _repo_for_league_arg(league_id: Optional[str]):
+    """Repository for a --league argument (None = the default league).
+    Exits with the list of valid ids rather than a KeyError traceback."""
+    try:
+        return get_repository(league_id)
+    except (KeyError, ValueError) as exc:
+        # get_league()'s message already lists the valid ids.
+        print(str(exc).strip('"\''), file=sys.stderr)
+        sys.exit(1)
 
 
 def parse_args() -> argparse.Namespace:
@@ -244,6 +256,8 @@ def parse_args() -> argparse.Namespace:
         help='Analyze draft slot (round-1 pick number) vs final standings rank',
     )
     draft_slot_parser.add_argument('--export-csv', default=None, help='Optional: export results to CSV')
+    draft_slot_parser.add_argument('--league', default=None,
+                                   help="League id from 'python3 -m app leagues' (default: the default league)")
 
     position_round_parser = subparsers.add_parser(
         'position-round-outcomes',
@@ -251,6 +265,8 @@ def parse_args() -> argparse.Namespace:
     )
     position_round_parser.add_argument('round_number', type=int, help='Which round to analyze')
     position_round_parser.add_argument('--export-csv', default=None, help='Optional: export results to CSV')
+    position_round_parser.add_argument('--league', default=None,
+                                       help="League id from 'python3 -m app leagues' (default: the default league)")
 
     combine_rankings_parser = subparsers.add_parser(
         'combine-rankings',
@@ -1219,14 +1235,16 @@ def _cmd_fetch_nfl_stats(args) -> None:
 
 
 def _cmd_draft_slot_outcomes(args) -> None:
-    outcomes = draft_slot_vs_final_rank()
+    repo = _repo_for_league_arg(args.league)
+    outcomes = draft_slot_vs_final_rank(repo=repo)
     if not outcomes:
-        print('No outcomes found. Ensure draft_history and standings data exist.', file=sys.stderr)
+        print(f'No outcomes found for league {repo.league.league_id!r}. This analysis needs seasons '
+              'with BOTH draft results and saved final standings.', file=sys.stderr)
         sys.exit(1)
 
     summary = summarize_draft_slot_correlation(outcomes)
-    print('\n=== Draft Slot vs Final Rank ===')
-    print(f'Samples: {summary.get("n_samples")} (12 teams per year × years with both draft and standings data)')
+    print(f'\n=== Draft Slot vs Final Rank ({repo.league.name}) ===')
+    print(f'Samples: {summary.get("n_samples")} team-seasons across {summary.get("years_covered")} season(s)')
     print(f'Correlation: {summary.get("correlation")}')
     print('\nSlot-to-Rank Average:')
     for slot in sorted(summary.get('slot_to_avg', {}).keys()):
@@ -1247,13 +1265,16 @@ def _cmd_draft_slot_outcomes(args) -> None:
 
 
 def _cmd_position_round_outcomes(args) -> None:
-    outcomes = position_in_round_vs_final_rank(args.round_number)
+    repo = _repo_for_league_arg(args.league)
+    outcomes = position_in_round_vs_final_rank(args.round_number, repo=repo)
     if not outcomes:
-        print(f'No outcomes found for round {args.round_number}.', file=sys.stderr)
+        print(f'No outcomes found for round {args.round_number} in league {repo.league.league_id!r}. '
+              'Needs seasons with draft results, saved standings, and nflverse rosters '
+              '(python3 -m app fetch-nfl-stats).', file=sys.stderr)
         sys.exit(1)
 
     summary = summarize_position_in_round(outcomes)
-    print(f'\n=== Position Drafted in Round {args.round_number} vs Final Rank ===')
+    print(f'\n=== Position Drafted in Round {args.round_number} vs Final Rank ({repo.league.name}) ===')
     print(f'Total picks analyzed: {len(outcomes)}')
     print('\nAverage Final Rank by Position:')
     for pos in sorted(summary.keys()):
