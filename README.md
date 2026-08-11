@@ -36,9 +36,11 @@ hero he consults:
 | Hero | Domain | Where |
 |---|---|---|
 | 🔮 **The Oracle** | Keeper forecasting — who to keep, scored and ranked | `/keepers-board`, `/league/<slug>/keepers` |
-| 🛡️ **The Paladin** | Standings & rosters — keeps the realm's order straight | `/standings`, `/`  |
+| 🛡️ **The Paladin** | Standings & rosters — keeps the realm's order straight | `/standings`, `/`, `/sleeper/<id>`, `/espn/<id>` |
 | ⚔️ **The General** | Mock draft — recruits allies, simulates the battle ahead | `/mock-draft` |
-| 📜 **The Maester** | Draft history — keeper of records, past seasons on the shelf | `/draft-history` |
+| 📜 **The Maester** | Draft history & draft order — keeper of records, past seasons on the shelf | `/draft-history`, `/draft-order`, `/draft-picks` |
+| 📯 **The Herald** | Multi-league management — announces and onboards new realms | `/leagues`, `/my/leagues`, `/my/onboard`, `/sleeper` |
+| 🕰️ **The Augur** | Forecast accuracy tracking (no web page yet) | `app/outcome_log.py`, `resolve-outcomes` |
 
 More heroes join the band as new domains get built out (see
 `WS-6-agent-runtime/Band_of_Heroes.md` in the vault for the full roster + unassigned
@@ -117,8 +119,8 @@ Run `make web` or `make web-debug` for hot-reload during development.
 - `/mock-draft` — ⚔️ The General: full 15-round mock draft simulator (BPA + manager tendencies)
 - `/draft-history` — 📜 The Maester: historical draft results by year
 - `/standings` — 🛡️ The Paladin: league standings and performance
-- `/sleeper` — Sleeper league list (6 leagues); `/sleeper/<league_id>` for standings/rosters/draft
-- `/my/leagues`, `/my/onboard` — Multi-user login + league import (Sleeper username, ESPN league ID)
+- `/sleeper` — 📯 The Herald: Sleeper league list (6 leagues); `/sleeper/<league_id>` for standings/rosters/draft (🛡️ The Paladin)
+- `/my/leagues`, `/my/onboard` — 📯 The Herald: multi-user login + league import (Sleeper username, ESPN league ID)
 
 ## ⚙️ Setup details
 

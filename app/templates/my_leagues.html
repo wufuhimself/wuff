@@ -2,7 +2,7 @@
 {% block title %}My leagues{% endblock %}
 {% block content %}
       <section class="card">
-        <h2>My leagues <span class="status">{{ current_user.email }}</span></h2>
+        <h2>My leagues <span class="pill" title="The Herald: announces and manages the realms">📯 The Herald</span> <span class="status">{{ current_user.email }}</span></h2>
         {% if leagues %}
         <ul class="team-list">
           {% for l in leagues %}

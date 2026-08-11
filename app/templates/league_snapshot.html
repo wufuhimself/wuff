@@ -14,7 +14,7 @@
       {% else %}
 
       <section class="card">
-        <h2>Standings</h2>
+        <h2>Standings <span class="pill" title="The Paladin: keeper of order">🛡️ The Paladin</span></h2>
         <table class="table">
           <thead><tr><th>Team</th><th>Manager</th><th>Record</th><th>PF</th><th>PA</th></tr></thead>
           <tbody>
@@ -32,7 +32,7 @@
       </section>
 
       <section class="card">
-        <h2>Rosters</h2>
+        <h2>Rosters <span class="pill" title="The Paladin: keeper of order">🛡️ The Paladin</span></h2>
         <p class="status">Starters in lineup order, bench grouped by position.</p>
         <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); align-items: start; margin-top: 0.75rem;">
           {% for r in rosters %}
