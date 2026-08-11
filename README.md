@@ -28,6 +28,22 @@ read that log back and actually adjust scoring — that's what turns this from a
 makes recommendations into one that improves them over time. After that: a lineup
 optimizer and trade evaluator (the two most common in-season decisions, neither built yet).
 
+## 🗡️ The band
+
+wuff is the wizard at the table — but he doesn't work alone. Each piece of the app is a
+hero he consults:
+
+| Hero | Domain | Where |
+|---|---|---|
+| 🔮 **The Oracle** | Keeper forecasting — who to keep, scored and ranked | `/keepers-board`, `/league/<slug>/keepers` |
+| 🛡️ **The Paladin** | Standings & rosters — keeps the realm's order straight | `/standings`, `/`  |
+| ⚔️ **The General** | Mock draft — recruits allies, simulates the battle ahead | `/mock-draft` |
+| 📜 **The Maester** | Draft history — keeper of records, past seasons on the shelf | `/draft-history` |
+
+More heroes join the band as new domains get built out (see
+`WS-6-agent-runtime/Band_of_Heroes.md` in the vault for the full roster + unassigned
+domains).
+
 ## 🚀 Quick start
 
 ```bash
@@ -44,7 +60,7 @@ make web
 
 ## 🏈 Common workflows
 
-### **🃏 Keeper board & analysis**
+### **🃏 Keeper board & analysis** — 🔮 The Oracle
 ```bash
 # Parse league rosters from Yahoo (copy-paste text when prompted)
 python3 -m app parse-rosters
@@ -69,7 +85,7 @@ python3 -m app combine-rankings
 python3 -m app import-adp path/to/your_adp.csv
 ```
 
-### **📜 Draft history & league trends**
+### **📜 Draft history & league trends** — 📜 The Maester
 ```bash
 # Analyze historical draft data
 python3 -m app draft-history 2025 --live-only
@@ -96,11 +112,11 @@ Run `make web` or `make web-debug` for hot-reload during development.
 
 **Routes:**
 - `/` — Dashboard with roster, rankings, and keeper insight
-- `/keepers-board` — Interactive keeper card picker for the Yahoo league (click to toggle kept)
-- `/league/<slug>/keepers` — Same interactive keeper picker for any registered league
-- `/mock-draft` — Full 15-round mock draft simulator (BPA + manager tendencies)
-- `/draft-history` — Historical draft results by year
-- `/standings` — League standings and performance
+- `/keepers-board` — 🔮 The Oracle: interactive keeper card picker for the Yahoo league (click to toggle kept)
+- `/league/<slug>/keepers` — 🔮 The Oracle, for any registered league
+- `/mock-draft` — ⚔️ The General: full 15-round mock draft simulator (BPA + manager tendencies)
+- `/draft-history` — 📜 The Maester: historical draft results by year
+- `/standings` — 🛡️ The Paladin: league standings and performance
 - `/sleeper` — Sleeper league list (6 leagues); `/sleeper/<league_id>` for standings/rosters/draft
 - `/my/leagues`, `/my/onboard` — Multi-user login + league import (Sleeper username, ESPN league ID)
 
