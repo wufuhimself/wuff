@@ -188,13 +188,24 @@ so it can't gate the second platform.
   Web: `/league/<slug>/mock-draft`; both mock-draft pages share
   `_partials/mock_draft_results.html`, which reads rounds/pick numbers off
   the picks instead of hardcoding `range(1,16)`/`*12`/`>=14`.
-  **Two real bugs fell out of diffing full simulator output against the
-  pre-change version** — worth repeating that technique on the next port:
-  traded picks were being silently ignored (parsed the raw file shape when
-  `repo.draft_picks()` returns a normalized one), and a `best_score = -1`
-  floor made picks vanish entirely when every candidate scored below it
-  (Yahoo's keeper rounds masked it; a Sleeper league produced 157 picks
-  instead of 180).
+  **Five real bugs fell out of diffing full simulator output against the
+  pre-change version** — worth repeating that technique on any scoring or
+  simulation change, since not one of them raised an error:
+  1. traded picks silently ignored (parsed the raw file shape when
+     `repo.draft_picks()` returns a normalized one);
+  2. a `best_score = -1` floor made picks vanish entirely when every
+     candidate scored below it (Yahoo's keeper rounds masked it; a Sleeper
+     league produced 157 picks instead of 180);
+  3. the simulator read `data/processed/rankings_adjusted.json` — a July
+     snapshot from the superseded QB-knockback method — in preference to
+     the live board, so it drafted off different rankings than the keeper
+     board it takes its keepers from. Now `repo.rankings()`;
+  4. ranking sources spell team defenses `DEF` while this module keys
+     limits on `DST`, and an unrecognized position gets *no* limit — a
+     12-team league drafted 15 defenses. Normalized at the boundary;
+  5. the approaching-limit penalty fired at zero owned (`pos_count ==
+     pos_limit - 1` is true at 0 when the limit is 1), so no team ever
+     drafted its first defense.
 - **Rankings sourcing (licensing-safe):**
   - (a) each user uploads their own CSV/PDF — current flow, zero legal risk,
     most friction; and
