@@ -15,6 +15,7 @@ from .keeper_service import (
     _default_league_platform_ids,
     keeper_board_state,
     load_keeper_marks,
+    log_team_keeper_forecast,
     team_pick_numbers,
 )
 from .league_context import load_league_format
@@ -289,6 +290,8 @@ def keeper_mark():
     state_after = keeper_board_state(league, include_file_prefs=include_file_prefs)
     if state_after['error']:
         return {'error': state_after['error']}, 409
+
+    log_team_keeper_forecast(state_after, team, platform, platform_league_id)
 
     return {
         'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_after['keeper_impact']),

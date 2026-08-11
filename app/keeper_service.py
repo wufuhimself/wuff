@@ -13,10 +13,13 @@ from .db import SessionLocal
 from .league_context import load_league_format
 from .league_registry import get_league
 from .models import KeeperMark
+from .outcome_log import load_outcomes, log_outcome, save_outcomes
 from .paths import YAHOO_LEAGUE_ROSTERS_JSON
 from .repository import get_repository, repository_for
 from .standings import snake_draft_order
 from .strategy import league_keeper_board
+
+KEEPER_FORECAST_METHOD_VERSION = 'web_keeper_board_v1'
 
 
 def _default_league_platform_ids() -> tuple:
@@ -376,3 +379,43 @@ def keeper_board_state(
         'exclude_marks': exclude_marks,
         'error': None,
     }
+
+
+def _next_draft_season(draft_years) -> int:
+    """The upcoming draft year: one past the latest season this league has
+    draft_history/draft-snapshot data for. Mirrors cli.py's _next_draft_season
+    but works off an already-loaded per-league draft_years dict instead of
+    the global Yahoo loader, so it's correct for any registered league."""
+    return max(draft_years.keys()) + 1 if draft_years else 2026
+
+
+def log_team_keeper_forecast(state: dict, team: str, platform: str, platform_league_id: str) -> None:
+    """Log the outcome-log 'agent Learn pillar' forecast (app/outcome_log.py)
+    for one team's current chosen keepers, after a keeper_mark() toggle.
+
+    Only the touched team is (re-)logged, not the whole board -- keeps this
+    cheap per click. log_outcome() upserts by decision_id while an entry is
+    still pending, so re-clicking the same team's cards just updates the
+    forecast in place rather than accumulating duplicates. Runs for every
+    registered league (not just Yahoo) since keeper_board_state() already
+    resolves per-league draft_years."""
+    team_entry = next((t for t in state['per_team'] if t['team'] == team), None)
+    if team_entry is None:
+        return
+
+    # state['repo'] is already the correct repository for whichever league
+    # this call is for (default Yahoo or a resolved League) -- reuse it
+    # rather than re-resolving from platform/platform_league_id.
+    season = _next_draft_season(state['repo'].draft_years())
+
+    log_batch = load_outcomes()
+    for i, keeper in enumerate(team_entry.get('chosen', []), 1):
+        log_outcome(
+            'keeper_forecast', season, keeper['playerName'],
+            forecast={'keeper_status': f'Keeper {i}', 'ranking': keeper.get('ranking')},
+            method_version=KEEPER_FORECAST_METHOD_VERSION,
+            team=team, outcomes=log_batch,
+            platform=platform, platform_league_id=platform_league_id,
+        )
+    if team_entry.get('chosen'):
+        save_outcomes(log_batch)

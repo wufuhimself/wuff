@@ -7,27 +7,52 @@ fills in the actual result and computes a delta, so forecast accuracy can be
 compared across method_version changes over time instead of just trusted on
 faith.
 
+Per-league (2026-08-11): every entry is scoped by (platform, platform_league_id),
+same convention as KeeperMark (app/models.py) — a single shared log file, not
+one file per league, since cross-league forecast-accuracy comparison is itself
+a feature the roadmap wants. Callers that omit platform/platform_league_id
+default to the Yahoo frank-gore league (platform='yahoo', id='9410') for
+backward compatibility with the original single-league entries and CLI call
+sites (app/cli.py's apply-qb-adjustment / keepers-board-export) — those never
+passed a league explicitly and shouldn't change decision_ids for pre-existing
+pending/resolved entries.
+
 Storage: single append-only array at data/processed/outcome_log.json, keyed
-by decision_id so a later forecast for the same (decision_type, season,
-entity) overwrites the previous pending one rather than piling up duplicates.
-Resolved entries are left alone — they're historical record.
+by decision_id (now including platform+platform_league_id) so a later
+forecast for the same (league, decision_type, season, entity) overwrites the
+previous pending one rather than piling up duplicates. Resolved entries are
+left alone — they're historical record.
 """
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from .draft_history import keeper_slot_picks, live_draft_picks, load_draft_years
+from .league_registry import load_leagues
 from .paths import PROCESSED_DIR, ensure_parent_dir
+from .repository import repository_for
 
 OUTCOME_LOG_FILE = PROCESSED_DIR / 'outcome_log.json'
+
+# Default league for callers that don't specify one -- keeps existing
+# decision_ids and CLI call sites (app/cli.py) unchanged.
+DEFAULT_PLATFORM = 'yahoo'
+DEFAULT_PLATFORM_LEAGUE_ID = '9410'
 
 
 def _normalize(value: str) -> str:
     return ' '.join(str(value).strip().lower().split())
 
 
-def _decision_id(decision_type: str, season: int, entity: str, team: Optional[str] = None) -> str:
-    parts = [decision_type, str(season), _normalize(team) if team else None, _normalize(entity)]
+def _decision_id(
+    decision_type: str, season: int, entity: str, team: Optional[str] = None,
+    platform: str = DEFAULT_PLATFORM, platform_league_id: str = DEFAULT_PLATFORM_LEAGUE_ID,
+) -> str:
+    # Yahoo/default league keeps the original (unscoped) id format so
+    # existing entries in outcome_log.json don't get orphaned by this change.
+    league_prefix = None if (platform, platform_league_id) == (DEFAULT_PLATFORM, DEFAULT_PLATFORM_LEAGUE_ID) \
+        else f'{platform}-{platform_league_id}'
+    parts = [league_prefix, decision_type, str(season), _normalize(team) if team else None, _normalize(entity)]
     return '_'.join(p.replace(' ', '-') for p in parts if p)
 
 
@@ -52,20 +77,28 @@ def log_outcome(
     method_version: str,
     team: Optional[str] = None,
     outcomes: Optional[List[Dict[str, Any]]] = None,
+    platform: str = DEFAULT_PLATFORM,
+    platform_league_id: str = DEFAULT_PLATFORM_LEAGUE_ID,
 ) -> Dict[str, Any]:
     """Record a forecast. Upserts by decision_id if that entry is still pending.
 
     Pass an existing `outcomes` list to batch multiple log_outcome() calls
     before a single save_outcomes() — avoids re-reading/re-writing the file
     once per player when logging e.g. a full keeper board.
+
+    platform/platform_league_id: scope this forecast to a specific league
+    (see module docstring). Omit for the Yahoo frank-gore league (default,
+    matches all pre-2026-08-11 entries).
     """
     owns_list = outcomes is None
     outcomes = load_outcomes() if owns_list else outcomes
 
-    decision_id = _decision_id(decision_type, season, entity, team)
+    decision_id = _decision_id(decision_type, season, entity, team, platform, platform_league_id)
     entry = {
         'decision_id': decision_id,
         'decision_type': decision_type,
+        'platform': platform,
+        'platform_league_id': platform_league_id,
         'season': season,
         'entity': entity,
         'team': team,
@@ -137,17 +170,45 @@ def _resolve_qb_adjustments(outcomes: List[Dict[str, Any]], years_data, teams: i
 
 
 def resolve_outcomes(teams: int = 12) -> Dict[str, int]:
-    """Attempt to resolve every pending entry against current draft_history data.
+    """Attempt to resolve every pending entry against its own league's current
+    draft_history data.
 
-    Entries whose season's draft hasn't happened yet (no matching
-    data/raw/draft_history/{season}.json) are left pending, not errored.
+    Groups pending entries by (platform, platform_league_id) -- legacy
+    entries with no platform field are treated as the default Yahoo league --
+    and resolves each group against that league's own draft_years via
+    app/repository.py, so a Sleeper/ESPN league's forecasts resolve against
+    its own synced draft, not Yahoo's draft_history files. `teams` is the
+    fallback team count for legacy/undetermined leagues only; each resolved
+    league prefers its own LeagueFormat.teams for the pick-number math.
+
+    Entries whose season's draft hasn't happened yet (no matching draft data
+    for that league/season) are left pending, not errored.
     """
     outcomes = load_outcomes()
-    years_data = load_draft_years()
+
+    groups: Dict[tuple, List[Dict[str, Any]]] = {}
+    for entry in outcomes:
+        if entry['status'] != 'pending':
+            continue
+        key = (entry.get('platform') or DEFAULT_PLATFORM, entry.get('platform_league_id') or DEFAULT_PLATFORM_LEAGUE_ID)
+        groups.setdefault(key, []).append(entry)
+
+    leagues_by_key = {(l.platform, l.platform_league_id): l for l in load_leagues().values()}
 
     resolved = 0
-    resolved += _resolve_keeper_forecasts(outcomes, years_data)
-    resolved += _resolve_qb_adjustments(outcomes, years_data, teams)
+    for (platform, platform_league_id), group_entries in groups.items():
+        league = leagues_by_key.get((platform, platform_league_id))
+        if league is not None:
+            years_data = repository_for(league).draft_years()
+            league_teams = league.format.teams
+        else:
+            # Unregistered/legacy league (or the default Yahoo league, which
+            # historically read draft_history directly rather than through
+            # the repository) -- fall back to the global loader + passed teams.
+            years_data = load_draft_years()
+            league_teams = teams
+        resolved += _resolve_keeper_forecasts(group_entries, years_data)
+        resolved += _resolve_qb_adjustments(group_entries, years_data, league_teams)
 
     save_outcomes(outcomes)
 
