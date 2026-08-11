@@ -398,6 +398,7 @@ def select_best_keepers(
     league_format: Optional[LeagueFormat] = None,
     preferred_keeper_names: Optional[List[str]] = None,
     excluded_keeper_names: Optional[List[str]] = None,
+    stop_auto_fill: bool = False,
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     excluded_set = {_normalize_name(name) for name in (excluded_keeper_names or [])}
 
@@ -460,8 +461,13 @@ def select_best_keepers(
         chosen.extend(preferred_matches[:remaining_slots])
         remaining_slots = max(0, remaining_slots - len(preferred_matches))
 
-    # Fill remaining slots from eligible (auto-selected)
-    if remaining_slots > 0:
+    # Fill remaining slots from eligible (auto-selected) -- unless the user has
+    # started manually curating this team's keepers (stop_auto_fill), in which
+    # case an unfilled slot stays unfilled rather than silently grabbing the
+    # next-best-ranked player nobody asked for. 0 or 1 kept is a valid, stable
+    # end state once a human is in the loop; only the fully-automatic forecast
+    # (nobody's touched this team yet) always fills every slot.
+    if remaining_slots > 0 and not stop_auto_fill:
         auto_selected = [
             item for item in eligible
             if item.get('playerId') not in {c.get('playerId') for c in chosen}
@@ -546,10 +552,19 @@ def league_keeper_board(
         # User marks (keeper_prefs_override) beat the config-file prefs for a team.
         preferred_names = (keeper_prefs_override or {}).get(team_name) or keeper_prefs.get(team_name)
         excluded_names = (keeper_excludes_override or {}).get(team_name)
+        # A user override (include or exclude -- the DB-backed marks, not the
+        # config-file fallback) means a human is actively curating this team's
+        # keepers, so stop silently auto-filling unmarked slots for them; the
+        # config-file preferred_keeper_names alone (no live override) still
+        # gets full auto-fill, matching the existing forecast/export behavior.
+        stop_auto_fill = bool(
+            (keeper_prefs_override or {}).get(team_name) or (keeper_excludes_override or {}).get(team_name)
+        )
         chosen, alternates = select_best_keepers(
             insight, keeper_count=keeper_count, league_format=league_format,
             preferred_keeper_names=preferred_names,
             excluded_keeper_names=excluded_names,
+            stop_auto_fill=stop_auto_fill,
         )
         # Every keeper-eligible player regardless of exclude state, in the same
         # rank order select_best_keepers uses -- lets a UI build a fixed

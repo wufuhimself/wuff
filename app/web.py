@@ -715,6 +715,7 @@ def _keeper_board_state(
     return {
         'repo': repo,
         'league_format': league_format,
+        'keeper_count': resolved_keeper_count,
         'per_team': per_team,
         'remaining_board': remaining_board,
         'keeper_forecasts': keeper_forecasts,
@@ -855,8 +856,29 @@ def keeper_mark():
     was_auto_chosen = bool(team_entry) and any(
         _normalize_name(c.get('playerName', '')) == _normalize_name(player) for c in team_entry['chosen']
     )
+    chosen_count = len(team_entry['chosen']) if team_entry else 0
+
+    if checked and not was_auto_chosen and chosen_count >= state_before['keeper_count']:
+        return {'error': f"{team} already has {state_before['keeper_count']} keepers -- drop one first."}, 409
+
+    already_has_marks = bool(
+        (state_before['include_marks'] or {}).get(team) or (state_before['exclude_marks'] or {}).get(team)
+    )
 
     with SessionLocal() as session:
+        # First time this team is touched: the algorithm's current auto-picks
+        # (other than the one being toggled right now) need to become real
+        # `include` rows, not just implied by "nobody's excluded them yet" --
+        # otherwise the next computation runs with stop_auto_fill=True and
+        # silently drops them (they were never auto-fill-eligible OR
+        # explicitly included, so they'd vanish instead of staying kept).
+        if not already_has_marks and team_entry:
+            for other in team_entry['chosen']:
+                if _normalize_name(other.get('playerName', '')) == _normalize_name(player):
+                    continue
+                session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
+                                       team_name=team, player_name=other['playerName'], action='include'))
+
         existing = (
             session.query(KeeperMark)
             .filter_by(platform=platform, platform_league_id=platform_league_id,

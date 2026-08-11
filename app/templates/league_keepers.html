@@ -59,25 +59,30 @@ document.addEventListener('click', function (event) {
     body: body.toString(),
   }).then(function (resp) {
     var ct = resp.headers.get('content-type') || '';
-    if (!resp.ok || ct.indexOf('application/json') === -1) {
+    if (ct.indexOf('application/json') === -1) {
       window.location.reload();
       return null;
     }
-    return resp.json();
-  }).then(function (data) {
-    if (!data) return;
-    if (data.error) { window.location.reload(); return; }
+    return resp.json().then(function (data) { return { ok: resp.ok, data: data }; });
+  }).then(function (result) {
+    if (!result) return;
+    if (!result.ok) {
+      alert(result.data && result.data.error ? result.data.error : 'That keeper change was rejected.');
+      btn.disabled = false;
+      return;
+    }
+    var data = result.data;
     var impact = document.getElementById('keeper-impact-grid');
     if (impact && data.impactHtml !== undefined) impact.innerHTML = data.impactHtml;
     var board = document.getElementById('draft-board-body');
     if (board && data.boardRowsHtml !== undefined) board.innerHTML = data.boardRowsHtml;
     var cards = document.getElementById('keeper-per-team-grid');
     if (cards && data.candidateCardsHtml !== undefined) cards.innerHTML = data.candidateCardsHtml;
+    // No re-enable of `btn` here on the success path -- it's replaced
+    // wholesale by the innerHTML swap above.
   }).catch(function () {
     window.location.reload();
   });
-  // No re-enable of `btn` here -- its team's card is inside one of the
-  // containers just replaced wholesale by the innerHTML swap above.
 });
 </script>
 {% endblock %}
