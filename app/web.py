@@ -7,6 +7,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 
 from . import espn_manager, sleeper_client
 from .auth import get_or_create_user, init_auth, login_manager
+from .board_service import bump_adjustment, clear_adjustment, clear_all_adjustments
 from .crypto import encrypt_value
 from .db import SessionLocal, init_db
 from .draft_analysis import (
@@ -153,7 +154,7 @@ def refresh_rankings():
 
 @app.route('/keepers-board')
 def keepers_board_view():
-    state = keeper_board_state()
+    state = keeper_board_state(user_id=current_user.id if current_user.is_authenticated else None)
     if state['error']:
         return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[],
                              error=state['error'], message=request.args.get('message', ''))
@@ -202,6 +203,8 @@ def keepers_board_view():
         keeper_forecasts=state['keeper_forecasts'], keeper_impact=state['keeper_impact'],
         my_team=my_team, team_names=team_names, error=None,
         keeper_marks=include_marks, message=request.args.get('message', ''),
+        can_adjust=current_user.is_authenticated,
+        has_adjustments=any(row.get('userOffset') for row in remaining_board),
     )
 
 
@@ -249,7 +252,10 @@ def keeper_mark():
         # click just does nothing instead of surfacing a warning.
         return {
             'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_before['keeper_impact']),
-            'boardRowsHtml': render_template('_partials/draft_board_rows.html', remaining_board=state_before['remaining_board']),
+            'boardRowsHtml': render_template('_partials/draft_board_rows.html',
+                                            remaining_board=state_before['remaining_board'],
+                                            league_slug=league_slug,
+                                            can_adjust=current_user.is_authenticated),
             'candidateCardsHtml': render_template(
                 '_partials/keeper_candidate_cards.html', per_team=state_before['per_team'],
                 league_slug=league_slug, keeper_count=state_before['keeper_count'],
@@ -301,12 +307,79 @@ def keeper_mark():
 
     return {
         'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_after['keeper_impact']),
-        'boardRowsHtml': render_template('_partials/draft_board_rows.html', remaining_board=state_after['remaining_board']),
+        'boardRowsHtml': render_template('_partials/draft_board_rows.html',
+                                        remaining_board=state_after['remaining_board'],
+                                        league_slug=league_slug,
+                                        can_adjust=current_user.is_authenticated),
         'candidateCardsHtml': render_template(
             '_partials/keeper_candidate_cards.html', per_team=state_after['per_team'],
             league_slug=league_slug, keeper_count=state_after['keeper_count'],
         ),
     }
+
+
+@app.route('/board/adjust', methods=['POST'])
+def board_adjust():
+    """Nudge one player up/down on the caller's own board, or reset them.
+
+    Per-user, so it needs a login -- unlike keeper marks, which are shared
+    per-league. `direction` is 'up'/'down' (by `spots`, default 1) or 'reset'.
+    Returns the re-rendered board rows so the client can patch in place."""
+    if not current_user.is_authenticated:
+        return {'error': 'Log in to keep your own board adjustments.'}, 401
+
+    player = request.form.get('player', '').strip()
+    direction = request.form.get('direction', '').strip()
+    league_slug = request.form.get('league_slug', '').strip()
+    try:
+        spots = max(1, min(50, int(request.form.get('spots', 1))))
+    except (TypeError, ValueError):
+        spots = 1
+
+    if not player or direction not in ('up', 'down', 'reset'):
+        return {'error': 'Missing player or direction.'}, 400
+
+    league = None
+    if league_slug:
+        league = resolve_league(league_slug)
+        if league is None:
+            return {'error': 'Unknown league.'}, 404
+
+    platform, platform_league_id = (
+        (league.platform, league.platform_league_id) if league is not None else _default_league_platform_ids()
+    )
+
+    if direction == 'reset':
+        clear_adjustment(current_user.id, platform, platform_league_id, player)
+    else:
+        bump_adjustment(current_user.id, platform, platform_league_id, player,
+                        spots if direction == 'up' else -spots)
+
+    state = keeper_board_state(league, include_file_prefs=league is None, user_id=current_user.id)
+    if state['error']:
+        return {'error': state['error']}, 409
+    return {
+        'boardRowsHtml': render_template('_partials/draft_board_rows.html',
+                                         remaining_board=state['remaining_board'],
+                                         league_slug=league_slug, can_adjust=True),
+    }
+
+
+@app.route('/board/reset', methods=['POST'])
+def board_reset():
+    """Drop every manual adjustment this user has on a league's board."""
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+    league_slug = request.form.get('league_slug', '').strip()
+    league = resolve_league(league_slug) if league_slug else None
+    platform, platform_league_id = (
+        (league.platform, league.platform_league_id) if league is not None else _default_league_platform_ids()
+    )
+    removed = clear_all_adjustments(current_user.id, platform, platform_league_id)
+    message = f'Reset {removed} board adjustment(s).' if removed else 'No board adjustments to reset.'
+    if league is not None:
+        return redirect(url_for('league_keepers', league_id=league.league_id, message=message))
+    return redirect(url_for('keepers_board_view', message=message))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -532,7 +605,8 @@ def league_keepers(league_id: str):
                                remaining_board=[], keeper_impact=[], keeper_marks={}, not_configured=True,
                                error=None, **ctx)
 
-    state = keeper_board_state(league, include_file_prefs=False)
+    state = keeper_board_state(league, include_file_prefs=False,
+                               user_id=current_user.id if current_user.is_authenticated else None)
     if state['error']:
         return render_template('league_keepers.html', active='league-keepers', per_team=[],
                                remaining_board=[], keeper_impact=[], keeper_marks={}, not_configured=False,
@@ -541,7 +615,10 @@ def league_keepers(league_id: str):
     return render_template('league_keepers.html', active='league-keepers', per_team=state['per_team'],
                            remaining_board=state['remaining_board'], keeper_impact=state['keeper_impact'],
                            keeper_count=state['keeper_count'], keeper_marks=state['include_marks'],
-                           not_configured=False, error=None, **ctx)
+                           not_configured=False, error=None,
+                           can_adjust=current_user.is_authenticated,
+                           has_adjustments=any(row.get('userOffset') for row in state['remaining_board']),
+                           message=request.args.get('message', ''), **ctx)
 
 
 @app.route('/league/<league_id>/draft-analysis')

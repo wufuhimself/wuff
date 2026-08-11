@@ -9,12 +9,14 @@ out of sync; see that function's docstring for the shape it returns.
 import re
 from typing import Optional
 
+from .board_service import apply_adjustments, load_adjustments
 from .db import SessionLocal
 from .league_context import load_league_format
 from .league_registry import get_league
 from .models import KeeperMark
 from .outcome_log import load_outcomes, log_outcome, save_outcomes
 from .paths import YAHOO_LEAGUE_ROSTERS_JSON
+from .ranking_history import annotate_with_movement
 from .repository import get_repository, repository_for
 from .standings import snake_draft_order
 from .strategy import league_keeper_board
@@ -273,12 +275,16 @@ def forecast_keeper_decisions(per_team, adp_map):
 
 
 def keeper_board_state(
-    league=None, *, keeper_count: Optional[int] = None, draft_years=None, include_file_prefs: bool = True,
+    league=None, *, keeper_count: Optional[int] = None, draft_years=None,
+    include_file_prefs: bool = True, user_id: Optional[int] = None,
 ) -> dict:
     """Compute the full keeper-board state for either the default Yahoo league
     (league=None) or a resolved League. Used by keepers_board_view(),
     league_keepers(), and keeper_mark() so the AJAX response and the full-page
     render can never drift out of sync.
+
+    user_id: applies that user's manual board offsets (app/board_service.py).
+    None (anonymous) shows the unmodified data-derived board.
 
     Returns {'error': str} if rosters/rankings aren't available yet, otherwise
     {'repo', 'league_format', 'per_team', 'remaining_board', 'keeper_forecasts',
@@ -315,6 +321,15 @@ def keeper_board_state(
         keeper_prefs_override=include_marks, keeper_excludes_override=exclude_marks,
         draft_years=resolved_draft_years, include_file_prefs=include_file_prefs,
     )
+
+    # Manual per-user offsets, then week-over-week movement -- both BEFORE the
+    # top-N truncation, so a player who's been nudged up 60 spots can actually
+    # reach the visible board.
+    adjustments = (
+        load_adjustments(user_id, platform, platform_league_id) if user_id else {}
+    )
+    remaining_board = apply_adjustments(remaining_board, adjustments)
+    remaining_board = annotate_with_movement(remaining_board)
     remaining_board = remaining_board[:100]
 
     adp_map = load_adp_map()

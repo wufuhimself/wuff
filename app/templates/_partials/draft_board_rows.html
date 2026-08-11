@@ -1,9 +1,34 @@
+{# Draft board rows. `can_adjust` gates the per-user arrows (login required);
+   trend/userOffset come from ranking_history + board_service. #}
 {% for row in remaining_board %}
-<tr>
-  <td class="number">{{ row.draftOrder }}</td>
+<tr{% if row.userOffset %} class="my-pick"{% endif %}>
+  <td class="number">
+    {{ row.draftOrder }}
+    {%- if row.userOffset %}<span class="pill" title="You moved this player {{ row.userOffset|abs }} spot(s) {{ 'up' if row.userOffset > 0 else 'down' }} from the board's {{ row.baseOrder }}">{{ '%+d'|format(row.userOffset) }}</span>{% endif %}
+  </td>
   <td class="playerName">{{ row.playerName }}</td>
   <td><span class="pill pos-{{ (row.position or '').lower() }}">{{ row.position }}</span></td>
   <td>{{ row.team or '' }}</td>
   <td class="number">{{ row.ranking }}</td>
+  <td class="number">
+    {%- if row.trend == 'up' %}<span title="Up {{ row.rankingDelta }} since {{ row.prevDate }}">▲ {{ row.rankingDelta }}</span>
+    {%- elif row.trend == 'down' %}<span title="Down {{ row.rankingDelta|abs }} since {{ row.prevDate }}">▼ {{ row.rankingDelta|abs }}</span>
+    {%- elif row.trend == 'new' %}<span class="status" title="Not on the previous board">new</span>
+    {%- elif row.trend == 'flat' %}<span class="status" title="Unchanged since {{ row.prevDate }}">–</span>
+    {%- endif %}
+    {%- if row.adpDelta %}<span class="status" title="ADP {{ row.prevAdp }} → {{ row.adp }}"> ({{ '%+.1f'|format(row.adpDelta) }} ADP)</span>{% endif %}
+  </td>
+  {% if can_adjust %}
+  <td class="number">
+    <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="up"
+            data-league-slug="{{ league_slug or '' }}" title="Move up one spot on your board">▲</button>
+    <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="down"
+            data-league-slug="{{ league_slug or '' }}" title="Move down one spot on your board">▼</button>
+    {%- if row.userOffset %}
+    <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="reset"
+            data-league-slug="{{ league_slug or '' }}" title="Reset this player to the board's ranking">↺</button>
+    {%- endif %}
+  </td>
+  {% endif %}
 </tr>
 {% endfor %}

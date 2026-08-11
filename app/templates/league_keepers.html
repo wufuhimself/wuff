@@ -33,8 +33,23 @@
 
       <section class="card">
         <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | length }}</span></h2>
-        <table class="table compact">
-          <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>NFL</th><th>Rank</th></tr></thead>
+        <span class="status">Movement is measured against the previous saved rankings snapshot.
+          {% if can_adjust %}Use ▲/▼ to move a player on <em>your</em> board — your nudge rides on
+          top of the data and survives the daily refresh.
+          {% else %}<a href="/login">Log in</a> to nudge players on your own copy of this board.{% endif %}</span>
+
+        {% if can_adjust and has_adjustments %}
+        <form method="POST" action="{{ url_for('board_reset') }}" style="margin-top: 0.75rem;">
+          <input type="hidden" name="league_slug" value="{{ league_slug }}">
+          <button class="button" type="submit">Reset all my adjustments</button>
+        </form>
+        {% endif %}
+
+        <table class="table compact" style="margin-top: 0.75rem;">
+          <thead><tr>
+            <th>#</th><th>Player</th><th>Pos</th><th>NFL</th><th>Rank</th><th>Trend</th>
+            {% if can_adjust %}<th>Mine</th>{% endif %}
+          </tr></thead>
           <tbody id="draft-board-body">
             {% include "_partials/draft_board_rows.html" %}
           </tbody>
@@ -80,6 +95,39 @@ document.addEventListener('click', function (event) {
     if (cards && data.candidateCardsHtml !== undefined) cards.innerHTML = data.candidateCardsHtml;
     // No re-enable of `btn` here on the success path -- it's replaced
     // wholesale by the innerHTML swap above.
+  }).catch(function () {
+    window.location.reload();
+  });
+});
+
+// Per-user board nudges (▲/▼/↺) -- one user's own opinion, unlike keeper
+// marks which are shared league state.
+document.addEventListener('click', function (event) {
+  var btn = event.target.closest && event.target.closest('.js-board-adjust');
+  if (!btn) return;
+  var body = new URLSearchParams({
+    player: btn.dataset.player,
+    direction: btn.dataset.direction,
+    league_slug: btn.dataset.leagueSlug || '',
+  });
+  btn.disabled = true;
+  fetch('/board/adjust', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+    body: body.toString(),
+  }).then(function (resp) {
+    var ct = resp.headers.get('content-type') || '';
+    if (ct.indexOf('application/json') === -1) { window.location.reload(); return null; }
+    return resp.json().then(function (data) { return { ok: resp.ok, data: data }; });
+  }).then(function (result) {
+    if (!result) return;
+    if (!result.ok) {
+      alert(result.data && result.data.error ? result.data.error : 'That board change was rejected.');
+      btn.disabled = false;
+      return;
+    }
+    var board = document.getElementById('draft-board-body');
+    if (board && result.data.boardRowsHtml !== undefined) board.innerHTML = result.data.boardRowsHtml;
   }).catch(function () {
     window.location.reload();
   });
