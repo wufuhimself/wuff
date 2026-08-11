@@ -6,9 +6,15 @@ from .paths import RANKINGS_COMBINED_FILE
 
 
 def _clean_player_name(raw_name: str) -> str:
-    """Remove 'Video Forecast' and extra whitespace."""
-    cleaned = re.sub(r'\s*Video Forecast\s*', '', raw_name).strip()
-    return cleaned
+    """Remove 'Video Forecast', the 'player Notes' link label Yahoo's pasted
+    text appends after (almost) every name, and an injury-status letter
+    (Q/O/D/IR/PUP/DTD/...) that sometimes sits between the name and that
+    label -- e.g. 'Zach Charbonnet Q player Notes' -> 'Zach Charbonnet'.
+    Left unstripped, both leak into playerName and break every downstream
+    rankings/ADP name match for that player."""
+    cleaned = re.sub(r'\s*Video Forecast\s*', '', raw_name)
+    cleaned = re.sub(r'\s+(?:Q|O|D|IR|PUP|DTD|SUSP)?\s*player Notes\s*$', '', cleaned)
+    return cleaned.strip()
 
 
 def _extract_nfl_team(player_name: str, rankings: List[Dict[str, Any]]) -> str:

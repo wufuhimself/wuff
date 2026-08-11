@@ -651,6 +651,11 @@ def _keeper_board_state(
     remaining_board = remaining_board[:100]
 
     adp_map = load_adp_map()
+    # Name-only lookup -- doesn't cover DEF (rosters use team nickname, e.g.
+    # "Broncos"; rankings use "Denver Defense") the way roster_keeper_insight's
+    # ranking already does via _find_ranking_for_player's team-code fallback.
+    # Only use this to fill in a ranking that isn't already set, never to
+    # clobber one insight already resolved correctly.
     rank_map = {r.get('playerName', '').lower(): r.get('ranking') for r in rankings}
     for team_entry in per_team:
         for chosen in team_entry.get('chosen', []):
@@ -658,10 +663,12 @@ def _keeper_board_state(
             if pos_rank:
                 chosen['posRank'] = f"{chosen.get('position', 'UNK')}{pos_rank}"
             enrich_with_adp([chosen], adp_map)
-            chosen['ranking'] = rank_map.get(chosen.get('playerName', '').lower())
+            if chosen.get('ranking') is None:
+                chosen['ranking'] = rank_map.get(chosen.get('playerName', '').lower())
         for alternate in team_entry.get('alternates', []):
             enrich_with_adp([alternate], adp_map)
-            alternate['ranking'] = rank_map.get(alternate.get('playerName', '').lower())
+            if alternate.get('ranking') is None:
+                alternate['ranking'] = rank_map.get(alternate.get('playerName', '').lower())
     for row in remaining_board:
         enrich_with_adp([row], adp_map)
 
@@ -682,7 +689,8 @@ def _keeper_board_state(
         pool = team_entry.get('eligiblePool', [])
         for player in pool:
             enrich_with_adp([player], adp_map)
-            player['ranking'] = rank_map.get(player.get('playerName', '').lower())
+            if player.get('ranking') is None:
+                player['ranking'] = rank_map.get(player.get('playerName', '').lower())
         team_entry['candidates'] = [
             {
                 **player,

@@ -92,7 +92,9 @@ def load_yahoo_rankings(path: Path = RANKINGS_FILE) -> List[Dict[str, Any]]:
         return []
 
 
-def _find_ranking_for_player(player_id: str, player_name: str, rankings: List[Dict[str, Any]]) -> Optional[int]:
+def _find_ranking_for_player(
+    player_id: str, player_name: str, rankings: List[Dict[str, Any]], player_team: Optional[str] = None,
+) -> Optional[int]:
     normalized_name = _normalize_name(player_name)
 
     for item in rankings:
@@ -100,6 +102,15 @@ def _find_ranking_for_player(player_id: str, player_name: str, rankings: List[Di
             return item.get('ranking')
         if normalized_name and _normalize_name(str(item.get('playerName', ''))) == normalized_name:
             return item.get('ranking')
+
+    # DEF entries have no shared naming convention between roster snapshots
+    # (team nickname, e.g. "Texans") and rankings sources (e.g. "Houston
+    # Defense") -- fall back to matching by NFL team code, which both sides
+    # do share, rather than leaving every DEF unranked.
+    if player_team and player_team != 'UNK':
+        for item in rankings:
+            if _normalize_position(str(item.get('position', ''))) == 'DEF' and item.get('team') == player_team:
+                return item.get('ranking')
     return None
 
 
@@ -185,6 +196,9 @@ def _league_history_round(keeper_round: Optional[int], league_format: LeagueForm
 
 
 def _build_position_ranks(rankings: List[Dict[str, Any]]) -> Dict[str, Dict[str, int | str]]:
+    """Keyed by normalized player name, plus a 'DEF:<team code>' key for each
+    defense (see _lookup_position_rank -- roster snapshots and rankings
+    sources don't share a DEF naming convention, only the NFL team code)."""
     counters: Dict[str, int] = {}
     lookup: Dict[str, Dict[str, int | str]] = {}
 
@@ -194,12 +208,26 @@ def _build_position_ranks(rankings: List[Dict[str, Any]]) -> Dict[str, Dict[str,
             continue
         position = _normalize_position(str(item.get('position', 'UNK')))
         counters[position] = counters.get(position, 0) + 1
-        lookup[_normalize_name(player_name)] = {
-            'position': position,
-            'positionRank': counters[position],
-        }
+        entry = {'position': position, 'positionRank': counters[position]}
+        lookup[_normalize_name(player_name)] = entry
+        if position == 'DEF':
+            team = item.get('team')
+            if team:
+                lookup[f'DEF:{team}'] = entry
 
     return lookup
+
+
+def _lookup_position_rank(
+    position_ranks: Dict[str, Dict[str, int | str]], player_name: str,
+    player_team: Optional[str] = None, player_position: Optional[str] = None,
+) -> Dict[str, int | str]:
+    info = position_ranks.get(_normalize_name(player_name))
+    if info is not None:
+        return info
+    if player_team and _normalize_position(player_position or '') == 'DEF':
+        return position_ranks.get(f'DEF:{player_team}', {})
+    return {}
 
 
 def _position_starter_cutoff(position: str, league_format: LeagueFormat) -> int:
@@ -318,7 +346,7 @@ def roster_keeper_insight(
     rankings_by_name = {_normalize_name(r.get('playerName', '')): r for r in rankings}
     insight = []
     for player in roster_players:
-        ranking = _find_ranking_for_player(player.playerId, player.playerName, rankings)
+        ranking = _find_ranking_for_player(player.playerId, player.playerName, rankings, player.team)
         player_team = player.team
         if player_team == 'UNK' and _normalize_name(player.playerName) in rankings_by_name:
             player_team = rankings_by_name[_normalize_name(player.playerName)].get('team', 'UNK')
@@ -326,7 +354,7 @@ def roster_keeper_insight(
         keeper_round = player.draftRound if player.draftRound is not None else _draft_history_round(player.playerName, draft_years)
         keeper_eligible, keeper_status = _resolve_keeper_status(player, league_format, draft_years)
         saved_rounds = None
-        position_rank_info = position_ranks.get(_normalize_name(player.playerName), {})
+        position_rank_info = _lookup_position_rank(position_ranks, player.playerName, player_team, player.position)
         normalized_position = _normalize_position(player.position)
         position_rank = position_rank_info.get('positionRank') if position_rank_info else None
         starter_cutoff = _position_starter_cutoff(normalized_position, league_format)
@@ -596,7 +624,9 @@ def league_keeper_board(
             for player in player_list:
                 player_name = str(player.get('playerName', ''))
                 position = _normalize_position(str(player.get('position', 'UNK')))
-                position_rank_info = position_ranks.get(_normalize_name(player_name), {})
+                position_rank_info = _lookup_position_rank(
+                    position_ranks, player_name, player.get('team'), position,
+                )
                 position_rank = position_rank_info.get('positionRank')
                 if position_rank:
                     player['posRank'] = f'{position}{position_rank}'
