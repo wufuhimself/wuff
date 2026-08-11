@@ -1,19 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Keepers — wuff{% endblock %}
 {% block content %}
-      {% if keeper_versions %}
-      <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #0066cc;">
-        <label for="keeper-version" style="font-size: 0.9rem; font-weight: 500; display: block; margin-bottom: 0.5rem;">Keeper Export Version</label>
-        <select id="keeper-version" name="version" style="padding: 0.5rem 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" onchange="window.location.href='?version=' + this.value">
-          {% for version in keeper_versions %}
-          <option value="{{ version.file }}" {% if version.file == selected_version %}selected{% endif %}>
-            {{ version.label }} ({{ version.method }})
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      {% endif %}
-
       {% if per_team %}
       <section class="card">
         <h2>Keeper impact by position</h2>
@@ -33,6 +20,19 @@
           {% include "_partials/keeper_candidate_cards.html" %}
         </div>
       </section>
+      {% endif %}
+
+      {% if keeper_versions %}
+      <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #0066cc;">
+        <label for="keeper-version" style="font-size: 0.9rem; font-weight: 500; display: block; margin-bottom: 0.5rem;">Keeper Export Version</label>
+        <select id="keeper-version" name="version" style="padding: 0.5rem 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" onchange="window.location.href='?version=' + this.value">
+          {% for version in keeper_versions %}
+          <option value="{{ version.file }}" {% if version.file == selected_version %}selected{% endif %}>
+            {{ version.label }} ({{ version.method }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
       {% endif %}
 
       {% if keeper_export_data %}
