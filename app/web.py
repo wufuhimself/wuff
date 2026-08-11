@@ -846,8 +846,8 @@ def _simulate_mock_draft(league=None) -> dict:
     """Run the mock draft for a league and group the picks for rendering.
 
     league=None is the default (Yahoo) league. Keepers come from live
-    keeper-board state (keeper_marks DB overrides + auto-fill), not the stale
-    keeper_predictions CSV, so the sim reflects whatever is checked right now.
+    keeper-board state (keeper_marks DB overrides + auto-fill), so the sim
+    reflects whatever is selected right now.
     Returns {'picks', 'picks_by_round', 'picks_by_team', 'error'}."""
     from .mock_draft import current_teams_from_keeper_board, run_mock_draft
 

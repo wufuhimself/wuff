@@ -62,40 +62,19 @@ def starter_slots_for(league_format: LeagueFormat) -> Dict[str, int]:
     return {pos: count for pos, count in slots.items() if count}
 
 
-def load_current_teams(filepath: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
-    """Load keeper predictions as canonical team source (CLI/CSV fallback path).
-    Returns {current_team_name: {manager, keeper1, keeper2}}
-    Prefer live_current_teams_from_keeper_board() when a Flask request context
-    is available -- this CSV is a stale, pre-/keepers-board snapshot format."""
-    if filepath is None:
-        filepath = PROCESSED_DIR / 'keeper_predictions_2026.csv'
-
-    if not filepath.exists():
-        return {}
-
-    teams = {}
-    with open(filepath, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            team = row.get('Team', '').strip()
-            if team:
-                teams[team] = {
-                    'manager': row.get('Manager', '').strip(),
-                    'keeper1': row.get('Keeper 1', '').strip(),
-                    'keeper2': row.get('Keeper 2', '').strip(),
-                }
-    return teams
-
-
 def current_teams_from_keeper_board(per_team: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
-    """Build the same {team_name: {manager, keeper1, keeper2}} shape
-    load_current_teams() returns from the CSV, but from live keeper-board
-    state (app.web._keeper_board_state()['per_team']) instead -- so the mock
-    draft reflects whatever is actually checked on /keepers-board right now,
-    not a one-time CSV export. keeper1/keeper2 only (mock_draft.py's keeper
-    slots are fixed at 2/team); manager is left blank since nothing downstream
-    reads it. A team with 0 or 1 chosen keepers just gets fewer keeper slots
-    filled -- simulate_draft() already tolerates empty keeper names."""
+    """Build {team_name: {manager, keeper1, keeper2}} from live keeper-board
+    state (keeper_service.keeper_board_state()['per_team']) -- so the mock
+    draft reflects whatever is actually selected on the keeper board right
+    now. This is the only source of teams/keepers for the simulator; the old
+    keeper_predictions_2026.csv path was removed 2026-08-11 once the
+    interactive board superseded it (the CSV was a July snapshot that had
+    already drifted out of sync with real selections).
+
+    keeper1/keeper2 only (mock_draft's keeper slots are 2/team); manager is
+    left blank since nothing downstream reads it. A team with 0 or 1 chosen
+    keepers just gets fewer keeper slots filled -- simulate_draft() already
+    tolerates empty keeper names."""
     teams = {}
     for entry in per_team:
         team_name = entry.get('team', '')
@@ -500,25 +479,23 @@ def simulate_draft(
 
 
 def run_mock_draft(
-    current_teams: Optional[Dict[str, Dict[str, str]]] = None,
+    current_teams: Dict[str, Dict[str, str]],
     repo: Optional[LeagueDataRepository] = None,
     league_format: Optional[LeagueFormat] = None,
 ) -> List[Dict[str, Any]]:
     """End-to-end: load data, simulate draft, return picks.
 
-    current_teams: {team_name: {manager, keeper1, keeper2}}. Defaults to the
-    stale keeper_predictions_2026.csv (load_current_teams()) for CLI/back-compat
-    use; the web route passes current_teams_from_keeper_board(...) built from
-    the live keeper-board state instead, so the sim reflects actual clicked
-    keeper picks rather than a one-time CSV export.
+    current_teams: {team_name: {manager, keeper1, keeper2}}, built by
+    current_teams_from_keeper_board() from live keeper-board state. Required
+    -- the old keeper_predictions_2026.csv default was removed 2026-08-11
+    because it silently simulated a stale July snapshot instead of the
+    league's real current selections.
 
-    repo/league_format default to the default league, so existing callers get
-    the original behavior; pass both to simulate any other registered league."""
+    repo/league_format default to the default league; pass both to simulate
+    any other registered league."""
     repo = repo if repo is not None else get_repository()
     league_format = league_format if league_format is not None else load_league_format()
 
-    if current_teams is None:
-        current_teams = load_current_teams()
     keeper_predictions = {team: [v['keeper1'], v['keeper2']] for team, v in current_teams.items()}
     rankings_lookup, rankings_all = load_adjusted_rankings()
     draft_order = build_draft_order(repo, league_format, current_teams=current_teams)
