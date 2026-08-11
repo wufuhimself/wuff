@@ -18,7 +18,7 @@ from statistics import mean, median
 from .draft_history import live_draft_picks
 from .repository import LeagueDataRepository, get_repository
 from .standings import current_team_names as get_current_team_names
-from .nfl_stats import load_rosters
+from .nfl_stats import fantasy_position_map
 
 
 @dataclass
@@ -159,12 +159,14 @@ def position_in_round_vs_final_rank(
 
     outcomes = []
 
-    # Pre-load rosters to resolve positions
+    # Pre-load position maps. fantasy_position_map (not a raw roster dict)
+    # breaks name collisions with defensive namesakes -- otherwise Josh Allen
+    # and Lamar Jackson show up here as phantom 'LB'/'DB' round-1 picks.
     rosters_by_year = {}
     for year in years:
-        rosters = load_rosters(year)
-        if rosters:
-            rosters_by_year[year] = rosters
+        position_map = fantasy_position_map(year)
+        if position_map:
+            rosters_by_year[year] = position_map
 
     for year in years:
         standings = repo.standings(year)
@@ -175,8 +177,8 @@ def position_in_round_vs_final_rank(
         if not picks:
             continue
 
-        rosters = rosters_by_year.get(year)
-        if not rosters:
+        position_map = rosters_by_year.get(year)
+        if not position_map:
             # No nflverse roster snapshot for this season -- can't resolve
             # positions, so skip the year. Silent: this is also called from a
             # web route, where printing to stdout is noise.
@@ -194,14 +196,6 @@ def position_in_round_vs_final_rank(
                 display_name = aliases.get(team, team)
                 standings_by_team[team] = rank
                 standings_by_team[display_name] = rank
-
-        # Build position map: player_name -> position (case-insensitive)
-        position_map = {}
-        for roster in rosters:
-            full_name = roster.get('full_name', '')
-            position = roster.get('position')
-            if full_name and position:
-                position_map[full_name.lower()] = position
 
         # Find picks in this round
         round_picks = [p for p in picks if p.get('round') == round_number]

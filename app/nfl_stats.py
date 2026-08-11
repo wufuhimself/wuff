@@ -124,6 +124,42 @@ def load_seasonal_stats(season: int, directory: Path = RAW_NFL_SEASONAL_STATS_DI
     return result
 
 
+# Positions a fantasy roster can actually hold. Used to break name collisions
+# between a fantasy-relevant player and a defensive namesake.
+FANTASY_POSITIONS = ('QB', 'RB', 'WR', 'TE', 'K')
+
+
+def fantasy_position_map(season: int, directory: Path = RAW_NFL_ROSTERS_DIR) -> Dict[str, str]:
+    """{lowercased_player_name: position} for a season, preferring fantasy-relevant
+    positions when a name is shared.
+
+    Build name->position maps with THIS, not a plain dict comprehension over
+    load_rosters(). Several fantasy stars share a name with a defensive player
+    -- Josh Allen (BUF QB / JAX LB), Lamar Jackson (BAL QB / CAR-ATL DB) -- and
+    a naive comprehension keeps whichever row happens to come last. That
+    silently mislabeled this league's round-1 rushing QBs as defenders, which
+    dropped them from the QB draft-slot targets and put phantom 'DB'/'LB' rows
+    in the round-1 draft analysis (found and fixed 2026-08-11).
+
+    Team defenses are NOT in nflverse rosters at all (they're individual-player
+    records), so DST never resolves through here -- that's a data limit, not a
+    bug to chase.
+    """
+    rosters = load_rosters(season, directory) or []
+    position_map: Dict[str, str] = {}
+    for row in rosters:
+        name = str(row.get('full_name', '')).strip().lower()
+        position = str(row.get('position', '') or '').strip().upper()
+        if not name or not position:
+            continue
+        existing = position_map.get(name)
+        # First writer wins unless the incumbent is a non-fantasy position and
+        # the challenger is a fantasy one.
+        if existing is None or (existing not in FANTASY_POSITIONS and position in FANTASY_POSITIONS):
+            position_map[name] = position
+    return position_map
+
+
 def load_qb_rushing_yards(season: int, directory: Path = RAW_NFL_SEASONAL_STATS_DIR) -> Dict[str, int]:
     """QB rushing yards for a season as {lowercased_player_name: rushing_yards}.
     Falls back to the previous season when the requested one isn't saved yet

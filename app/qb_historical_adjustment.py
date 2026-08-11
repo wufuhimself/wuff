@@ -17,7 +17,7 @@ from statistics import mean
 from typing import Any, Dict, List, Optional
 
 from .draft_history import load_draft_years, live_draft_picks
-from .nfl_stats import load_rosters
+from .nfl_stats import fantasy_position_map
 
 DEFAULT_TEAMS = 12
 DEFAULT_TOP_N = 7
@@ -40,16 +40,13 @@ def compute_historical_qb_pick_targets(
     picks_by_qb_rank: Dict[int, List[int]] = {}
 
     for year in candidate_years:
-        rosters = load_rosters(year)
-        if not rosters:
+        # Must be fantasy_position_map, not a plain dict over load_rosters():
+        # Josh Allen and Lamar Jackson each share a name with a defender, and a
+        # naive map labeled them DB/LB -- silently excluding this league's
+        # round-1 rushing QBs from its own QB draft-slot targets.
+        position_map = fantasy_position_map(year)
+        if not position_map:
             continue
-
-        position_map = {}
-        for roster in rosters:
-            name = roster.get('full_name', '')
-            position = roster.get('position')
-            if name and position:
-                position_map[name.strip().lower()] = position
 
         qb_picks = []
         for pick in live_draft_picks(year, years_data):
