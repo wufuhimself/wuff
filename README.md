@@ -37,7 +37,7 @@ hero he consults:
 |---|---|---|
 | 🔮 **The Oracle** | Keeper forecasting — who to keep, scored and ranked | `/keepers-board`, `/league/<slug>/keepers` |
 | 🛡️ **The Paladin** | Standings & rosters — keeps the realm's order straight | `/standings`, `/`, `/sleeper/<id>`, `/espn/<id>` |
-| ⚔️ **The General** | Mock draft — recruits allies, simulates the battle ahead | `/mock-draft` |
+| ⚔️ **The General** | Mock draft — recruits allies, simulates the battle ahead | `/mock-draft`, `/league/<slug>/mock-draft` |
 | 📜 **The Maester** | Draft history, draft order & draft-outcome analysis — keeper of records, past seasons on the shelf | `/draft-history`, `/draft-order`, `/draft-picks`, `/league/<slug>/draft-analysis` |
 | 📯 **The Herald** | Multi-league management — announces and onboards new realms | `/leagues`, `/my/leagues`, `/my/onboard`, `/sleeper` |
 | 🕰️ **The Augur** | Forecast accuracy tracking (no web page yet) | `app/outcome_log.py`, `resolve-outcomes` |
@@ -122,7 +122,8 @@ Run `make web` or `make web-debug` for hot-reload during development.
 - `/keepers-board` — 🔮 The Oracle: interactive keeper card picker for the Yahoo league (click to toggle kept)
 - `/league/<slug>/keepers` — 🔮 The Oracle, for any registered league
 - `/league/<slug>/draft-analysis` — 📜 The Maester: draft slot vs final rank, and position-by-round outcomes, for any registered league
-- `/mock-draft` — ⚔️ The General: full 15-round mock draft simulator (BPA + manager tendencies)
+- `/mock-draft` — ⚔️ The General: full mock draft simulator (BPA + manager tendencies)
+- `/league/<slug>/mock-draft` — ⚔️ The General, for any registered league (uses that league's own team/round counts and starter slots)
 - `/draft-history` — 📜 The Maester: historical draft results by year
 - `/standings` — 🛡️ The Paladin: league standings and performance
 - `/sleeper` — 📯 The Herald: Sleeper league list (6 leagues); `/sleeper/<league_id>` for standings/rosters/draft (🛡️ The Paladin)

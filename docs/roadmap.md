@@ -177,11 +177,24 @@ so it can't gate the second platform.
   + per-league subnav entry, with an empty state for leagues that don't yet
   have a season with BOTH draft results and final standings (that's the real
   gate on this analysis, not platform).
-- **Mock draft:** still to port. `app/mock_draft.py` reads
-  `RAW_STANDINGS_DIR`/`RAW_DRAFT_HISTORY_DIR` directly and has hardcoded
-  2025/2026 season constants plus `get_draft_order_2026*()` function names;
-  `run_mock_draft()` takes no league. Bigger job than draft analysis was —
-  budget for the manager-profile logic assuming Yahoo team names too.
+- ✅ **Mock draft per league** (2026-08-11): `run_mock_draft(repo=, league_format=)`;
+  team count, round count, keeper-slot rounds, starter slots and position
+  limits all come from `LeagueFormat` (which gained `draft_rounds` +
+  `total_draft_rounds`, inferred from `keeper_slot_rounds` when unset so
+  existing configs don't change). `get_draft_order_2026{,_with_trades}()`
+  collapsed into `build_draft_order(repo, league_format)`. Position limits
+  are *derived* from the league's own starter slots rather than a fixed
+  table — verified the derivation reproduces frank-gore's old table exactly.
+  Web: `/league/<slug>/mock-draft`; both mock-draft pages share
+  `_partials/mock_draft_results.html`, which reads rounds/pick numbers off
+  the picks instead of hardcoding `range(1,16)`/`*12`/`>=14`.
+  **Two real bugs fell out of diffing full simulator output against the
+  pre-change version** — worth repeating that technique on the next port:
+  traded picks were being silently ignored (parsed the raw file shape when
+  `repo.draft_picks()` returns a normalized one), and a `best_score = -1`
+  floor made picks vanish entirely when every candidate scored below it
+  (Yahoo's keeper rounds masked it; a Sleeper league produced 157 picks
+  instead of 180).
 - **Rankings sourcing (licensing-safe):**
   - (a) each user uploads their own CSV/PDF — current flow, zero legal risk,
     most friction; and
