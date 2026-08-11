@@ -1,9 +1,6 @@
-import csv
-import io
 import json
 import os
 from datetime import datetime
-from io import BytesIO
 from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
@@ -14,15 +11,13 @@ from .auth import get_or_create_user, init_auth
 from .crypto import encrypt_value
 from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
+from .free_rankings import refresh_free_rankings
 from .league_context import load_league_format
 from .league_registry import default_league_id, get_league, load_leagues
 from .league_service import resolve_league, save_league_rules
 from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
-from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON, PROCESSED_DIR
-from .rankings_csv import parse_rankings_csv
-from .rankings_pdf import parse_rankings_pdf
+from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON
 from .repository import get_repository, repository_for
-from .roster_store import load_roster, save_roster as persist_roster
 from .sleeper_manager import (
     load_sleeper_leagues_config,
     load_synced_drafts,
@@ -30,15 +25,8 @@ from .sleeper_manager import (
     load_synced_rosters,
 )
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
-from .strategy import (
-    _normalize_name,
-    league_keeper_board,
-    roster_keeper_insight,
-    save_yahoo_rankings,
-)
+from .strategy import _normalize_name, league_keeper_board
 from .sync_scheduler import ensure_scheduler_started, queue_league_sync
-from .token_store import get_valid_token
-from .yahoo_client import fetch_yahoo_rankings, fetch_yahoo_roster_players
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 # Dev fallback only — any deploy sets a real SECRET_KEY (docs/roadmap.md Phase 4).
@@ -99,20 +87,6 @@ def _inject_league_context():
     except (KeyError, OSError):
         name = 'My league'
     return {'default_league_name': name}
-
-
-def load_dashboard_state():
-    roster = load_roster()
-    rankings = get_repository().rankings()
-    league_format = load_league_format()
-    keeper_insight = roster_keeper_insight(roster, rankings, league_format=league_format) if roster and rankings else []
-
-    return {
-        'roster': roster,
-        'rankings_count': len(rankings),
-        'keeper_insight': keeper_insight,
-        'has_token': get_valid_token() is not None,
-    }
 
 
 def _structure_yahoo_roster(raw_players: list) -> tuple:
@@ -177,62 +151,20 @@ def index():
 
 @app.route('/actions/refresh-rankings', methods=['POST'])
 def refresh_rankings():
-    token = get_valid_token()
-    if token is None:
-        return redirect(url_for('index', message='No saved token found; run auth-server and token first.'))
-
-    rankings = fetch_yahoo_rankings(token.access_token)
-    save_yahoo_rankings(rankings)
-    return redirect(url_for('index', message=f'Saved {len(rankings)} Yahoo rankings.'))
-
-
-@app.route('/actions/import-rankings-csv', methods=['POST'])
-def import_rankings_csv():
-    uploaded_file = request.files.get('rankings_csv')
-    if uploaded_file is None or not uploaded_file.filename:
-        return redirect(url_for('index', message='Choose a CSV file to import rankings.'))
-
-    source = request.form.get('source', '').strip() or uploaded_file.filename.rsplit('.', 1)[0]
-
+    """Pull fresh PPR ADP/rankings (FFC market ADP + Sleeper depth tail --
+    Sleeper has no public ADP endpoint of its own, see free_rankings.py's
+    module docstring) and write them as the app's working rankings board.
+    Also runs automatically once a day via sync_scheduler; this is the
+    on-demand trigger, now on /keepers-board instead of the removed
+    /settings page."""
     try:
-        file_obj = io.StringIO(uploaded_file.stream.read().decode('utf-8-sig'))
-        rankings = parse_rankings_csv(file_obj, default_source=source)
-    except UnicodeDecodeError:
-        return redirect(url_for('index', message='Rankings CSV must be UTF-8 encoded.'))
-    except ValueError as exc:
-        return redirect(url_for('index', message=str(exc)))
-
-    save_yahoo_rankings(rankings)
-    return redirect(url_for('index', message=f'Imported {len(rankings)} rankings from CSV.'))
-
-
-@app.route('/actions/import-rankings-pdf', methods=['POST'])
-def import_rankings_pdf():
-    uploaded_file = request.files.get('rankings_pdf')
-    if uploaded_file is None or not uploaded_file.filename:
-        return redirect(url_for('index', message='Choose a PDF file to import rankings.'))
-
-    source = request.form.get('source', '').strip() or uploaded_file.filename.rsplit('.', 1)[0]
-
-    try:
-        file_obj = BytesIO(uploaded_file.stream.read())
-        rankings = parse_rankings_pdf(file_obj, default_source=source)
-    except ValueError as exc:
-        return redirect(url_for('index', message=str(exc)))
-
-    save_yahoo_rankings(rankings)
-    return redirect(url_for('index', message=f'Imported {len(rankings)} rankings from PDF.'))
-
-
-@app.route('/actions/save-roster', methods=['POST'])
-def save_roster():
-    token = get_valid_token()
-    if token is None:
-        return redirect(url_for('index', message='No saved token found; run auth-server and token first.'))
-
-    roster_players = fetch_yahoo_roster_players(token.access_token)
-    persist_roster([player.__dict__ for player in roster_players])
-    return redirect(url_for('index', message=f'Saved {len(roster_players)} roster players.'))
+        summary = refresh_free_rankings(scoring='ppr')
+    except (RuntimeError, ValueError) as exc:
+        return redirect(url_for('keepers_board_view', message=f'Rankings refresh failed: {exc}'))
+    return redirect(url_for('keepers_board_view', message=(
+        f"Refreshed {summary['total']} rankings ({summary['ffc']} FFC ADP, "
+        f"{summary['sleeperTail']} Sleeper depth)."
+    )))
 
 
 def team_pick_numbers(
@@ -267,153 +199,6 @@ def enrich_with_adp(player_list, adp_map):
     for player in player_list:
         player_name = normalize_player_name(player.get('playerName', ''))
         player['adp'] = adp_map.get(player_name)
-
-
-def list_keeper_exports():
-    """Auto-discover keeper export CSVs in keeper_exports/ directory."""
-    import re
-    exports_dir = PROCESSED_DIR / 'keeper_exports'
-    if not exports_dir.exists():
-        return []
-
-    versions = []
-    for csv_file in sorted(exports_dir.glob('keepers_*.csv'), reverse=True):
-        match = re.match(r'keepers_(\d{8})_([a-z0-9-]+)\.csv', csv_file.name, re.I)
-        if match:
-            date, method = match.groups()
-            versions.append({
-                'file': csv_file.name,
-                'date': date,
-                'method': method,
-                'label': f"{date[4:6]}/{date[6:8]} - {method}"
-            })
-
-    return versions
-
-
-def load_keeper_export(filename: str):
-    """Load keeper export CSV by filename. Returns dict of team -> list of dicts."""
-    exports_dir = PROCESSED_DIR / 'keeper_exports'
-    csv_path = exports_dir / filename
-
-    if not csv_path.exists():
-        return {}
-
-    keepers_by_team = {}
-    with open(csv_path, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            team = row.get('Team')
-            if team not in keepers_by_team:
-                keepers_by_team[team] = []
-            keepers_by_team[team].append(row)
-
-    return keepers_by_team
-
-
-def organize_keeper_export(keeper_export_data):
-    """Organize keeper export into structured format for template display.
-
-    Returns: dict of team -> {'keeper_1': row, 'keeper_2': row, 'alternates': [rows]}
-    """
-    organized = {}
-    for team, rows in keeper_export_data.items():
-        keeper_1 = None
-        keeper_2 = None
-        alternates = []
-
-        for row in rows:
-            status = row.get('Status', '')
-            if status == 'Keeper 1':
-                keeper_1 = row
-            elif status == 'Keeper 2':
-                keeper_2 = row
-            elif status.startswith('Alt'):
-                alternates.append(row)
-
-        organized[team] = {
-            'keeper_1': keeper_1,
-            'keeper_2': keeper_2,
-            'alternates': alternates,
-        }
-
-    return organized
-
-
-def forecast_from_keeper_export(keeper_export_data, rankings=None):
-    """Convert keeper export data into forecast format matching keeper_forecasts structure.
-
-    Args:
-        keeper_export_data: dict of {team: [row1, row2, ...]} from load_keeper_export
-                           Rows from keepers_YYYYMMDD_HHMM.csv with Status column (Keeper 1, Keeper 2, Alt 1, etc)
-        rankings: optional list of ranking dicts to look up positionRank
-    """
-    import re
-
-    # Build ranking lookup for position rank and ADP
-    rank_map = {}
-    adp_map = {}
-    if rankings:
-        for r in rankings:
-            name_key = r.get('playerName', '').lower()
-            rank_map[name_key] = r.get('posRank', '')
-            if r.get('adp'):
-                adp_map[name_key] = r.get('adp')
-
-    forecasts = []
-
-    for team, keeper_rows in sorted(keeper_export_data.items()):
-        if not keeper_rows:
-            continue
-
-        # Separate keepers from alternates based on Status column
-        keepers = []
-        alternates = []
-        for row in keeper_rows:
-            status = row.get('Status', '').lower()
-            player_name = row.get('PlayerName', '')
-            position = row.get('Position', '?').upper()
-            ranking = row.get('Ranking')
-
-            # Extract position rank from ranking/posRank lookup
-            name_key = player_name.lower()
-            full_pos_rank = rank_map.get(name_key, '')
-            pos_rank_num = ''
-            if full_pos_rank:
-                match = re.search(r'(\d+)', str(full_pos_rank))
-                if match:
-                    pos_rank_num = match.group(1)
-
-            # Get ADP
-            adp = adp_map.get(name_key)
-            try:
-                if adp:
-                    adp = float(adp)
-            except (ValueError, TypeError):
-                adp = None
-
-            player_data = {
-                'playerName': player_name,
-                'position': position,
-                'rank': ranking,
-                'posRank': pos_rank_num,
-                'confidence': 'high',  # Export is authoritative
-                'reasoning': '',
-                'adp': adp,
-            }
-
-            if status.startswith('keeper'):
-                keepers.append(player_data)
-            elif status.startswith('alt'):
-                alternates.append(player_data)
-
-        forecasts.append({
-            'team': team,
-            'keepers': keepers,
-            'alternates': alternates,
-        })
-
-    return forecasts
 
 
 def calculate_keeper_impact(keeper_forecasts, league_format=None):  # pylint: disable=unused-argument
@@ -716,28 +501,16 @@ def _keeper_board_state(
 
 @app.route('/keepers-board')
 def keepers_board_view():
-    # Get available keeper export versions
-    keeper_versions = list_keeper_exports()
-    selected_version = request.args.get('version') or (keeper_versions[0]['file'] if keeper_versions else None)
-
-    # If keeper export available, load it instead of computing
-    keeper_export_data = None
-    if selected_version:
-        keeper_export_data = load_keeper_export(selected_version)
-
     state = _keeper_board_state()
     if state['error']:
         return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[],
-                             keeper_versions=keeper_versions, selected_version=selected_version,
-                             keeper_export_data=keeper_export_data, error=state['error'])
+                             error=state['error'], message=request.args.get('message', ''))
 
     repo = state['repo']
     league_format = state['league_format']
     per_team = state['per_team']
     remaining_board = state['remaining_board']
     include_marks = state['include_marks']
-    rankings = repo.rankings()
-    adp_map = load_adp_map()
 
     teams = league_format.teams if league_format else 12
     live_rounds = 13
@@ -771,40 +544,12 @@ def keepers_board_view():
         row['isMyPick'] = row.get('draftOrder') in my_picks
         row['round'] = ((row.get('draftOrder', 1) - 1) // teams) + 1
 
-    # Use export-derived forecast if keeper export is loaded, otherwise use the computed state.
-    organized_keeper_data = None
-    if keeper_export_data:
-        keeper_forecasts = forecast_from_keeper_export(keeper_export_data, rankings=rankings)
-        organized_keeper_data = organize_keeper_export(keeper_export_data)
-        # Enrich keeper data with ADP as fallback (if available)
-        for team_data in organized_keeper_data.values():
-            for player_dict in [team_data.get('keeper_1'), team_data.get('keeper_2')] + team_data.get('alternates', []):
-                if player_dict:
-                    player_name = player_dict.get('PlayerName', '').lower()
-                    if player_name in adp_map:
-                        player_dict['ADP'] = adp_map[player_name]
-        # Also enrich keeper forecasts with ADP
-        for forecast in keeper_forecasts:
-            for keeper in forecast.get('keepers', []):
-                player_name = keeper.get('playerName', '').lower()
-                if player_name in adp_map:
-                    keeper['adp'] = adp_map[player_name]
-            for alt in forecast.get('alternates', []):
-                player_name = alt.get('playerName', '').lower()
-                if player_name in adp_map:
-                    alt['adp'] = adp_map[player_name]
-        keeper_impact = calculate_keeper_impact(keeper_forecasts, league_format=league_format)
-    else:
-        keeper_forecasts = state['keeper_forecasts']
-        keeper_impact = state['keeper_impact']
-
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
         remaining_board=remaining_board, keeper_count=state['keeper_count'],
-        keeper_forecasts=keeper_forecasts, keeper_impact=keeper_impact,
+        keeper_forecasts=state['keeper_forecasts'], keeper_impact=state['keeper_impact'],
         my_team=my_team, team_names=team_names, error=None,
-        keeper_versions=keeper_versions, selected_version=selected_version,
-        keeper_export_data=organized_keeper_data, keeper_marks=include_marks,
+        keeper_marks=include_marks, message=request.args.get('message', ''),
     )
 
 
@@ -908,12 +653,6 @@ def keeper_mark():
             league_slug=league_slug, keeper_count=state_after['keeper_count'],
         ),
     }
-
-
-@app.route('/settings')
-def settings():
-    state = load_dashboard_state()
-    return render_template('settings.html', active='settings', **state)
 
 
 @app.route('/login', methods=['GET', 'POST'])

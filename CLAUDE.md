@@ -21,7 +21,7 @@ Key files:
 - `app/league_registry.py` — League dataclass + registry loaders (`get_league`, `load_leagues`); keeper round rules now live on `LeagueFormat` (`keeper_ineligible_rounds`, `keeper_slot_rounds`, `keeper_slots`), not hardcoded in strategy.py
 - `app/repository.py` — league-scoped data access seam: `get_repository(league_id)` serves rosters/draft history/standings/rankings for any registered league (Yahoo files or Sleeper snapshots behind one interface); web.py reads go through it, never direct JSON paths
 - `app/db.py` + `app/models.py` + `app/auth.py` — multi-user state (Phase 1): SQLite via SQLAlchemy (`data/wuff.db`, gitignored; `DATABASE_URL` overrides), tables users/leagues/user_leagues/sync_runs/keeper_marks, Flask-Login with a dev email-only login (no verification — must be replaced before public deploy). Web: `/login`, `/my/leagues`, `/my/onboard` (Sleeper username → discover → import + sync)
-- Keeper marking (2026-08-10): logged-in users click ☆/★ on `/keepers-board` forecast cards to mark a team's keeper (`keeper_marks` table); marks override computed picks via `league_keeper_board(keeper_prefs_override=...)` and marked players drop off the draft board. Site chrome is branded "wuff" (league name lives in the league subnav, not the header)
+- Interactive keeper selection (2026-08-10, reworked 2026-08-11): `/keepers-board` (Yahoo) and `/league/<slug>/keepers` (any league) show every keeper-eligible player per team as a clickable card — click toggles kept/not-kept (thick border = kept), no login required, updates live via AJAX (no page reload). `keeper_marks` table stores per-league include/exclude overrides; `select_best_keepers()`'s `stop_auto_fill` flag stops auto-picking once a team has any live override, so 0..keeper_count kept per team are all valid end states, not just "always exactly keeper_count." See `WS-3-keeper/Keeper_Card_Interaction_Pattern.md` in the Obsidian vault for the full interaction rules before changing this UI. Site chrome is branded "wuff" (league name lives in the league subnav, not the header)
 - ESPN import, beta (2026-08-10): `app/espn_client.py` + `app/espn_manager.py` sync ESPN leagues into the same snapshot shapes as Sleeper (`data/raw/espn/{id}/`); onboarding at `/my/onboard` (league ID; private leagues paste espn_s2/SWID, encrypted via `app/crypto.py` — set `WUFF_ENCRYPTION_KEY` in prod); views at `/espn/<id>` via the shared `league_snapshot.html`; background sweep re-syncs with stored credentials. Unofficial API — mock-validated only until a real ESPN league is imported
 - Per-league keeper engine (Phase 3, 2026-08-10): `/league/<slug>/keepers` + `/league/<slug>/settings` work for any league — rules stored in `DbLeague.rules_json`, resolved by `app/league_service.resolve_league()` (DB rules merged over registry format); `league_keeper_board()` takes `draft_years`/`include_file_prefs`/`keeper_prefs_override` so nothing reads frank-gore globals; keeper cap 0 = no cap (dynasty). Keeper marks are per-league (platform + platform_league_id)
 - `app/sync_scheduler.py` + `app/rate_limit.py` — background Sleeper sync (APScheduler in-process, lazy-started on first web request, `WUFF_DISABLE_SCHEDULER=1` to turn off) + global API rate budget enforced in `sleeper_client._get` (`SLEEPER_MAX_CALLS_PER_MIN`, default 600). Sync attempts audit to `sync_runs`
@@ -29,69 +29,31 @@ Key files:
 - `data/raw/rankings/rankings_combined.json` — combined multi-source rankings (created via combine-rankings)
 - `data/raw/draft_history/{year}.json` — past draft results, one file per season
 - `data/raw/draft_picks/{year}.json` — pick ownership by round for a draft year
-- `data/processed/keeper_exports/` — timestamped keeper recommendation CSVs (source for keeper board)
-- `data/processed/keeper_board.html` — interactive keeper board viewer (load in browser)
-- `scripts/sync_keeper_board.js` — auto-syncs keeper exports to keeper board HTML
 - `app/strategy.py` — keeper eligibility/selection logic
 
-## Keeper-picking agent (autonomous recommendations)
+## Keeper-picking agent (autonomous recommendations, CLI-only now)
 
-Autonomous keeper agent recommends best 2 keepers for each team, ranks remaining draft board, tracks changes across roster snapshots.
+Autonomous keeper agent recommends best 2 keepers for each team, ranks remaining draft board. As of 2026-08-11 this is a **CLI-only, not-yet-public** workflow — the web app's keeper selection lives entirely on `/keepers-board` / `/league/<slug>/keepers` (interactive cards, see above), which supersedes explaining picks to this CSV export flow for day-to-day use. This CLI path is being kept around to revisit/polish later, not deleted, but has no web page consuming its output right now (the `/keepers-board` CSV-version dropdown + `keeper_exports/` directory + `scripts/sync_keeper_board.js` were all removed 2026-08-11 as unused).
 
 **Workflow:**
 1. Update rosters: `python -m app parse-rosters`
    - Paste raw Yahoo Fantasy text (copy-pasted from browser)
-   - Parser normalizes names, looks up NFL teams from rankings
+   - Parser normalizes names (strips Yahoo's "player Notes" link-label artifact and any injury-status letter before it), looks up NFL teams from rankings
    - Shows preview, asks to confirm save to `yahoo_league_rosters.json`
 2. Export keeper recommendations: `python -m app keepers-board-export`
    - Reads current rosters + combined rankings
    - Applies league rules (round 1/2 ineligible, 2-consecutive-season cap)
    - Scores eligible players: rank-first, VOR/keeper-years-remaining as tiebreaks
-   - Outputs two CSVs (timestamped for snapshots):
+   - Outputs two CSVs (timestamped for snapshots) to `data/processed/keeper_exports/`:
      - `keepers_YYYYMMDD_HHMM.csv` — per-team picks + alternates
      - `draft_board_YYYYMMDD_HHMM.csv` — remaining board, ranked for draft prep
-3. Compare snapshots: review timestamped CSVs to see how recommendations shifted as rosters changed
+3. Compare snapshots: review timestamped CSVs directly (no web viewer currently) to see how recommendations shifted as rosters changed
 
 **Keeper scoring logic:**
 - Primary: overall ranking (market consensus)
 - Tiebreak 1: value over replacement rounds (positional scarcity for this league's roster shape)
 - Tiebreak 2: keeper years remaining (players with multi-year runway preferred)
 - Never: rank-based QB bypass (non-rushing QBs stay lower than WR2/WR3 tier even if ranked higher)
-
-### Keeper board versioning (CSV-driven)
-
-Keeper recommendations are exported as timestamped CSVs in `data/processed/keeper_exports/`. Export includes two files per snapshot: keeper picks + alternates, and post-keepers draft board. Flask auto-discovers all CSVs and allows comparing recommendations across roster snapshots.
-
-**Keepers CSV format:** `keepers_YYYYMMDD_HHMM.csv`
-- **Columns:** Team, PlayerName, Position, Ranking, Status, KeeperYearsRemaining, ValueOverReplacementRounds
-- **Status:** `Keeper 1`, `Keeper 2`, `Alt 1`, `Alt 2`, or `Alt 3` (top 2 keepers + 3 alternates per team)
-- **Example row:** Team=Wuf, PlayerName=Josh Allen, Position=QB, Ranking=2, Status=Keeper 1, KeeperYearsRemaining=2, ValueOverReplacementRounds=3
-
-**Draft board CSV format:** `draft_board_YYYYMMDD_HHMM.csv`
-- **Columns:** DraftOrder, PlayerName, Position, Ranking, PosRank, Team
-- **DraftOrder:** pick number in full 15-round draft (1–180 for 12-team league)
-- **Contains:** all players ranked after keepers are removed from the board
-
-**Workflow:**
-1. Generate keeper export: `python3 -m app.cli keepers-board-export` → outputs two CSVs to `keeper_exports/`
-2. Visit `/keepers-board` route in Flask web app
-3. Dropdown auto-discovers all `keepers_*.csv` files, sorted newest-first by timestamp
-4. Select version to view keeper recommendations + draft board
-5. Compare snapshots across dates/rankings to see how recommendations changed
-
-**Why versioning matters:**
-- Rankings update (new sources added, old ones refreshed) → keepers change
-- Rosters shift (trades, roster moves) → eligibility changes → selections change
-- Historical snapshots let you forecast which keepers teams will actually keep
-- Multiple exports from same day (different ranking sources) show sensitivity to input data
-
-**Integration details (in `app/web.py`):**
-- `list_keeper_exports()` — scans keeper_exports/, parses filename for date/timestamp, returns sorted list
-- `load_keeper_export(filename)` — loads keeper CSV, groups rows by team (multiple rows per team: keepers + alternates)
-- `/keepers-board` route — queries `?version=` param, loads selected export, computes keeper impact analysis
-- Template shows version dropdown + keeper table + draft board view
-
-No manual sync needed; Flask auto-discovers CSVs on each page load.
 
 ## Multi-source rankings (2026)
 

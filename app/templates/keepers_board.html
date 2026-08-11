@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Keepers — wuff{% endblock %}
 {% block content %}
+      <section class="card">
+        <h2>Rankings</h2>
+        <span class="status">PPR ADP from FantasyFootballCalculator, extended with a Sleeper depth tail (Sleeper has no public ADP of its own). Feeds every ranking/rank badge on this page.</span>
+        <form action="/actions/refresh-rankings" method="post" style="margin-top: 0.75rem;">
+          <button class="button" type="submit">Refresh rankings</button>
+        </form>
+      </section>
+
       {% if per_team %}
       <section class="card">
         <h2>Keeper impact by position</h2>
@@ -18,70 +26,6 @@
 
         <div id="keeper-forecast-grid" class="team-grid-3" style="margin-top: 1rem;">
           {% include "_partials/keeper_candidate_cards.html" %}
-        </div>
-      </section>
-      {% endif %}
-
-      {% if keeper_versions %}
-      <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #0066cc;">
-        <label for="keeper-version" style="font-size: 0.9rem; font-weight: 500; display: block; margin-bottom: 0.5rem;">Keeper Export Version</label>
-        <select id="keeper-version" name="version" style="padding: 0.5rem 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" onchange="window.location.href='?version=' + this.value">
-          {% for version in keeper_versions %}
-          <option value="{{ version.file }}" {% if version.file == selected_version %}selected{% endif %}>
-            {{ version.label }} ({{ version.method }})
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      {% endif %}
-
-      {% if keeper_export_data %}
-      <section class="card">
-        <h2>Forecasted keepers ({{ selected_version }})</h2>
-        <span class="status">From keeper export {{ selected_version }}</span>
-        <div style="overflow-x: auto; margin-top: 1rem;">
-          <table class="table" style="font-size: 0.9rem;">
-            <thead>
-              <tr>
-                <th>Team</th>
-                <th>Keeper 1</th>
-                <th>Pos</th>
-                <th>Rank</th>
-                <th>ADP</th>
-                <th>Keeper 2</th>
-                <th>Pos</th>
-                <th>Rank</th>
-                <th>ADP</th>
-                <th>Alternates</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for team, team_data in keeper_export_data.items() %}
-              {% if team_data %}
-              <tr {% if team == 'Wuf' %}style="background: rgba(76, 175, 80, 0.1);"{% endif %}>
-                <td style="font-weight: 600;">{{ team }}</td>
-                {% if team_data.keeper_1 %}
-                  <td>{{ team_data.keeper_1['PlayerName'] or '—' }}</td>
-                  <td>{{ team_data.keeper_1['Position'] or '—' }}</td>
-                  <td style="text-align: right;">{{ team_data.keeper_1['Ranking'] or '—' }}</td>
-                  <td style="text-align: right;">{% if team_data.keeper_1.get('ADP') %}{{ "%.1f"|format(team_data.keeper_1['ADP']) }}{% else %}—{% endif %}</td>
-                {% else %}
-                  <td>—</td><td>—</td><td>—</td><td>—</td>
-                {% endif %}
-                {% if team_data.keeper_2 %}
-                  <td>{{ team_data.keeper_2['PlayerName'] or '—' }}</td>
-                  <td>{{ team_data.keeper_2['Position'] or '—' }}</td>
-                  <td style="text-align: right;">{{ team_data.keeper_2['Ranking'] or '—' }}</td>
-                  <td style="text-align: right;">{% if team_data.keeper_2.get('ADP') %}{{ "%.1f"|format(team_data.keeper_2['ADP']) }}{% else %}—{% endif %}</td>
-                {% else %}
-                  <td>—</td><td>—</td><td>—</td><td>—</td>
-                {% endif %}
-                <td>{% for alt in team_data.alternates[:2] %}{{ alt['PlayerName'] }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
-              </tr>
-              {% endif %}
-              {% endfor %}
-            </tbody>
-          </table>
         </div>
       </section>
       {% endif %}

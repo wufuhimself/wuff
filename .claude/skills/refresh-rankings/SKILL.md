@@ -60,14 +60,19 @@ for depth, with the historical QB adjustment applied automatically.
 # (pure market board), and adp_combined.json.
 python3 -m app refresh-free-rankings
 python3 -m app refresh-free-rankings --scoring half-ppr --teams 10
-
-# Regenerate the keeper board + draft board from these rankings
-python3 -m app keepers-board
-python3 -m app keepers-board-export
 ```
 
 The web app runs `refresh-free-rankings` automatically once a day via the
-background scheduler — the manual command is for immediate refreshes.
+background scheduler; there's also a "Refresh rankings" button directly on
+`/keepers-board` for an on-demand refresh (moved there 2026-08-11 when
+`/settings` — its old home — was removed as dead weight; the manual CLI
+command above still works the same for a terminal-only refresh).
+
+`keepers-board`/`keepers-board-export` (CSV snapshot export) still exist as
+CLI commands but their web consumer (the `/keepers-board` version dropdown
++ "Forecasted keepers" CSV table) was removed 2026-08-11 in favor of the
+live interactive card-based selection on that same page — running the
+export command no longer has anywhere in the web app to view the result.
 
 `apply-qb-adjustment` still exists for re-tuning the QB shift on an already
 saved board (`--top-n`, `--years` flags) but refresh-free-rankings already
