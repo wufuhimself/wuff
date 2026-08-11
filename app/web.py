@@ -694,16 +694,18 @@ def _keeper_board_state(
     keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
     keeper_impact = calculate_keeper_impact(keeper_forecasts, league_format=league_format)
 
-    # Fixed candidate pool per team for the clickable card UI: top N eligible
-    # players by rank, drawn from eligiblePool (every keeper-eligible player,
-    # unaffected by include/exclude state -- see league_keeper_board) so the
-    # same cards stay in place and in the same order no matter which ones are
-    # currently toggled kept. Only `chosen` membership (which DOES reflect
-    # excludes) decides each card's kept state.
-    candidate_pool_size = max(5, resolved_keeper_count)
+    # Fixed candidate pool per team for the clickable card UI: EVERY keeper-
+    # eligible player, drawn from eligiblePool (unaffected by include/exclude
+    # state -- see league_keeper_board) so the same cards stay in place and in
+    # the same order no matter which ones are currently toggled kept. Shows
+    # the whole roster, not just a top-N slice -- a manager might have a real
+    # reason to keep someone the ranking-driven algorithm wouldn't surface as
+    # a top pick, and that shouldn't be impossible to select just because
+    # they're not near the top of the board. Only `chosen` membership (which
+    # DOES reflect excludes) decides each card's kept state.
     for team_entry in per_team:
         chosen_ids = {c.get('playerId') for c in team_entry.get('chosen', [])}
-        pool = team_entry.get('eligiblePool', [])[:candidate_pool_size]
+        pool = team_entry.get('eligiblePool', [])
         for player in pool:
             enrich_with_adp([player], adp_map)
             player['ranking'] = rank_map.get(player.get('playerName', '').lower())

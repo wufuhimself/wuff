@@ -22,11 +22,11 @@
       </section>
 
       <section class="card">
-        <h2>Recommended keepers by team</h2>
-        <p class="status">Top eligible players per team, ranked by consensus market board with
-          this league's rules applied. Click a card to make them the keeper; click a kept card
-          (thick border) to drop them — updates below happen live.</p>
-        <div id="keeper-per-team-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); align-items: start; margin-top: 0.75rem;">
+        <h2>Keeper selection by team</h2>
+        <p class="status">Every keeper-eligible player per team, ranked by consensus market board
+          with this league's rules applied. Click a card to make them the keeper; click a kept
+          card (thick border) to drop them — updates below happen live.</p>
+        <div id="keeper-per-team-grid" class="team-grid-3" style="margin-top: 0.75rem;">
           {% include "_partials/keeper_candidate_cards.html" %}
         </div>
       </section>

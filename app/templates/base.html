@@ -96,6 +96,13 @@
         .grid-two { grid-template-columns: repeat(2, 1fr); }
         main { padding: 1.5rem; }
       }
+      .team-grid-3 { display: grid; gap: 1rem; align-items: start; grid-template-columns: 1fr; }
+      @media (min-width: 700px) {
+        .team-grid-3 { grid-template-columns: repeat(2, 1fr); }
+      }
+      @media (min-width: 1050px) {
+        .team-grid-3 { grid-template-columns: repeat(3, 1fr); }
+      }
     </style>
   </head>
   <body>

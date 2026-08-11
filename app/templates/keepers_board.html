@@ -76,10 +76,10 @@
       </section>
 
       <section class="card">
-        <h2>Keeper forecast by team</h2>
-        <span class="status">Top eligible players per team, ranked. Click a card to make them the keeper; click a kept card (thick border) to drop them — updates below happen live.</span>
+        <h2>Keeper selection by team</h2>
+        <span class="status">Every keeper-eligible player per team, ranked. Click a card to make them the keeper; click a kept card (thick border) to drop them — updates below happen live.</span>
 
-        <div id="keeper-forecast-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); align-items: start; margin-top: 1rem;">
+        <div id="keeper-forecast-grid" class="team-grid-3" style="margin-top: 1rem;">
           {% include "_partials/keeper_candidate_cards.html" %}
         </div>
       </section>
