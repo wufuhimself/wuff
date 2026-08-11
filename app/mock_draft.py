@@ -27,6 +27,20 @@ TOP_DEFENSES = {'SF', 'KC', 'BUF', 'DEN', 'BAL', 'TB'}  # Elite defenses worth d
 # 'DST' this module keys its limits/starter slots on.
 _DEF_ALIASES = {'DEF', 'DST', 'D/ST'}
 
+# How far into the draft before managers will touch these positions, as a
+# fraction of total rounds. Consensus boards rank defenses around the
+# 8th-round mark by raw value, but real managers deprioritize them well past
+# that -- without a floor the sim drafts a defense at its board rank and then
+# the rest cascade a round later on position need. Kickers go later still.
+_EARLIEST_ROUND_FRACTION = {'DST': 0.6, 'K': 0.8}
+
+
+def earliest_rounds_for(league_format: LeagueFormat) -> Dict[str, int]:
+    """First round each streamed position becomes draftable, for this league's
+    draft length (a 15-round draft: DST from round 9, K from round 12)."""
+    total = league_format.total_draft_rounds
+    return {pos: max(1, round(total * frac)) for pos, frac in _EARLIEST_ROUND_FRACTION.items()}
+
 # Bench depth allowed beyond a position's starter slots before the scoring
 # function starts penalizing more of it. Tuned against the frank-gore board;
 # they're roster-construction preferences, not league rules, so they stay
@@ -296,6 +310,7 @@ def score_pick(
     position_counts: Dict[str, int],
     position_limits: Dict[str, int],
     late_round_start: int,
+    earliest_rounds: Optional[Dict[str, int]] = None,
 ) -> float:
     """Score a player for this team/round. Higher = better pick.
 
@@ -357,6 +372,14 @@ def score_pick(
         # Key positions: soft penalty approaching limit
         position_penalty = -5
 
+    # Streamed positions (DST, K) are worth roughly their board rank on paper,
+    # but nobody actually spends a mid-round pick on them. Hold them out until
+    # the league is deep enough into the draft (see _EARLIEST_ROUND_FRACTION)
+    # rather than letting the board rank alone decide.
+    earliest = (earliest_rounds or {}).get(pos)
+    if earliest is not None and round_num < earliest:
+        position_penalty -= 200
+
     composite = rank_score + (pos_need * 2.0) + (team_pref * 3.0) + te_boost + def_boost + position_penalty
     return composite
 
@@ -380,6 +403,7 @@ def simulate_draft(
     keeper_rounds = league_format.keeper_slot_round_set
     position_limits = position_limits_for(league_format)
     starter_slots = starter_slots_for(league_format)
+    earliest_rounds = earliest_rounds_for(league_format)
     # "Late" defense-boost rounds: the final fifth of the draft, i.e. round 12
     # of 15 -- the value this was hardcoded to before the per-league port.
     late_round_start = max(1, (league_format.total_draft_rounds * 4) // 5)
@@ -467,6 +491,7 @@ def simulate_draft(
                 position_counts=position_counts[team],
                 position_limits=position_limits,
                 late_round_start=late_round_start,
+                earliest_rounds=earliest_rounds,
             )
 
             if score > best_score:
