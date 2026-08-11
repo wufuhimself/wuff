@@ -11,7 +11,6 @@ Position limits are derived from the league's own starter slots rather than
 being a fixed table -- a 3-WR superflex league and a 2-WR single-QB league
 should not draft to the same roster shape.
 """
-import json
 import csv
 import re
 from pathlib import Path
@@ -19,11 +18,14 @@ from typing import Any, Dict, List, Tuple, Optional
 from collections import defaultdict
 
 from .league_context import LeagueFormat, load_league_format
-from .paths import PROCESSED_DIR, RAW_RANKINGS_DIR
+from .paths import PROCESSED_DIR
 from .repository import LeagueDataRepository, get_repository
 
 SUPERFLEX_ELIGIBLE = {'QB'}
 TOP_DEFENSES = {'SF', 'KC', 'BUF', 'DEN', 'BAL', 'TB'}  # Elite defenses worth drafting
+# Team-defense position labels seen across ranking sources, normalized to the
+# 'DST' this module keys its limits/starter slots on.
+_DEF_ALIASES = {'DEF', 'DST', 'D/ST'}
 
 # Bench depth allowed beyond a position's starter slots before the scoring
 # function starts penalizing more of it. Tuned against the frank-gore board;
@@ -92,21 +94,36 @@ def current_teams_from_keeper_board(per_team: List[Dict[str, Any]]) -> Dict[str,
     return teams
 
 
-def load_adjusted_rankings(filepath: Optional[Path] = None) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
-    """Load adjusted rankings JSON. Returns (lookup_dict, rankings_list)."""
-    if filepath is None:
-        filepath = PROCESSED_DIR / 'rankings_adjusted.json'
+def rankings_for(repo: LeagueDataRepository) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
+    """This league's draft board as (lookup_by_lowercase_name, rankings_list).
 
-    if not filepath.exists():
-        filepath = RAW_RANKINGS_DIR / 'rankings_combined.json'
+    Comes from repo.rankings(), same as every other per-league tool -- the
+    Yahoo league gets its QB-historical-adjusted working board (refreshed
+    daily by the scheduler), Sleeper/ESPN leagues get the shared consensus
+    board.
 
-    if not filepath.exists():
-        raise FileNotFoundError(f'Rankings not found: {filepath}')
+    Replaced load_adjusted_rankings() on 2026-08-11, which preferred
+    data/processed/rankings_adjusted.json -- a snapshot built by the
+    superseded board_adjustments/QB-knockback method (see
+    qb_historical_adjustment.py's docstring). That file was months stale and
+    silently outranked the live board, so the simulator was drafting off
+    different rankings than the keeper board it takes its keepers from."""
+    rankings = repo.rankings()
+    if not rankings:
+        raise FileNotFoundError(
+            f"No rankings available for league '{repo.league.league_id}' -- "
+            'run `python3 -m app refresh-free-rankings` or sync the league first.')
 
-    with open(filepath, 'r', encoding='utf-8') as f:
-        rankings = json.load(f)
+    # Rankings sources spell team defenses 'DEF'; this module's position
+    # limits and starter slots have always used 'DST'. Normalize on the way
+    # in -- an unrecognized position silently gets no limit, which is how a
+    # 12-team league ended up drafting 15 defenses.
+    rankings = [
+        {**player, 'position': 'DST' if str(player.get('position', '')).upper() in _DEF_ALIASES
+                    else player.get('position')}
+        for player in rankings
+    ]
 
-    # Build lookup by player name (lowercase)
     lookup = {}
     for player in rankings:
         key = player.get('playerName', '').lower().strip()
@@ -327,6 +344,12 @@ def score_pick(
     elif pos_count >= pos_limit:
         # Team at or over limit: heavy penalty (discourages this position)
         position_penalty = -80 - (pos_count - pos_limit) * 30
+    elif pos_count == 0:
+        # None of this position rostered yet. The approaching-limit penalties
+        # below must never apply here: for a limit-1 position (DST) "one slot
+        # left" and "none owned" are the same count, and penalizing it meant a
+        # team never drafted its first defense at all.
+        position_penalty = 0
     elif pos_count == pos_limit - 1:
         # Team at limit-1: medium penalty (warns away from this position)
         position_penalty = -25
@@ -497,7 +520,7 @@ def run_mock_draft(
     league_format = league_format if league_format is not None else load_league_format()
 
     keeper_predictions = {team: [v['keeper1'], v['keeper2']] for team, v in current_teams.items()}
-    rankings_lookup, rankings_all = load_adjusted_rankings()
+    rankings_lookup, rankings_all = rankings_for(repo)
     draft_order = build_draft_order(repo, league_format, current_teams=current_teams)
     manager_profiles = build_manager_profiles(rankings_lookup, repo=repo)
 
