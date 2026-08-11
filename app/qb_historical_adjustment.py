@@ -3,9 +3,10 @@
 Standard draft-forecasting method (2026+): start from a straight PPR ranking file
 (not a superflex-inflated one), then nudge the top N QBs up to the overall pick
 where a QB of that rank has actually gone in this league's own draft history,
-instead of hand-tuning QB shifts by feel. Replaces the old
+instead of hand-tuning QB shifts by feel. Replaced the old
 board_adjustments.json / rankings_adjusted.json QB-knockback approach for the
-post-keeper draft board and keeper selection.
+post-keeper draft board and keeper selection; that path (app/ranking_adjustments.py
+and the adjust-rankings command) was deleted 2026-08-11.
 
 Targets are recomputed from data/raw/draft_history/{year}.json each run (via
 live_draft_picks, which already excludes the last-2-rounds keeper slots so kept

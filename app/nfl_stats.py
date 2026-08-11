@@ -124,6 +124,37 @@ def load_seasonal_stats(season: int, directory: Path = RAW_NFL_SEASONAL_STATS_DI
     return result
 
 
+def load_qb_rushing_yards(season: int, directory: Path = RAW_NFL_SEASONAL_STATS_DIR) -> Dict[str, int]:
+    """QB rushing yards for a season as {lowercased_player_name: rushing_yards}.
+    Falls back to the previous season when the requested one isn't saved yet
+    (back to 2020); {} if nothing is available.
+
+    This is the only rushing-production lookup in the codebase, and it's here
+    because this league pays a real round-1 premium for RUSHING quarterbacks
+    and treats pocket passers as replaceable -- see keeperRules.behavioralNotes
+    in data/config/league_rules.json, which currently calls that a manual
+    judgment override for want of exactly this data. Kept when the
+    ranking_adjustments module it used to live in was deleted (2026-08-11),
+    so automating that premium doesn't start from scratch."""
+    stats = load_seasonal_stats(season, directory)
+    if not stats:
+        return load_qb_rushing_yards(season - 1, directory) if season > 2020 else {}
+
+    qb_rushing: Dict[str, int] = {}
+    for row in stats:
+        if row.get('position') != 'QB':
+            continue
+        name = str(row.get('player_display_name') or row.get('player_name') or '').strip().lower()
+        rushing_yards = row.get('rushing_yards')
+        if not name or rushing_yards is None:
+            continue
+        try:
+            qb_rushing[name] = int(float(rushing_yards))
+        except (ValueError, TypeError):
+            continue
+    return qb_rushing
+
+
 def load_rosters(season: int, directory: Path = RAW_NFL_ROSTERS_DIR) -> Optional[List[Dict[str, Any]]]:
     """Load rosters for a season from CSV.
     Returns: list of dicts or None if file missing."""

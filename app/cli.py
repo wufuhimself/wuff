@@ -27,7 +27,6 @@ from .rankings_pdf import load_rankings_pdf
 from .rankings_aggregator import aggregate_rankings, fetch_rankings_from_site
 from .rankings_manager import combine_and_save_all as combine_rankings_all, normalize_player_id
 from .qb_historical_adjustment import apply_qb_historical_adjustment, compute_historical_qb_pick_targets, DEFAULT_TOP_N
-from .ranking_adjustments import adjust_and_export as adjust_rankings
 from .keeper_history import (
     save_keeper_history,
     load_keeper_history,
@@ -293,14 +292,6 @@ def parse_args() -> argparse.Namespace:
         help='Draft year this forecast is for, used for the outcome log (default: one past the latest draft_history year)'
     )
     qb_adjust_parser.add_argument('--no-log-outcome', action='store_true', help='Skip logging this forecast to the outcome log')
-
-    adjust_rankings_parser = subparsers.add_parser(
-        'adjust-rankings',
-        help='Apply rule-based adjustments to combined rankings (e.g., QB rushing thresholds)',
-    )
-    adjust_rankings_parser.add_argument('--config', default=None,
-        help='Path to board_adjustments.json config file (default: data/config/board_adjustments.json)'
-    )
 
     subparsers.add_parser('extract-keeper-history', help='Extract historical keeper selections from draft history (2020-2025)')
 
@@ -1309,17 +1300,6 @@ def _cmd_combine_rankings(args) -> None:
 
 
 
-def _cmd_adjust_rankings(args) -> None:
-    try:
-        config_path = Path(args.config) if args.config else None
-        json_path, csv_path = adjust_rankings(config_path)
-        print(f'Adjusted rankings saved to {json_path}')
-        print(f'Comparison CSV saved to {csv_path}')
-    except Exception as e:
-        print(f'Error adjusting rankings: {e}', file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
 
 
 
@@ -1720,7 +1700,6 @@ _COMMAND_HANDLERS = {
     'draft-slot-outcomes': _cmd_draft_slot_outcomes,
     'position-round-outcomes': _cmd_position_round_outcomes,
     'combine-rankings': _cmd_combine_rankings,
-    'adjust-rankings': _cmd_adjust_rankings,
     'extract-keeper-history': _cmd_extract_keeper_history,
     'manager-keeper-history': _cmd_manager_keeper_history,
     'keeper-strategy': _cmd_keeper_strategy,

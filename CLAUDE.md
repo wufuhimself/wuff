@@ -22,7 +22,7 @@ Key files:
 - `app/repository.py` — league-scoped data access seam: `get_repository(league_id)` serves rosters/draft history/standings/rankings for any registered league (Yahoo files or Sleeper snapshots behind one interface); web.py reads go through it, never direct JSON paths
 - `app/roster_player.py` (2026-08-11 refactor) — `RosterPlayer` dataclass, the platform-neutral roster-player shape `strategy.py`'s keeper engine builds from any platform's repository dict. Moved out of `app/yahoo_client.py` (was `YahooRosterPlayer`, misleadingly Yahoo-branded even though `league_keeper_board()` uses it for Sleeper/ESPN too); `yahoo_client.YahooRosterPlayer` is kept as an alias for the genuinely-Yahoo-only call sites (`roster_store.py`, `mcp_client.py`, `cli.py`)
 - `app/keeper_service.py` (2026-08-11 refactor) — keeper-board business logic pulled out of `web.py`: `keeper_board_state()` (single source of truth both the full-page render and the AJAX mark endpoint call), `forecast_keeper_decisions()`, `calculate_keeper_impact()`, `load_keeper_marks()`, ADP enrichment. `web.py` keeps route handlers only. Do the same pull-out-of-web.py check before porting mock draft per-league — same coupling pattern is likely still there
-- `app/mock_draft.py` — per-league since 2026-08-11: `run_mock_draft(current_teams, repo=, league_format=)`. Rankings come from `repo.rankings()` via `rankings_for(repo)` — **not** `data/processed/rankings_adjusted.json`, which is a stale artifact of the superseded QB-knockback method and must not be wired back in. Team defenses are normalized `DEF`→`DST` on the way in (`_DEF_ALIASES`); this module keys its limits on `DST` while ranking sources say `DEF`, and an unrecognized position silently gets no limit. DST/K have an earliest-draftable round (`earliest_rounds_for()`, 60%/80% into the draft) — consensus boards rank defenses around round 8 by raw value but real managers take them much later, so rank-driven BPA needs that floor or defenses cascade in the mid rounds. Team/round counts, keeper-slot rounds, starter slots and position limits all come from `LeagueFormat` (`total_draft_rounds` infers from `keeper_slot_rounds` when `draft_rounds` is unset). Position limits are derived from the league's starters (`position_limits_for()`), not a fixed table. Draft order: `build_draft_order(repo, league_format)` — the old `get_draft_order_2026*()` names are gone. Web: `/mock-draft` + `/league/<slug>/mock-draft`. **When changing the simulator, diff full output against the previous version** (`git stash` → run → compare) — the per-league port surfaced two silent-wrong-output bugs (ignored traded picks; a `best_score` floor that dropped picks) that raised no error
+- `app/mock_draft.py` — per-league since 2026-08-11: `run_mock_draft(current_teams, repo=, league_format=)`. Rankings come from `repo.rankings()` via `rankings_for(repo)` — **not** the leftover `data/processed/rankings_adjusted.json`, a dead artifact of the QB-knockback method deleted 2026-08-11; don't wire it back in. Team defenses are normalized `DEF`→`DST` on the way in (`_DEF_ALIASES`); this module keys its limits on `DST` while ranking sources say `DEF`, and an unrecognized position silently gets no limit. DST/K have an earliest-draftable round (`earliest_rounds_for()`, 60%/80% into the draft) — consensus boards rank defenses around round 8 by raw value but real managers take them much later, so rank-driven BPA needs that floor or defenses cascade in the mid rounds. Team/round counts, keeper-slot rounds, starter slots and position limits all come from `LeagueFormat` (`total_draft_rounds` infers from `keeper_slot_rounds` when `draft_rounds` is unset). Position limits are derived from the league's starters (`position_limits_for()`), not a fixed table. Draft order: `build_draft_order(repo, league_format)` — the old `get_draft_order_2026*()` names are gone. Web: `/mock-draft` + `/league/<slug>/mock-draft`. **When changing the simulator, diff full output against the previous version** (`git stash` → run → compare) — the per-league port surfaced two silent-wrong-output bugs (ignored traded picks; a `best_score` floor that dropped picks) that raised no error
 - `app/draft_analysis.py` — per-league since 2026-08-11: both entry points take an optional `repo` (`app/repository.py`) and read that league's own draft history + standings; omit it for the default league. CLI `draft-slot-outcomes` / `position-round-outcomes` take `--league <id>`; web page at `/league/<slug>/draft-analysis`. **This is the `--league` pattern to copy** for the remaining CLI analysis commands (Phase 0 leftover in docs/roadmap.md). Both analyses correlate against final standings, so a league shows nothing until it has a season with BOTH draft results and saved standings — empty state, not an error
 - `app/db.py` + `app/models.py` + `app/auth.py` — multi-user state (Phase 1): SQLite via SQLAlchemy (`data/wuff.db`, gitignored; `DATABASE_URL` overrides), tables users/leagues/user_leagues/sync_runs/keeper_marks, Flask-Login with a dev email-only login (no verification — must be replaced before public deploy). Web: `/login`, `/my/leagues`, `/my/onboard` (Sleeper username → discover → import + sync)
 - Interactive keeper selection (2026-08-10, reworked 2026-08-11): `/keepers-board` (Yahoo) and `/league/<slug>/keepers` (any league) show every keeper-eligible player per team as a clickable card — click toggles kept/not-kept (thick border = kept), no login required, updates live via AJAX (no page reload). `keeper_marks` table stores per-league include/exclude overrides; `select_best_keepers()`'s `stop_auto_fill` flag stops auto-picking once a team has any live override, so 0..keeper_count kept per team are all valid end states, not just "always exactly keeper_count." See `WS-3-keeper/Keeper_Card_Interaction_Pattern.md` in the Obsidian vault for the full interaction rules before changing this UI. Site chrome is branded "wuff" (league name lives in the league subnav, not the header)
@@ -84,16 +84,21 @@ Combines multiple ranking sources in any format (JSON/CSV/PDF) into a single nor
 - `save_combined_rankings()` — persist to JSON
 - `get_player_rank()` — lookup player's consensus rank
 
-### Superseded: `adjust-rankings` (CLI, output no longer consumed)
+### Removed: `adjust-rankings` / `ranking_adjustments.py` (2026-08-11)
 
-`python3 -m app adjust-rankings` (`app/ranking_adjustments.py`) applies the old
-hand-tuned `data/config/board_adjustments.json` QB-knockback and writes
-`data/processed/rankings_adjusted.json`. **As of 2026-08-11 nothing reads that
-output** — the mock draft was the last consumer and now uses `repo.rankings()`
-like everything else. The command and its files are kept (same as
-`keepers-board-export`), but treat `rankings_adjusted.json` as a dead artifact:
-don't wire it back into any board. The live standard is
-`refresh-free-rankings` + `qb_historical_adjustment.py`.
+The old hand-tuned QB-knockback path is **deleted**: the `adjust-rankings` CLI
+command, `app/ranking_adjustments.py`, and `data/config/board_adjustments.json`
+are gone. It had been superseded by `refresh-free-rankings` +
+`qb_historical_adjustment.py`, and its last consumer (the mock draft) moved to
+`repo.rankings()`. Leftover `data/processed/rankings_adjusted*.{json,csv}`
+files are gitignored and were left on disk — they are dead artifacts, don't
+wire them back into any board.
+
+One piece was kept: `load_qb_rushing_yards()` moved to `app/nfl_stats.py`. It's
+the only rushing-production lookup in the codebase, and
+`keeperRules.behavioralNotes` in `league_rules.json` calls this league's
+rushing-QB round-1 premium a manual judgment override *for want of exactly this
+data* — so it's the starting point if that ever gets automated.
 
 ### ADP import (`app/adp_manager.py`)
 
