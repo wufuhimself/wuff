@@ -28,6 +28,7 @@ import requests
 from .adp_manager import normalize_player_name, save_adp_json
 from .paths import RANKINGS_COMBINED_FILE, ensure_parent_dir
 from .qb_historical_adjustment import apply_qb_historical_adjustment, compute_historical_qb_pick_targets
+from .ranking_history import save_snapshot
 from .sleeper_manager import load_players_cache
 from .strategy import save_yahoo_rankings
 
@@ -143,6 +144,13 @@ def refresh_free_rankings(scoring: str = 'ppr', teams: int = 12, year: Optional[
         working_board = apply_qb_historical_adjustment(rankings, targets=targets)
         qb_adjusted = True
     save_yahoo_rankings(working_board)
+
+    # Dated snapshot for week-over-week movement. This file is the ONLY record
+    # that a player used to rank differently -- everything above overwrites in
+    # place -- so trend data starts accumulating from the first refresh after
+    # this shipped and cannot be backfilled. Snapshot the working board (the
+    # one the app actually sorts by), not the raw market board.
+    save_snapshot(working_board)
 
     ffc_count = sum(1 for entry in rankings if entry['source'] == 'ffc_adp')
     return {
