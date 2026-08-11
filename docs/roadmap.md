@@ -179,10 +179,21 @@ so it can't gate the second platform.
     nflverse data.
   - Launch with a + b. A licensing deal (FantasyPros partnership) only if the
     product gets real traction.
-- **Outcome log per league:** forecast-vs-actual tracking
-  (`app/outcome_log.py`) generalized per league. This is the differentiator —
-  "was the keeper advice right last year" is a story no dashboard product
-  tells.
+- ✅ **Outcome log per league** (2026-08-11): every entry in
+  `app/outcome_log.py` now carries `platform`/`platform_league_id` (same
+  convention as `KeeperMark`); `resolve_outcomes()` groups pending entries
+  by league and resolves each against that league's own `draft_years` via
+  `app/repository.py`, instead of one global Yahoo-only resolution pass.
+  Decision ids stay unscoped for the default Yahoo league (back-compat with
+  pre-existing entries); other leagues get a `{platform}-{platform_league_id}_`
+  prefix. The bigger gap this closed: the web keeper board never logged
+  anything before — only the CLI `keepers-board-export`/`apply-qb-adjustment`
+  paths wrote to the log. `app/keeper_service.py`'s `log_team_keeper_forecast()`
+  now logs the touched team's current keepers after every `/keepers-board/mark`
+  toggle, for whichever league the click was on. Still not done: nothing
+  *reads* the log back to adjust scoring yet (see README's "What's next") —
+  this slice is the write/resolve side generalized, not the learning loop
+  itself.
 
 ### Feature backlog (folded in from the earlier single-league roadmap)
 

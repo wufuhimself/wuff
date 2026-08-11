@@ -96,33 +96,52 @@ Saves normalized ADP to `data/raw/adp/adp_combined.json`.
 ## Outcome log (agent Learn pillar)
 
 Forecast-vs-actual tracking, so scoring-method accuracy can be measured over
-time instead of trusted on faith. Module: `app/outcome_log.py`.
+time instead of trusted on faith. Module: `app/outcome_log.py`. Per-league
+since 2026-08-11 (was Yahoo/global-only) — see below.
 
 **Write side (automatic):** `apply-qb-adjustment` and `keepers-board-export`
-log every forecast they produce to `data/processed/outcome_log.json` as a
-side effect — no separate step to remember. Each entry is tagged with a
-`forecast_method_version` string, so accuracy can later be compared across
-scoring-method changes (e.g. the QB historical adjustment standard that
-replaced the old superflex+hand-tuned approach).
+(CLI, Yahoo-only) log every forecast they produce to
+`data/processed/outcome_log.json` as a side effect — no separate step to
+remember. `app/keeper_service.py`'s `log_team_keeper_forecast()` does the
+same for the web keeper board (`/keepers-board/mark`, any league) after
+every click — this is the path that actually covers non-Yahoo leagues. Each
+entry is tagged with a `forecast_method_version` string, so accuracy can
+later be compared across scoring-method changes (e.g. the QB historical
+adjustment standard that replaced the old superflex+hand-tuned approach, or
+`web_keeper_board_v1` vs the CLI's `rank_first_vor_years_remaining_v1`).
+
+**Per-league scoping (2026-08-11):** every entry carries `platform` +
+`platform_league_id` (same convention as the `KeeperMark` table). The
+default Yahoo league (`platform='yahoo'`, id `'9410'`) keeps unscoped
+`decision_id`s for backward compatibility with pre-2026-08-11 entries; any
+other league gets a `{platform}-{platform_league_id}_` prefix so leagues
+never collide in the one shared log file.
 
 **Read/resolve side:** `python3 -m app resolve-outcomes` scans `pending`
-entries and matches them against `data/raw/draft_history/{season}.json` —
-keeper forecasts resolve against that season's keeper-slot picks (R14-15);
-QB-adjustment forecasts resolve against the live-draft pick number. Entries
-whose season hasn't drafted yet stay `pending`, not errored — safe to run
-anytime (e.g. right after a new `draft_history/{year}.json` file is added).
+entries, groups them by league, and resolves each group against that
+league's own `draft_years` via `app/repository.py` (a Sleeper/ESPN league
+resolves against its own synced draft, not Yahoo's `draft_history/` files;
+legacy/default-league entries still use the direct loader) — keeper
+forecasts resolve against that season's keeper-slot picks; QB-adjustment
+forecasts resolve against the live-draft pick number. Entries whose season
+hasn't drafted yet stay `pending`, not errored — safe to run anytime (e.g.
+right after a new `draft_history/{year}.json` file is added, or a league's
+draft gets synced).
 
 **Schema per entry:** `decision_id`, `decision_type` (`keeper_forecast` /
-`qb_adjustment`), `season`, `entity`, `team`, `forecast`,
-`forecast_method_version`, `forecasted_at`, `actual`, `resolved_at`, `delta`,
-`status` (`pending`/`resolved`). Re-forecasting the same
-(decision_type, season, entity) while still `pending` overwrites in place
-rather than piling up duplicates; `resolved` entries are left alone as
-historical record.
+`qb_adjustment`), `platform`, `platform_league_id`, `season`, `entity`,
+`team`, `forecast`, `forecast_method_version`, `forecasted_at`, `actual`,
+`resolved_at`, `delta`, `status` (`pending`/`resolved`). Re-forecasting the
+same (platform, platform_league_id, decision_type, season, entity) while
+still `pending` overwrites in place rather than piling up duplicates;
+`resolved` entries are left alone as historical record.
 
-**Not yet covered:** mock-draft-pick and draft-rank-vs-season-points
-resolution (needs nflverse season stats matching) — logging/resolution for
-those decision types is a follow-up, not yet wired in.
+**Not yet covered:** nothing reads the log back to actually adjust scoring
+yet (see README's "What's next" — that's the real Learn-pillar step this
+slice sets up but doesn't do). Also still open: mock-draft-pick and
+draft-rank-vs-season-points resolution (needs nflverse season stats
+matching) — logging/resolution for those decision types is a follow-up, not
+yet wired in.
 
 ## Sleeper integration (2026, readonly, separate from the Yahoo league above)
 
