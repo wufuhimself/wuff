@@ -6,8 +6,15 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from .config import config
+from .roster_player import RosterPlayer
 
 BASE_URL = 'https://fantasysports.yahooapis.com/fantasy/v2'
+
+# Back-compat alias: this type moved to roster_player.py since strategy.py's
+# keeper engine now builds it from any platform, not just Yahoo. Yahoo-only
+# call sites (roster_store.py, mcp_client.py, cli.py) still import it from
+# here under its original name.
+YahooRosterPlayer = RosterPlayer
 
 
 @dataclass
@@ -17,25 +24,6 @@ class YahooToken:
     expires_in: int
     token_type: str
     expires_at: int
-
-
-@dataclass
-class YahooRosterPlayer:  # pylint: disable=invalid-name
-    playerId: str
-    playerName: str
-    position: str
-    team: str
-    status: Optional[str] = None
-    selectedPosition: Optional[str] = None
-    eligibleSlots: Optional[List[str]] = None
-    draftRound: Optional[int] = None
-    draftPick: Optional[int] = None
-    draftSlot: Optional[int] = None
-    keeperEligibleOverride: Optional[bool] = None
-    keeperLockedOverride: Optional[bool] = None
-    marketRoundOverride: Optional[int] = None
-    valueNote: Optional[str] = None
-    keeperNote: Optional[str] = None
 
 
 @dataclass

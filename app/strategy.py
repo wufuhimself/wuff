@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .draft_history import consecutive_keeper_years, draft_round_for_player, load_draft_years
 from .league_context import LeagueFormat
 from .paths import YAHOO_RANKINGS_FILE, ensure_parent_dir
-from .yahoo_client import YahooRosterPlayer
+from .roster_player import RosterPlayer
 
 RANKINGS_FILE = YAHOO_RANKINGS_FILE
 
@@ -143,7 +143,7 @@ def _keeper_status(
 
 
 def _resolve_keeper_status(
-    player: YahooRosterPlayer,
+    player: RosterPlayer,
     league_format: LeagueFormat,
     years: Dict[int, List[dict]],
 ) -> tuple[Optional[bool], str]:
@@ -164,7 +164,7 @@ def _resolve_keeper_status(
 
 
 def _uses_non_standard_keeper_cost(
-    player: YahooRosterPlayer,
+    player: RosterPlayer,
     league_format: LeagueFormat,
     keeper_round: Optional[int] = None,
 ) -> bool:
@@ -172,7 +172,7 @@ def _uses_non_standard_keeper_cost(
     return bool(player.keeperEligibleOverride) and round_value in league_format.keeper_slot_round_set
 
 
-def _manual_market_note(player: YahooRosterPlayer) -> str:
+def _manual_market_note(player: RosterPlayer) -> str:
     if player.marketRoundOverride is None:
         return ''
     base = f'Manual market override: treat this player as roughly round {player.marketRoundOverride} in this league.'
@@ -334,7 +334,7 @@ def _format_context_note(position: str, position_rank: Optional[int], league_for
 
 
 def roster_keeper_insight(
-    roster_players: List[YahooRosterPlayer],
+    roster_players: List[RosterPlayer],
     rankings: List[Dict[str, Any]],
     teams: int = 12,
     league_format: Optional[LeagueFormat] = None,
@@ -555,7 +555,7 @@ def league_keeper_board(
     for team in league_rosters:
         team_name = str(team.get('teamName', '')).rsplit(' - ', maxsplit=1)[-1]
         players = [
-            YahooRosterPlayer(
+            RosterPlayer(
                 playerId=str(p.get('playerId', '')).strip(),
                 playerName=str(p.get('playerName', '')).replace('player Notes', '').strip(),
                 position=p.get('position', 'UNK'),
@@ -651,7 +651,7 @@ def forecast_opponent_keepers(
     rankings: List[Dict[str, Any]],
     league_format: LeagueFormat,
     *,
-    your_roster_players: Optional[List[YahooRosterPlayer]] = None,
+    your_roster_players: Optional[List[RosterPlayer]] = None,
     keeper_count: int = 2,
     consider_top: int = 100,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:

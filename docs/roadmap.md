@@ -62,6 +62,26 @@ Make the codebase multi-league-shaped before adding users.
   with a real reason to exist (`users`) arrives. The interface is the
   contract — the DB becomes another backend behind it, call sites unchanged.
 - Keep Flask, keep the CLI. Wrap the existing ~8k lines; don't rebuild them.
+- ✅ **Pre-Phase-3-continuation cleanup** (2026-08-11): two small refactors,
+  done ahead of porting draft board/mock draft/outcome log per-league so
+  those ports don't repeat the same mistakes the keeper board's Phase 3
+  slice 1 had to unwind.
+  - `YahooRosterPlayer` moved out of `yahoo_client.py` into a new
+    `app/roster_player.py` as platform-neutral `RosterPlayer` —
+    `strategy.py`'s `league_keeper_board()` builds this type from ANY
+    platform's repository dict (Yahoo/Sleeper/ESPN), so the Yahoo-branded
+    name was misleading. `yahoo_client.YahooRosterPlayer` kept as an alias
+    (`= RosterPlayer`) for the genuinely-Yahoo-only call sites
+    (`roster_store.py`, `mcp_client.py`, `cli.py`) — no churn there.
+  - Keeper-forecast business logic pulled out of `web.py` into new
+    `app/keeper_service.py` (`keeper_board_state()`, `forecast_keeper_decisions()`,
+    `calculate_keeper_impact()`, `load_keeper_marks()`, ADP enrichment
+    helpers) — was living in the Flask route file, which would have kept
+    growing every time a new per-league tool got ported. `web.py`: 1219 →
+    863 lines. Route handlers now just call into the service module; no
+    behavior change (smoke-tested against `/`, `/keepers-board`,
+    `/league/<slug>/keepers`, and the `/keepers-board/mark` AJAX endpoint
+    post-refactor, all pylint-10/10).
 - Remaining in Phase 0: convert CLI analysis commands to the repository /
   `--league` flag where it makes sense (most CLI commands are single-league
   ingestion paths that Phase 2's API sync replaces anyway).
@@ -142,8 +162,16 @@ so it can't gate the second platform.
   `strategy.py` no longer reads global draft history — `draft_years` is
   threaded through. Live-verified on a real synced Sleeper league (12 teams,
   round-1/2 rule enforced against its actual 2026 draft).
+- ✅ **Untangle before continuing the port** (2026-08-11): `RosterPlayer`
+  de-Yahoo'd (see Phase 0) and keeper business logic moved out of `web.py`
+  into `app/keeper_service.py` — both were named/placed for a single-league
+  app and would have made the draft-board/mock-draft ports below repeat the
+  same Yahoo-coupling cleanup keeper board already needed once.
 - **Draft board, mock draft, draft analysis:** port after keeper; they're
-  already mostly league-shaped.
+  already mostly league-shaped. `mock_draft.py` and `draft_analysis.py`
+  haven't had the same RosterPlayer/service-module pass yet — check for the
+  same coupling pattern (a Yahoo-named type or a business-logic function
+  living in `web.py`) before assuming they're clean.
 - **Rankings sourcing (licensing-safe):**
   - (a) each user uploads their own CSV/PDF — current flow, zero legal risk,
     most friction; and
