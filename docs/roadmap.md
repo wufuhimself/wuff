@@ -229,6 +229,19 @@ so it can't gate the second platform.
   this slice is the write/resolve side generalized, not the learning loop
   itself.
 
+- ✅ **Personal draft board** (2026-08-11): the data-derived board stays the
+  base; each user layers their own opinion on top with ▲/▼ arrows per row
+  (`app/board_service.py`, `BoardAdjustment`). Stored as a signed offset, not
+  a pinned rank, so adjustments survive the daily refresh instead of freezing
+  a stale board. Per-player reset and reset-all. Alongside it,
+  `app/ranking_history.py` snapshots the board daily so rows show
+  week-over-week movement — that data cannot be backfilled, which is why it
+  shipped before the UI that consumes it.
+  **Still open on this thread:** export a user's board, and saved/named
+  versions they can compare. Also worth noting this is the first feature where
+  a user has *personal work* to lose, which raises the stakes on replacing
+  Phase 1's dev login stub.
+
 ### Feature backlog (folded in from the earlier single-league roadmap)
 
 These become *more* valuable in multi-league context; sequence them after the

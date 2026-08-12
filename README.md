@@ -119,7 +119,7 @@ Run `make web` or `make web-debug` for hot-reload during development.
 
 **Routes:**
 - `/` — Dashboard with roster, rankings, and keeper insight
-- `/keepers-board` — 🔮 The Oracle: interactive keeper card picker for the Yahoo league (click to toggle kept)
+- `/keepers-board` — 🔮 The Oracle: interactive keeper card picker for the Yahoo league (click to toggle kept), plus the post-keeper draft board with week-over-week movement and per-user ▲/▼ ranking nudges (login required)
 - `/league/<slug>/keepers` — 🔮 The Oracle, for any registered league
 - `/league/<slug>/draft-analysis` — 📜 The Maester: draft slot vs final rank, and position-by-round outcomes, for any registered league
 - `/mock-draft` — ⚔️ The General: full mock draft simulator (BPA + manager tendencies)
