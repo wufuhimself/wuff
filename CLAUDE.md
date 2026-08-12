@@ -1,5 +1,13 @@
 # wuff — Fantasy Football Helper (Yahoo + Sleeper)
 
+## Git workflow
+
+Solo repo, one dev. Commit directly to `main` for features and fixes — no
+PRs, no feature branches needed as standard workflow. Branch only if user
+explicitly asks for one (e.g. testing something risky, or ultrareview
+wants a diff target). If already on a feature branch, ask before merging
+vs continuing there.
+
 wuff is no longer Yahoo-only. The original league (Frank Gore Memorial
 League, keeper/superflex rules below) is still the deepest-supported
 league, but as of 2026-08-10 wuff also observes 6 Sleeper leagues
