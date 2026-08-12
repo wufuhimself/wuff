@@ -17,6 +17,12 @@ from .draft_analysis import (
     summarize_position_in_round,
 )
 from .draft_history import keeper_slot_picks, live_draft_picks
+from .draft_patterns import (
+    position_mix_by_round,
+    position_rank_pick_targets,
+    position_timing,
+    resolved_picks,
+)
 from .free_rankings import refresh_free_rankings
 from .keeper_service import (
     _default_league_platform_ids,
@@ -646,6 +652,35 @@ def league_draft_analysis(league_id: str):
         slot_summary=slot_summary, position_summary=position_summary,
         round_number=round_number, has_data=bool(slot_outcomes or position_outcomes),
         **_league_page_ctx(league, 'draft-analysis'),
+    )
+
+
+@app.route('/league/<league_id>/draft-patterns')
+def league_draft_patterns(league_id: str):
+    """What this league actually drafts, and when -- from its own history.
+
+    Distinct from /draft-analysis, which asks whether draft decisions predicted
+    the final standings. This one just describes behaviour: position mix per
+    round, when each position comes off the board, and the average pick for the
+    Nth player at a position."""
+    league = resolve_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+
+    repo = repository_for(league)
+    mix = position_mix_by_round(repo)
+    timing = position_timing(repo)
+    targets = {
+        position: position_rank_pick_targets(position, top_n=8, repo=repo)
+        for position in ('QB', 'RB', 'WR', 'TE')
+    }
+    seasons = sorted({pick['year'] for pick in resolved_picks(repo)})
+
+    return render_template(
+        'league_draft_patterns.html', active='league-draft-patterns',
+        mix=mix, timing=timing, targets={k: v for k, v in targets.items() if v},
+        seasons=seasons, sample=sum(entry['n'] for entry in mix.values()),
+        **_league_page_ctx(league, 'draft-patterns'),
     )
 
 
