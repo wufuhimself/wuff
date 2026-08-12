@@ -54,6 +54,7 @@ from .draft_analysis import (
     position_in_round_vs_final_rank,
     summarize_position_in_round,
 )
+from .manager_report import manager_report_card
 from .draft_history import load_draft_years, live_draft_picks, keeper_slot_picks
 from .draft_picks import load_draft_picks
 from .nfl_stats import refresh_nfl_stats
@@ -265,6 +266,13 @@ def parse_args() -> argparse.Namespace:
     position_round_parser.add_argument('round_number', type=int, help='Which round to analyze')
     position_round_parser.add_argument('--export-csv', default=None, help='Optional: export results to CSV')
     position_round_parser.add_argument('--league', default=None,
+                                       help="League id from 'python3 -m app leagues' (default: the default league)")
+
+    manager_report_parser = subparsers.add_parser(
+        'manager-report',
+        help="Per-manager draft performance vs this league's own draft-slot-to-finish baseline",
+    )
+    manager_report_parser.add_argument('--league', default=None,
                                        help="League id from 'python3 -m app leagues' (default: the default league)")
 
     combine_rankings_parser = subparsers.add_parser(
@@ -1261,6 +1269,29 @@ def _cmd_draft_slot_outcomes(args) -> None:
         print(f'\nExported to {args.export_csv}')
 
 
+def _cmd_manager_report(args) -> None:
+    repo = _repo_for_league_arg(args.league)
+    rows = manager_report_card(repo=repo)
+    if not rows:
+        print(f'No outcomes found for league {repo.league.league_id!r}. This needs seasons '
+              'with BOTH draft results and saved final standings.', file=sys.stderr)
+        sys.exit(1)
+
+    print(f'\n=== Manager report card ({repo.league.name}) ===')
+    print('Rows are team-name lineages, not verified people -- cross-season identity only')
+    print("links when Yahoo's own rename note fired. See app/manager_report.py.\n")
+    for row in rows:
+        names = ' / '.join(row['team_names'])
+        seasons = ', '.join(str(y) for y in row['seasons'])
+        print(f"{names}")
+        print(f"  seasons: {seasons}")
+        print(f"  avg slot {row['avg_draft_slot']}  avg finish {row['avg_final_rank']}  "
+              f"expected {row['expected_rank_for_slots']}  value {row['value_over_expected']:+.2f}")
+        print(f"  best {row['best_finish']}  worst {row['worst_finish']}  "
+              f"titles {row['championships']}  keeper picks {row['keeper_picks']} "
+              f"({row['seasons_with_a_keeper']} season(s))\n")
+
+
 
 def _cmd_position_round_outcomes(args) -> None:
     repo = _repo_for_league_arg(args.league)
@@ -1731,6 +1762,7 @@ _COMMAND_HANDLERS = {
     'fetch-standings': _cmd_fetch_standings,
     'fetch-nfl-stats': _cmd_fetch_nfl_stats,
     'draft-slot-outcomes': _cmd_draft_slot_outcomes,
+    'manager-report': _cmd_manager_report,
     'position-round-outcomes': _cmd_position_round_outcomes,
     'combine-rankings': _cmd_combine_rankings,
     'extract-keeper-history': _cmd_extract_keeper_history,

@@ -119,8 +119,11 @@ def manager_report_card(repo: Optional[LeagueDataRepository] = None) -> List[Dic
             keeper_seasons[manager].add(year)
 
     by_manager: Dict[str, list] = defaultdict(list)
+    raw_names: Dict[str, set] = defaultdict(set)
     for outcome in outcomes:
-        by_manager[_canonical(outcome.team, aliases)].append(outcome)
+        canonical = _canonical(outcome.team, aliases)
+        by_manager[canonical].append(outcome)
+        raw_names[canonical].add(outcome.team)
 
     rows = []
     for manager, entries in by_manager.items():
@@ -129,6 +132,11 @@ def manager_report_card(repo: Optional[LeagueDataRepository] = None) -> List[Dic
         avg_rank = mean(ranks)
         rows.append({
             'manager': manager,
+            # Every raw team name folded into this row -- see the module
+            # docstring's identity-resolution caveat. When this list has only
+            # one entry, that's often a sign a real rename never got linked
+            # here, not proof the manager never renamed.
+            'team_names': sorted(raw_names[manager]),
             'seasons': sorted(e.year for e in entries),
             'n_seasons': len(entries),
             'avg_draft_slot': round(mean(e.draft_slot for e in entries), 1),

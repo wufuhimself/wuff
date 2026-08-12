@@ -34,6 +34,7 @@ from .keeper_service import (
 from .league_context import load_league_format
 from .league_registry import default_league_id, get_league, load_leagues
 from .league_service import resolve_league, save_league_rules
+from .manager_report import manager_report_card
 from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON
 from .repository import get_repository, repository_for
@@ -652,6 +653,29 @@ def league_draft_analysis(league_id: str):
         slot_summary=slot_summary, position_summary=position_summary,
         round_number=round_number, has_data=bool(slot_outcomes or position_outcomes),
         **_league_page_ctx(league, 'draft-analysis'),
+    )
+
+
+@app.route('/league/<league_id>/manager-report')
+def league_manager_report(league_id: str):
+    """Per-manager draft performance: did each manager's actual finish beat
+    what their own draft slots would predict, using this league's own
+    slot-to-rank baseline (see app/manager_report.py).
+
+    Same empty-state gate as draft-analysis (needs a season with both draft
+    results and saved standings). Also see that module's identity-resolution
+    caveat, surfaced on the page itself -- rows are "team-name lineages," not
+    verified people, when Yahoo's rename note never linked two names."""
+    league = resolve_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+
+    repo = repository_for(league)
+    rows = manager_report_card(repo=repo)
+
+    return render_template(
+        'league_manager_report.html', active='league-manager-report',
+        rows=rows, **_league_page_ctx(league, 'manager-report'),
     )
 
 
