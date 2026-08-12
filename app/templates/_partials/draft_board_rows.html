@@ -1,5 +1,8 @@
 {# Draft board rows. `can_adjust` gates the per-user arrows (login required);
-   trend/userOffset come from ranking_history + board_service. #}
+   trend/userOffset come from ranking_history + board_service. The ADP cell is
+   the source-data reference for whatever rank the user pins -- e.g. Josh
+   Allen shows "ADP 4.4" even after a user pins him to #1 for their superflex
+   league, so the override and the market data it overrides stay both visible. #}
 {% for row in remaining_board %}
 <tr{% if row.userOffset %} class="my-pick"{% endif %}>
   <td class="number">
@@ -9,6 +12,7 @@
   <td class="playerName">{{ row.playerName }}</td>
   <td><span class="pill pos-{{ (row.position or '').lower() }}">{{ row.position }}</span></td>
   <td>{{ row.team or '' }}</td>
+  <td class="number">{{ '%.1f'|format(row.adp) if row.adp is not none else '—' }}</td>
   <td class="number">{{ row.ranking }}</td>
   <td class="number">
     {%- if row.trend == 'up' %}<span title="Up {{ row.rankingDelta }} since {{ row.prevDate }}">▲ {{ row.rankingDelta }}</span>
@@ -19,7 +23,7 @@
     {%- if row.adpDelta %}<span class="status" title="ADP {{ row.prevAdp }} → {{ row.adp }}"> ({{ '%+.1f'|format(row.adpDelta) }} ADP)</span>{% endif %}
   </td>
   {% if can_adjust %}
-  <td class="number">
+  <td class="number adjust-col">
     <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="up"
             data-league-slug="{{ league_slug or '' }}" title="Move up one spot on your board">▲</button>
     <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="down"

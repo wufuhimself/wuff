@@ -241,6 +241,16 @@ so it can't gate the second platform.
   versions they can compare. Also worth noting this is the first feature where
   a user has *personal work* to lose, which raises the stakes on replacing
   Phase 1's dev login stub.
+- ✅ **Board adjustment UI rework** (2026-08-11): the ▲/▼ arrows previously
+  showed unconditionally for any logged-in user; now gated behind a
+  "Customize my board" toggle (`board-collapsed` CSS class on
+  `#draft-board-table`, state kept in `localStorage` per league — a display
+  preference, not user data) so the default view reads as data, not an edit
+  surface. Added an always-visible ADP column to `draft_board_rows.html` (the
+  raw market source, `row.adp`, was already computed but only surfaced via
+  the Trend column's delta) so a pinned player still shows the number it was
+  pinned away from. Closes the "not sure I like the feel" pause noted the same
+  day — see the memory file, not restated here.
 
 ### Feature backlog (folded in from the earlier single-league roadmap)
 
