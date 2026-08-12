@@ -117,9 +117,15 @@ def apply_adjustments(
     for row in ordered:
         row['userOffset'] = adjustments.get(_normalize(row.get('playerName', '')), 0)
 
-    # Sort by the adjusted position; ties keep base order so an untouched
-    # player never jumps another untouched one.
-    ordered.sort(key=lambda row: (row['baseOrder'] - row['userOffset'], row['baseOrder']))
+    # Sort by adjusted position. The tiebreak has to respect which direction a
+    # player was nudged, because moving up one spot lands you exactly on top of
+    # the player above you: base 10 with +1 ties base 9 at adjusted 9. Breaking
+    # that tie by base order alone kept the incumbent ahead, so the first press
+    # of ▲ appeared to do nothing and it took two presses to move one spot.
+    # Higher offset wins a tie, so a moved-up player passes the untouched one
+    # and a moved-down player falls behind it. Base order still separates two
+    # untouched players.
+    ordered.sort(key=lambda row: (row['baseOrder'] - row['userOffset'], -row['userOffset'], row['baseOrder']))
     for position, row in enumerate(ordered, start=1):
         row[order_key] = position
     return ordered
