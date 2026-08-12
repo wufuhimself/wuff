@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ league_display_name }} manager report card — WuFF{% endblock %}
+{% block content %}
+
+      {% if not rows %}
+      <section class="card">
+        <h2>Not enough history yet</h2>
+        <p class="status">This needs at least one season with both draft results and final
+          standings saved. Once this league has a completed season on record, WuFF will have
+          something to say about it.</p>
+      </section>
+      {% else %}
+
+      <section class="card">
+        <h2>Manager report card</h2>
+        <p class="status"><strong>Value vs. expected</strong> compares each manager's actual
+          average final rank to what this league's own history says their draft slots should
+          have produced (positive = finished better than their slots predicted). Not a grade on
+          individual picks — see below for why.</p>
+        <p class="status">⚠️ Rows are <strong>team-name lineages</strong>, not verified people.
+          Cross-season identity only links when Yahoo's own rename note fired, and it doesn't
+          fire for most historical renames — a row with one name in "Team names" may just be a
+          rename that never got linked, not proof the manager never changed it. No persistent
+          owner id is saved to do this exactly; re-fetching one from Yahoo is blocked pending
+          API approval.</p>
+
+        <div style="overflow-x: auto; margin-top: 1rem;">
+          <table class="table compact">
+            <thead>
+              <tr>
+                <th>Team name(s)</th><th>Seasons</th><th class="number">Avg slot</th>
+                <th class="number">Avg finish</th><th class="number">Expected finish</th>
+                <th class="number">Value vs. expected</th><th class="number">Best</th>
+                <th class="number">Worst</th><th class="number">Titles</th>
+                <th class="number">Keeper picks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td class="wrap">{{ row.team_names | join(' / ') }}</td>
+                <td>{{ row.seasons | join(', ') }}</td>
+                <td class="number">{{ row.avg_draft_slot }}</td>
+                <td class="number">{{ row.avg_final_rank }}</td>
+                <td class="number">{{ row.expected_rank_for_slots }}</td>
+                <td class="number {{ 'positive' if row.value_over_expected > 0 else 'negative' if row.value_over_expected < 0 else '' }}">{{ '%+.2f' | format(row.value_over_expected) }}</td>
+                <td class="number">{{ row.best_finish }}</td>
+                <td class="number">{{ row.worst_finish }}</td>
+                <td class="number">{{ row.championships }}</td>
+                <td class="number">{{ row.keeper_picks }} <span class="status">({{ row.seasons_with_a_keeper }} season(s))</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {% endif %}
+{% endblock %}

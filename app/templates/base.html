@@ -8,7 +8,7 @@
       :root {
         --navy: #0a2f5c;
         --navy-dark: #071f3d;
-        --blue: #0065ff;
+        --blue: #295fb0;
         --border: #e6e8ee;
         --text: #1a1d26;
         --muted: #667085;
@@ -48,6 +48,7 @@
       .table td.playerName { white-space: normal; min-width: 100px; max-width: 140px; }
       .table td.positive { color: #15803d; font-weight: 600; }
       .table td.negative { color: #991b1b; font-weight: 600; }
+      .table.board-collapsed .adjust-col { display: none; }
       .table tr.my-pick { background: #fff8e6; }
       .table tr.my-pick td { font-weight: 600; }
       .table tr.my-pick:hover { background: #fff2cc; }
@@ -146,6 +147,7 @@
         <a href="/league/{{ league_slug }}/mock-draft" class="{{ 'active' if league_tool == 'mock-draft' }}">Mock draft</a>
         <a href="/league/{{ league_slug }}/draft-patterns" class="{{ 'active' if league_tool == 'draft-patterns' }}">Draft patterns</a>
         <a href="/league/{{ league_slug }}/draft-analysis" class="{{ 'active' if league_tool == 'draft-analysis' }}">Draft analysis</a>
+        <a href="/league/{{ league_slug }}/manager-report" class="{{ 'active' if league_tool == 'manager-report' }}">Manager report card</a>
         <a href="/league/{{ league_slug }}/settings" class="{{ 'active' if league_tool == 'settings' }}">Settings</a>
         {% else %}
         <a href="#" class="active">Overview</a>

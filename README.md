@@ -21,12 +21,15 @@ against Yahoo (write access requires manual API approval, currently pending). ES
 is in beta. Multi-user accounts (Phase 1) exist — Sleeper username onboarding included.
 
 **What's next:** closing the feedback loop. `app/outcome_log.py` logs every keeper and
-QB-draft-slot forecast the app makes, tagged with which scoring method produced it, then
+QB-draft-slot forecast the app makes, tagged with which scoring method produced it,
 `resolve-outcomes` matches those forecasts against actual draft results once a season's
-draft happens. Right now it *records* forecast accuracy; the next step is having something
-read that log back and actually adjust scoring — that's what turns this from a tool that
-makes recommendations into one that improves them over time. After that: a lineup
-optimizer and trade evaluator (the two most common in-season decisions, neither built yet).
+draft happens, and `outcome-accuracy` now reports hit-rate / miss-size per method once
+forecasts resolve. What's still missing is the last link: nothing yet takes those numbers
+and adjusts a scoring weight — that's what would turn this from a tool that makes
+recommendations into one that improves them over time. It's staying unbuilt on purpose
+until there's real resolved volume to tune against (every forecast logged this cycle is
+still pending as of writing — no season has drafted yet). After that: a lineup optimizer
+and trade evaluator (the two most common in-season decisions, neither built yet).
 
 ## What lives where
 
@@ -37,7 +40,7 @@ optimizer and trade evaluator (the two most common in-season decisions, neither 
 | Mock draft | `/mock-draft`, `/league/<slug>/mock-draft` |
 | Draft history, draft order & draft-outcome analysis | `/draft-history`, `/draft-order`, `/draft-picks`, `/league/<slug>/draft-analysis` |
 | Multi-league management | `/leagues`, `/my/leagues`, `/my/onboard`, `/sleeper` |
-| Forecast accuracy tracking (no web page yet) | `app/outcome_log.py`, `resolve-outcomes` |
+| Forecast accuracy tracking (no web page yet) | `app/outcome_log.py`, `resolve-outcomes`, `outcome-accuracy` |
 
 ## Quick start
 

@@ -228,6 +228,15 @@ so it can't gate the second platform.
   *reads* the log back to adjust scoring yet (see README's "What's next") —
   this slice is the write/resolve side generalized, not the learning loop
   itself.
+- ✅ **Outcome log read side** (2026-08-11): `accuracy_report()` +
+  `python3 -m app outcome-accuracy [--league <id>]` — groups resolved
+  entries by league/decision_type/method_version and reports `hit_rate`
+  (keeper_forecast) or `mean_delta`/`mean_abs_delta` (qb_adjustment).
+  Deliberately stops at reporting: every logged forecast is still `pending`
+  as of 2026-08-11 (no season has drafted this cycle), so there's zero
+  resolved volume to safely tune a scoring weight against yet — the
+  weight-adjustment step stays unbuilt until that changes, not because it's
+  hard to code but because it can't be validated on no data.
 
 - ✅ **Personal draft board** (2026-08-11): the data-derived board stays the
   base; each user layers their own opinion on top with ▲/▼ arrows per row
@@ -241,15 +250,41 @@ so it can't gate the second platform.
   versions they can compare. Also worth noting this is the first feature where
   a user has *personal work* to lose, which raises the stakes on replacing
   Phase 1's dev login stub.
+- ✅ **Board adjustment UI rework** (2026-08-11): the ▲/▼ arrows previously
+  showed unconditionally for any logged-in user; now gated behind a
+  "Customize my board" toggle (`board-collapsed` CSS class on
+  `#draft-board-table`, state kept in `localStorage` per league — a display
+  preference, not user data) so the default view reads as data, not an edit
+  surface. Added an always-visible ADP column to `draft_board_rows.html` (the
+  raw market source, `row.adp`, was already computed but only surfaced via
+  the Trend column's delta) so a pinned player still shows the number it was
+  pinned away from. Closes the "not sure I like the feel" pause noted the same
+  day — see the memory file, not restated here.
 
 ### Feature backlog (folded in from the earlier single-league roadmap)
 
 These become *more* valuable in multi-league context; sequence them after the
 core port:
 
-- **Manager report card** — grade each manager's keepers/picks against actual
-  outcomes. Skeleton exists in `app/draft_analysis.py`
-  (draft_slot_vs_final_rank). High demo value: tells stories about a league.
+- ✅ **Manager report card** (2026-08-12): `app/manager_report.py`,
+  `/league/<slug>/manager-report`, CLI `manager-report --league <id>`. Per
+  manager: `value_over_expected` = this league's own baseline avg final rank
+  for the draft slots a manager actually drafted from (from
+  `draft_analysis.py`'s `summarize_draft_slot_correlation`), minus their own
+  actual avg final rank. Data-derived baseline only, no external assumption,
+  no letter grades. Deliberately does NOT grade individual pick quality
+  against season fantasy points — that's the ADP-vs-outcome "gem-finding"
+  shape already rejected 2026-07-31; this stays one level up (finish vs.
+  slot-expectation). ⚠️ **Cross-season identity is incomplete**: checked
+  against real data before shipping — a 12-team league across 5 seasons
+  produced 24 "manager" rows, not ~12, because most historical renames never
+  got linked (only Yahoo's own rename note resolves identity, and it rarely
+  fires; no persistent owner id is saved in the standings snapshots, and
+  re-fetching one from Yahoo is blocked on OAuth approval). Shipped anyway,
+  labeled honestly: every row carries `team_names` (every raw name folded
+  into it) so the page shows its own limitation instead of overclaiming
+  identity. A hand-authored alias file is the fix if this needs to be exact
+  — not built speculatively.
 - **Trade analyzer** — VOR impact of a proposed trade for both sides, reusing
   `strategy.py` scarcity logic.
 - **Draft-day live mode** — keeper board / draft order updating as picks come

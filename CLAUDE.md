@@ -28,6 +28,7 @@ Key files:
 - `app/board_service.py` + `BoardAdjustment` (2026-08-11) — per-**user** manual draft-board nudges (▲/▼/↺ on `/keepers-board` and `/league/<slug>/keepers`, login required). Stored as a signed **offset**, never a pinned rank: the base board regenerates daily, so an absolute position would freeze a stale opinion and stop reflecting new data. `adjusted = base_order - offset`, re-sorted, renumbered gap-free, applied **before** the top-100 truncation so a player at 150 can be pulled into view. Note this is per-user unlike `keeper_marks`, which is per-league and shared. **The sort tiebreak must consider offset direction** — moving up one spot ties the player above, and breaking that tie by base order alone made the first ▲ press appear to do nothing (fixed 2026-08-11); test exact expected positions, not just "something moved"
 - `app/draft_patterns.py` (2026-08-11) — what this league drafts and when, from its own history: `position_mix_by_round()`, `position_timing()`, `position_rank_pick_targets(position, top_n)` (generalizes the QB-only logic in `qb_historical_adjustment.py` to any position). Per-league via a repository. Surfaced at `/league/<slug>/draft-patterns` — describes *behaviour* (what goes when), as opposed to `/league/<slug>/draft-analysis` which asks whether draft decisions predicted the final standings
 - `app/draft_analysis.py` — per-league since 2026-08-11: both entry points take an optional `repo` (`app/repository.py`) and read that league's own draft history + standings; omit it for the default league. CLI `draft-slot-outcomes` / `position-round-outcomes` take `--league <id>`; web page at `/league/<slug>/draft-analysis`. **This is the `--league` pattern to copy** for the remaining CLI analysis commands (Phase 0 leftover in docs/roadmap.md). Both analyses correlate against final standings, so a league shows nothing until it has a season with BOTH draft results and saved standings — empty state, not an error
+- `app/manager_report.py` (2026-08-12) — per-manager grading, built on `draft_analysis.py`'s slot-vs-rank baseline: `value_over_expected` = this league's own baseline avg finish for a manager's draft slots minus their actual avg finish. Web `/league/<slug>/manager-report`, CLI `manager-report --league <id>`. Deliberately does not grade individual picks against season fantasy points (available in `data/raw/nfl_stats/seasonal/{year}.csv` — tempting, don't use it here) — that's the rejected ADP-vs-outcome "gem-finding" shape. ⚠️ **Cross-season manager identity does not resolve reliably** — checked against real data before shipping: a 12-team league across 5 seasons produced 24 "manager" rows, not ~12, because Yahoo's rename note (the only identity signal available, no persistent owner id is saved anywhere) rarely fires. Shipped anyway with every row carrying `team_names` (every raw name folded in) so the limit is visible, not hidden. Don't try to re-derive identity algorithmically again — it's already been tried and the data doesn't support it; a hand-authored alias file is the actual fix, not built speculatively
 - `app/db.py` + `app/models.py` + `app/auth.py` — multi-user state (Phase 1): SQLite via SQLAlchemy (`data/wuff.db`, gitignored; `DATABASE_URL` overrides), tables users/leagues/user_leagues/sync_runs/keeper_marks, Flask-Login with a dev email-only login (no verification — must be replaced before public deploy). Web: `/login`, `/my/leagues`, `/my/onboard` (Sleeper username → discover → import + sync)
 - Interactive keeper selection (2026-08-10, reworked 2026-08-11): `/keepers-board` (Yahoo) and `/league/<slug>/keepers` (any league) show every keeper-eligible player per team as a clickable card — click toggles kept/not-kept (thick border = kept), no login required, updates live via AJAX (no page reload). `keeper_marks` table stores per-league include/exclude overrides; `select_best_keepers()`'s `stop_auto_fill` flag stops auto-picking once a team has any live override, so 0..keeper_count kept per team are all valid end states, not just "always exactly keeper_count." See `WS-3-keeper/Keeper_Card_Interaction_Pattern.md` in the Obsidian vault for the full interaction rules before changing this UI. Site chrome is branded "WuFF" (league name lives in the league subnav, not the header). A wizard/"Gridiron Sage" persona theme was added and reverted the same day (2026-08-11) — user copy stays plain and factual, no personas or mascot voice
 - ESPN import, beta (2026-08-10): `app/espn_client.py` + `app/espn_manager.py` sync ESPN leagues into the same snapshot shapes as Sleeper (`data/raw/espn/{id}/`); onboarding at `/my/onboard` (league ID; private leagues paste espn_s2/SWID, encrypted via `app/crypto.py` — set `WUFF_ENCRYPTION_KEY` in prod); views at `/espn/<id>` via the shared `league_snapshot.html`; background sweep re-syncs with stored credentials. Unofficial API — mock-validated only until a real ESPN league is imported
@@ -158,12 +159,26 @@ same (platform, platform_league_id, decision_type, season, entity) while
 still `pending` overwrites in place rather than piling up duplicates;
 `resolved` entries are left alone as historical record.
 
-**Not yet covered:** nothing reads the log back to actually adjust scoring
-yet (see README's "What's next" — that's the real Learn-pillar step this
-slice sets up but doesn't do). Also still open: mock-draft-pick and
-draft-rank-vs-season-points resolution (needs nflverse season stats
-matching) — logging/resolution for those decision types is a follow-up, not
-yet wired in.
+**Read side (2026-08-11):** `accuracy_report()` groups resolved entries by
+(platform, platform_league_id, decision_type, forecast_method_version) and
+reports `hit_rate` for `keeper_forecast` (delta is 0/1) or `mean_delta` +
+`mean_abs_delta` for `qb_adjustment` (delta is a signed pick-count miss).
+CLI: `python3 -m app outcome-accuracy [--league <id>]` (omit `--league` for
+every league in the shared log — cross-league method comparison, not a
+per-league default, since that's the whole point of one shared file). As of
+2026-08-11 every entry in the log is still `pending` — no season has
+drafted yet this cycle — so this reports "no resolved forecasts yet" for
+every group; that's expected, not a bug, run `resolve-outcomes` again after
+a draft happens.
+
+**Still not covered:** nothing yet takes `accuracy_report()`'s numbers and
+feeds them back into a scoring weight — that's the actual next Learn-pillar
+step, and it stays undone on purpose until there's real resolved volume to
+tune against (tuning scoring on 0 resolved entries, or even a handful, would
+just be hand-tuning on noise wearing a data costume). Also still open:
+mock-draft-pick and draft-rank-vs-season-points resolution (needs nflverse
+season stats matching) — logging/resolution for those decision types is a
+follow-up, not yet wired in.
 
 ## Sleeper integration (2026, readonly, separate from the Yahoo league above)
 

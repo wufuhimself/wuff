@@ -31,21 +31,26 @@
       <section class="card">
         <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | length }}</span></h2>
         <span class="status">Everyone still available once the keepers above come off. Movement is
-          measured against the previous saved rankings snapshot.
-          {% if can_adjust %}Use ▲/▼ to move a player on <em>your</em> board — the ranking stays the
-          data's, your nudge rides on top of it and survives the daily refresh.
-          {% else %}<a href="/login">Log in</a> to nudge players up or down on your own copy of this board.{% endif %}</span>
+          measured against the previous saved rankings snapshot. ADP is the source data (FFC/Sleeper
+          consensus) — a player's rank can be pinned away from it without losing sight of where the
+          market has them.
+          {% if not can_adjust %}<a href="/login">Log in</a> to pin players on your own copy of this board.{% endif %}</span>
 
-        {% if can_adjust and has_adjustments %}
-        <form method="POST" action="{{ url_for('board_reset') }}" style="margin-top: 0.75rem;">
-          <button class="button" type="submit">Reset all my adjustments</button>
-        </form>
+        {% if can_adjust %}
+        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+          <button type="button" class="button" id="board-edit-toggle" data-league-key="default">Customize my board</button>
+          {% if has_adjustments %}
+          <form method="POST" action="{{ url_for('board_reset') }}">
+            <button class="button" type="submit">Reset all my adjustments</button>
+          </form>
+          {% endif %}
+        </div>
         {% endif %}
 
-        <table class="table compact" style="margin-top: 0.75rem;">
+        <table class="table compact board-collapsed" id="draft-board-table" style="margin-top: 0.75rem;">
           <thead><tr>
-            <th>#</th><th>Player</th><th>Pos</th><th>NFL</th><th>Rank</th><th>Trend</th>
-            {% if can_adjust %}<th>Mine</th>{% endif %}
+            <th>#</th><th>Player</th><th>Pos</th><th>NFL</th><th title="Average draft position — FFC/Sleeper consensus, the source data behind the Rank column">ADP</th><th>Rank</th><th>Trend</th>
+            {% if can_adjust %}<th class="adjust-col">Mine</th>{% endif %}
           </tr></thead>
           <tbody id="draft-board-body">
             {% include "_partials/draft_board_rows.html" %}
@@ -53,6 +58,29 @@
         </table>
       </section>
       {% endif %}
+<script>
+// Board edit-mode toggle: the ▲/▼/↺ column stays hidden until the user opts
+// in, so the default view reads as data, not an edit surface. State is
+// per-browser (localStorage), not per-user, since it's just a display
+// preference -- unlike the adjustments themselves, which are real per-user
+// data in board_service.py.
+(function () {
+  var table = document.getElementById('draft-board-table');
+  var toggle = document.getElementById('board-edit-toggle');
+  if (!table || !toggle) return;
+  var key = 'wuff-board-edit-' + (toggle.dataset.leagueKey || 'default');
+  function applyState(editing) {
+    table.classList.toggle('board-collapsed', !editing);
+    toggle.textContent = editing ? 'Done customizing' : 'Customize my board';
+  }
+  applyState(localStorage.getItem(key) === '1');
+  toggle.addEventListener('click', function () {
+    var editing = table.classList.contains('board-collapsed');
+    applyState(editing);
+    localStorage.setItem(key, editing ? '1' : '0');
+  });
+})();
+</script>
 <script>
 document.addEventListener('click', function (event) {
   var btn = event.target.closest && event.target.closest('.js-keeper-toggle');
