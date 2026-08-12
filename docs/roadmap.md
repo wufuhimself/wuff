@@ -121,8 +121,13 @@ The first version strangers can touch.
   - Real login transport (magic link / Google) — the dev form is a stub.
   - Per-user league *views* still lean on the shared snapshot files; fine
     while snapshots are keyed by platform league id, revisit at hosting.
-  - One process = one scheduler; under gunicorn multi-worker, pin the
-    scheduler to a single worker or move the sweep to a cron entrypoint.
+  - ✅ **Scheduler decision (2026-08-12):** in-process APScheduler assumes
+    one process. Deploy with `gunicorn --workers 1` — N workers would each
+    start their own scheduler and independently sweep every Sleeper league,
+    burning `SLEEPER_MAX_CALLS_PER_MIN` N times over and racing on
+    `sync_runs`/snapshot writes. Fine at current traffic; revisit (pin to
+    one worker, or move the sweep to a `python -m app sync-sweep` cron
+    entrypoint) only if load ever justifies more than one worker.
 
 ## Phase 2 — ESPN, then Yahoo importers
 
