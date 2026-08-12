@@ -158,10 +158,13 @@ def _normalized_team_order(standings: List[Dict[str, Any]], current_team_names: 
 
     def normalize(entry: Dict[str, Any]) -> str:
         team = entry.get('team', '')
-        if team in current_team_names:
+        if current_team_names and team in current_team_names:
             return team
         match = re.search(r"displayed as '([^']+)'", entry.get('note', '') or '')
-        if match and match.group(1) in current_team_names:
+        if match and (not current_team_names or match.group(1) in current_team_names):
+            # With no roster to check against, the note is the only rename
+            # signal there is -- trusting it beats leaving a stale name that
+            # silently matches nothing in the traded-pick file.
             return match.group(1)
         return team
 
@@ -178,8 +181,10 @@ def build_draft_order(
 
     Worst record picks first, snaking each round, for league_format's own team
     and round counts. Honors traded-pick ownership when the league has a
-    draft_picks file for the upcoming season; falls back to a plain snake when
-    it doesn't (which is every non-Yahoo platform -- see repository.py).
+    draft_picks file for the upcoming season, placing each pick at the snake
+    slot it originated from rather than beside the acquiring team's own pick;
+    falls back to a plain snake when it doesn't (which is every non-Yahoo
+    platform -- see repository.py).
 
     standings_year defaults to the league's most recent saved standings; the
     draft being ordered is the following season's."""
@@ -197,17 +202,37 @@ def build_draft_order(
     current_team_names = set(current_teams.keys()) if current_teams else set()
     team_order = _normalized_team_order(standings, current_team_names)
 
-    # Traded-pick ownership for the draft that follows those standings.
-    # repo.draft_picks() is already normalized to {teamName: {round: count}}
-    # (see draft_picks.load_draft_picks); platforms that don't track traded
-    # picks return {} and every team just picks once per round.
+    # Traded-pick ownership for the draft that follows those standings. Two
+    # shapes matter here: repo.draft_picks() is {teamName: {round: count}} and
+    # repo.draft_pick_origins() is {teamName: {round: [originalSlotTeam, ...]}}
+    # (see draft_picks.py). Counts alone cannot place a pick -- they only say
+    # how many a team holds -- so a count-driven build stacks acquired picks
+    # right next to the team's own slot, which is wrong and looks it. Origins
+    # say which snake slot each pick came from, which is where it is actually
+    # made. Platforms that track neither return {}/None and every team simply
+    # picks once per round.
     team_picks = repo.draft_picks(standings_year + 1) or {}
+    pick_origins = repo.draft_pick_origins(standings_year + 1)
 
     draft_order = []
     for round_num in range(1, league_format.total_draft_rounds + 1):
         round_team_order = team_order if round_num % 2 == 1 else list(reversed(team_order))
+
+        if pick_origins:
+            # Walk the round's snake slots and ask who owns each one, so a
+            # traded pick is made at the slot it was traded from. A slot no
+            # team claims stays with the team it belongs to -- incomplete
+            # origin data should cost a pick its trade, not drop it entirely.
+            owner_of_slot: Dict[str, str] = {}
+            for owner, rounds in pick_origins.items():
+                for origin_team in rounds.get(round_num, []):
+                    owner_of_slot.setdefault(origin_team, owner)
+            draft_order.extend(owner_of_slot.get(team, team) for team in round_team_order)
+            continue
+
         for team in round_team_order:
-            # No traded-pick data: everyone picks exactly once per round.
+            # Counts with no origins saved: the best available placement is
+            # still the team's own slot.
             num_picks = team_picks.get(team, {}).get(round_num, 1) if team_picks else 1
             for _ in range(num_picks):
                 draft_order.append(team)
