@@ -169,6 +169,76 @@ def _resolve_qb_adjustments(outcomes: List[Dict[str, Any]], years_data, teams: i
     return resolved
 
 
+def accuracy_report(
+    platform: Optional[str] = None, platform_league_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Aggregate resolved-forecast accuracy, grouped by league + decision_type
+    + forecast_method_version -- this is the "read the log back" step the
+    README's What's Next calls out (log_outcome/resolve_outcomes only write
+    and match; nothing previously read the result). One row per group, with
+    both `resolved` and `pending` counts, so a group with i.e. 0 resolved
+    shows up as "no signal yet" rather than being silently absent -- with no
+    season having drafted yet as of 2026-08-11, that's every group.
+
+    Accuracy metric depends on decision_type, since `delta`'s meaning does:
+    - keeper_forecast: delta is 0 (hit) or 1 (miss) -- `hit_rate` reported.
+    - qb_adjustment: delta is a signed pick-count miss -- `mean_delta` (bias
+      direction: positive means the real pick came later than forecast) and
+      `mean_abs_delta` (typical miss size, direction-blind) both reported.
+
+    Omit platform/platform_league_id for a report across every league in the
+    shared log (this file is intentionally one log for all leagues -- see
+    module docstring -- so cross-league method comparison is a report filter,
+    not a separate file). Pass both to scope to one league.
+
+    Deliberately stops here: it reports accuracy, it does not feed it back
+    into any scoring weight. That's the next step after this one, and it
+    needs real resolved volume to tune against safely -- not zero.
+    """
+    outcomes = load_outcomes()
+    if platform is not None:
+        outcomes = [
+            o for o in outcomes
+            if (o.get('platform') or DEFAULT_PLATFORM) == platform
+            and (o.get('platform_league_id') or DEFAULT_PLATFORM_LEAGUE_ID) == platform_league_id
+        ]
+
+    groups: Dict[tuple, Dict[str, Any]] = {}
+    for entry in outcomes:
+        key = (
+            entry.get('platform') or DEFAULT_PLATFORM,
+            entry.get('platform_league_id') or DEFAULT_PLATFORM_LEAGUE_ID,
+            entry['decision_type'],
+            entry['forecast_method_version'],
+        )
+        bucket = groups.setdefault(key, {'resolved': 0, 'pending': 0, 'deltas': []})
+        if entry['status'] == 'resolved':
+            bucket['resolved'] += 1
+            bucket['deltas'].append(entry['delta'])
+        else:
+            bucket['pending'] += 1
+
+    report = []
+    for (plat, league_id, decision_type, method_version), bucket in sorted(groups.items()):
+        row = {
+            'platform': plat,
+            'platform_league_id': league_id,
+            'decision_type': decision_type,
+            'forecast_method_version': method_version,
+            'resolved': bucket['resolved'],
+            'pending': bucket['pending'],
+        }
+        deltas = bucket['deltas']
+        if deltas:
+            if decision_type == 'keeper_forecast':
+                row['hit_rate'] = round(1 - sum(deltas) / len(deltas), 3)
+            elif decision_type == 'qb_adjustment':
+                row['mean_delta'] = round(sum(deltas) / len(deltas), 1)
+                row['mean_abs_delta'] = round(sum(abs(d) for d in deltas) / len(deltas), 1)
+        report.append(row)
+    return report
+
+
 def resolve_outcomes(teams: int = 12) -> Dict[str, int]:
     """Attempt to resolve every pending entry against its own league's current
     draft_history data.

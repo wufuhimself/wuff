@@ -228,6 +228,15 @@ so it can't gate the second platform.
   *reads* the log back to adjust scoring yet (see README's "What's next") —
   this slice is the write/resolve side generalized, not the learning loop
   itself.
+- ✅ **Outcome log read side** (2026-08-11): `accuracy_report()` +
+  `python3 -m app outcome-accuracy [--league <id>]` — groups resolved
+  entries by league/decision_type/method_version and reports `hit_rate`
+  (keeper_forecast) or `mean_delta`/`mean_abs_delta` (qb_adjustment).
+  Deliberately stops at reporting: every logged forecast is still `pending`
+  as of 2026-08-11 (no season has drafted this cycle), so there's zero
+  resolved volume to safely tune a scoring weight against yet — the
+  weight-adjustment step stays unbuilt until that changes, not because it's
+  hard to code but because it can't be validated on no data.
 
 - ✅ **Personal draft board** (2026-08-11): the data-derived board stays the
   base; each user layers their own opinion on top with ▲/▼ arrows per row

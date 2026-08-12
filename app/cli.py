@@ -57,7 +57,7 @@ from .draft_analysis import (
 from .draft_history import load_draft_years, live_draft_picks, keeper_slot_picks
 from .draft_picks import load_draft_picks
 from .nfl_stats import refresh_nfl_stats
-from .outcome_log import log_outcome, load_outcomes, save_outcomes, resolve_outcomes
+from .outcome_log import log_outcome, load_outcomes, save_outcomes, resolve_outcomes, accuracy_report
 from .sleeper_manager import (
     discover_leagues as sleeper_discover_leagues,
     refresh_players_cache as sleeper_refresh_players_cache,
@@ -343,6 +343,13 @@ def parse_args() -> argparse.Namespace:
         help='Match pending outcome-log forecasts against current draft_history data and fill in actual results',
     )
     resolve_outcomes_parser.add_argument('--teams', type=int, default=12, help='Number of teams in the league (for overall-pick math)')
+
+    outcome_accuracy_parser = subparsers.add_parser(
+        'outcome-accuracy',
+        help='Report forecast accuracy from the outcome log (resolved keeper/QB-adjustment forecasts vs actual)',
+    )
+    outcome_accuracy_parser.add_argument('--league', default=None,
+        help="League id from 'python3 -m app leagues' to scope to one league (default: every league in the log)")
 
     subparsers.add_parser('leagues', help='List every league wuff observes (from data/config/leagues.json)')
 
@@ -1619,6 +1626,32 @@ def _cmd_resolve_outcomes(args) -> None:
     print(f"Still pending: {summary['still_pending']} / {summary['total']} total logged.")
 
 
+def _cmd_outcome_accuracy(args) -> None:
+    platform = platform_league_id = None
+    league_label = 'all leagues'
+    if args.league:
+        repo = _repo_for_league_arg(args.league)
+        platform, platform_league_id = repo.league.platform, repo.league.platform_league_id
+        league_label = repo.league.name
+
+    report = accuracy_report(platform=platform, platform_league_id=platform_league_id)
+    if not report:
+        print(f'No forecasts logged yet for {league_label}.')
+        return
+
+    print(f'\n=== Forecast accuracy ({league_label}) ===')
+    for row in report:
+        print(f"\n{row['platform']}/{row['platform_league_id']}  {row['decision_type']}  {row['forecast_method_version']}")
+        print(f"  resolved: {row['resolved']}   pending: {row['pending']}")
+        if row['resolved'] == 0:
+            print('  no resolved forecasts yet -- check back once this season\'s draft happens')
+        elif row['decision_type'] == 'keeper_forecast':
+            print(f"  hit rate: {row['hit_rate']:.1%}")
+        elif row['decision_type'] == 'qb_adjustment':
+            print(f"  mean delta: {row['mean_delta']:+.1f} picks   mean |delta|: {row['mean_abs_delta']:.1f} picks")
+    print()
+
+
 def _cmd_leagues(_args) -> None:
     leagues = load_leagues()
     if not leagues:
@@ -1710,6 +1743,7 @@ _COMMAND_HANDLERS = {
     'import-adp': _cmd_import_adp,
     'keepers-board-export': _cmd_keepers_board_export,
     'resolve-outcomes': _cmd_resolve_outcomes,
+    'outcome-accuracy': _cmd_outcome_accuracy,
     'leagues': _cmd_leagues,
     'leagues-init': _cmd_leagues_init,
     'sleeper-discover': _cmd_sleeper_discover,

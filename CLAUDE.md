@@ -158,12 +158,26 @@ same (platform, platform_league_id, decision_type, season, entity) while
 still `pending` overwrites in place rather than piling up duplicates;
 `resolved` entries are left alone as historical record.
 
-**Not yet covered:** nothing reads the log back to actually adjust scoring
-yet (see README's "What's next" — that's the real Learn-pillar step this
-slice sets up but doesn't do). Also still open: mock-draft-pick and
-draft-rank-vs-season-points resolution (needs nflverse season stats
-matching) — logging/resolution for those decision types is a follow-up, not
-yet wired in.
+**Read side (2026-08-11):** `accuracy_report()` groups resolved entries by
+(platform, platform_league_id, decision_type, forecast_method_version) and
+reports `hit_rate` for `keeper_forecast` (delta is 0/1) or `mean_delta` +
+`mean_abs_delta` for `qb_adjustment` (delta is a signed pick-count miss).
+CLI: `python3 -m app outcome-accuracy [--league <id>]` (omit `--league` for
+every league in the shared log — cross-league method comparison, not a
+per-league default, since that's the whole point of one shared file). As of
+2026-08-11 every entry in the log is still `pending` — no season has
+drafted yet this cycle — so this reports "no resolved forecasts yet" for
+every group; that's expected, not a bug, run `resolve-outcomes` again after
+a draft happens.
+
+**Still not covered:** nothing yet takes `accuracy_report()`'s numbers and
+feeds them back into a scoring weight — that's the actual next Learn-pillar
+step, and it stays undone on purpose until there's real resolved volume to
+tune against (tuning scoring on 0 resolved entries, or even a handful, would
+just be hand-tuning on noise wearing a data costume). Also still open:
+mock-draft-pick and draft-rank-vs-season-points resolution (needs nflverse
+season stats matching) — logging/resolution for those decision types is a
+follow-up, not yet wired in.
 
 ## Sleeper integration (2026, readonly, separate from the Yahoo league above)
 
