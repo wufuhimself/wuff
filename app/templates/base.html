@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>{% block title %}Gridiron Sage — fantasy football GM{% endblock %}</title>
+    <title>{% block title %}WuFF — fantasy football numbers{% endblock %}</title>
     <style>
       :root {
         --navy: #0a2f5c;
@@ -110,8 +110,8 @@
   <body>
     <header>
       <div class="brand-row">
-        <h1><a href="/leagues">🧙 Gridiron Sage</a></h1>
-        <p class="tagline">Your fantasy football wizard — keepers, draft boards, and league intel in one place</p>
+        <h1><a href="/leagues">WuFF</a></h1>
+        <p class="tagline">Keepers, draft boards, and league numbers in one place</p>
         <nav>
           <a href="/leagues" class="{{ 'active' if active == 'leagues' }}">Leagues</a>
           {% if current_user.is_authenticated %}

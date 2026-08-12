@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ league.name if league else 'Overview' }} — Gridiron Sage{% endblock %}
+{% block title %}{{ league.name if league else 'Overview' }} — WuFF{% endblock %}
 {% block content %}
       {% if message %}
       <div class="message">{{ message }}</div>
@@ -21,7 +21,7 @@
       {% else %}
 
       <section class="card">
-        <h2>Standings ({{ standings_year }}) <span class="pill" title="The Paladin: keeper of order">🛡️ The Paladin</span></h2>
+        <h2>Standings ({{ standings_year }})</h2>
         <table class="table">
           <thead><tr><th>Team</th><th>Record</th><th>PF</th><th>PA</th></tr></thead>
           <tbody>

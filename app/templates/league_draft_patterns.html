@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ league_display_name }} draft patterns — Gridiron Sage{% endblock %}
+{% block title %}{{ league_display_name }} draft patterns — WuFF{% endblock %}
 {% block content %}
 
       {% if not mix %}
       <section class="card">
-        <h2>No draft history to read yet <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        <h2>No draft history to read yet</h2>
         <p class="status">This needs completed drafts for the league <em>plus</em> an nflverse roster
           snapshot for those seasons — draft results don't record what position a player was, so
           it's resolved by matching names against real NFL rosters. Locally that means 2022 and
@@ -13,7 +13,7 @@
       {% else %}
 
       <section class="card">
-        <h2>What this league drafts, and when <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        <h2>What this league drafts, and when</h2>
         <p class="status">Measured from this league's own drafts — {{ sample }} picks across
           {{ seasons | length }} season(s) ({{ seasons | join(', ') }}) — not from a national board.
           Keeper-slot rounds are excluded, so this is fresh draft-day demand only. Team defenses

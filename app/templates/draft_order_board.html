@@ -2,7 +2,7 @@
 {% block title %}Team draft boards — Yahoo Fantasy{% endblock %}
 {% block content %}
       <section class="card">
-        <h2>Team draft boards (snake order from {{ standings_year }} standings) <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        <h2>Team draft boards (snake order from {{ standings_year }} standings)</h2>
         <p class="status"><a href="/draft-order/{{ standings_year }}">Back to draft order</a></p>
         {% if error %}<p class="error">{{ error }}</p>{% endif %}
         <p class="status">Exact overall pick number per round, joined to the post-keeper board rank at that pick — accounts for traded picks where saved (see <code>picksByRoundOrigins</code> in <code>data/raw/draft_picks/{{ standings_year + 1 }}.json</code>); otherwise assumes standard snake order.</p>

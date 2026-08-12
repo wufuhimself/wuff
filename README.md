@@ -1,26 +1,26 @@
-# 🧙‍♂️ Gridiron Sage
+# WuFF
 
-*A grimoire for keeper decisions, draft boards, and roster strategy — cast across leagues, not bound to one platform.*
+*Keeper decisions, draft boards, and roster strategy across leagues, not bound to one platform.*
 
-## 🔮 What this is
+## What this is
 
-Most fantasy tools are dashboards: they show data, you decide. The Gridiron Sage is conjured as an
+Most fantasy tools are dashboards: they show data, you decide. WuFF is built as an
 **agent** — something that perceives league state, reasons about decisions using
 league-specific learned patterns (not just generic expert consensus), and is working
-toward eventually acting on those decisions itself. The core spell: a league's own
+toward eventually acting on those decisions itself. The core idea: a league's own
 multi-year history is more predictive of *this* league's behavior than a national
 ranking site — see `app/qb_historical_adjustment.py` for a concrete example (QB
 draft-slot targets computed fresh from this league's own draft history each run, not
 hand-tuned).
 
-**📍 Where it stands today:** a strong "on-demand advisor" across 7 leagues — 1 Yahoo
+**Where it stands today:** a strong "on-demand advisor" across 7 leagues — 1 Yahoo
 (deepest-supported, keeper/draft rules live) + 6 Sleeper (readonly). Interactive keeper
 selection lives at `/keepers-board` (Yahoo) and `/league/<slug>/keepers` (any league) —
 click a player card to toggle kept/not-kept, no login, live AJAX updates. Read-only
 against Yahoo (write access requires manual API approval, currently pending). ESPN import
 is in beta. Multi-user accounts (Phase 1) exist — Sleeper username onboarding included.
 
-**⚡ What's next:** closing the feedback loop. `app/outcome_log.py` logs every keeper and
+**What's next:** closing the feedback loop. `app/outcome_log.py` logs every keeper and
 QB-draft-slot forecast the app makes, tagged with which scoring method produced it, then
 `resolve-outcomes` matches those forecasts against actual draft results once a season's
 draft happens. Right now it *records* forecast accuracy; the next step is having something
@@ -28,25 +28,18 @@ read that log back and actually adjust scoring — that's what turns this from a
 makes recommendations into one that improves them over time. After that: a lineup
 optimizer and trade evaluator (the two most common in-season decisions, neither built yet).
 
-## 🗡️ The band
+## What lives where
 
-The Gridiron Sage is the wizard at the table — but he doesn't work alone. Each piece of the app is a
-hero he consults:
+| Domain | Where |
+|---|---|
+| Keeper forecasting — who to keep, scored and ranked | `/keepers-board`, `/league/<slug>/keepers` |
+| Standings & rosters | `/standings`, `/`, `/sleeper/<id>`, `/espn/<id>` |
+| Mock draft | `/mock-draft`, `/league/<slug>/mock-draft` |
+| Draft history, draft order & draft-outcome analysis | `/draft-history`, `/draft-order`, `/draft-picks`, `/league/<slug>/draft-analysis` |
+| Multi-league management | `/leagues`, `/my/leagues`, `/my/onboard`, `/sleeper` |
+| Forecast accuracy tracking (no web page yet) | `app/outcome_log.py`, `resolve-outcomes` |
 
-| Hero | Domain | Where |
-|---|---|---|
-| 🔮 **The Oracle** | Keeper forecasting — who to keep, scored and ranked | `/keepers-board`, `/league/<slug>/keepers` |
-| 🛡️ **The Paladin** | Standings & rosters — keeps the realm's order straight | `/standings`, `/`, `/sleeper/<id>`, `/espn/<id>` |
-| ⚔️ **The General** | Mock draft — recruits allies, simulates the battle ahead | `/mock-draft`, `/league/<slug>/mock-draft` |
-| 📜 **The Maester** | Draft history, draft order & draft-outcome analysis — keeper of records, past seasons on the shelf | `/draft-history`, `/draft-order`, `/draft-picks`, `/league/<slug>/draft-analysis` |
-| 📯 **The Herald** | Multi-league management — announces and onboards new realms | `/leagues`, `/my/leagues`, `/my/onboard`, `/sleeper` |
-| 🕰️ **The Augur** | Forecast accuracy tracking (no web page yet) | `app/outcome_log.py`, `resolve-outcomes` |
-
-More heroes join the band as new domains get built out (see
-`WS-6-agent-runtime/Band_of_Heroes.md` in the vault for the full roster + unassigned
-domains).
-
-## 🚀 Quick start
+## Quick start
 
 ```bash
 # Install dependencies (creates .venv, installs Python packages)
@@ -62,7 +55,7 @@ make web
 
 ## 🏈 Common workflows
 
-### **🃏 Keeper board & analysis** — 🔮 The Oracle
+### **Keeper board & analysis**
 ```bash
 # Parse league rosters from Yahoo (copy-paste text when prompted)
 python3 -m app parse-rosters
@@ -87,7 +80,7 @@ python3 -m app combine-rankings
 python3 -m app import-adp path/to/your_adp.csv
 ```
 
-### **📜 Draft history & league trends** — 📜 The Maester
+### **Draft history & league trends**
 ```bash
 # Analyze historical draft data
 python3 -m app draft-history 2025 --live-only
@@ -119,16 +112,16 @@ Run `make web` or `make web-debug` for hot-reload during development.
 
 **Routes:**
 - `/` — Dashboard with roster, rankings, and keeper insight
-- `/keepers-board` — 🔮 The Oracle: interactive keeper card picker for the Yahoo league (click to toggle kept), plus the post-keeper draft board with week-over-week movement and per-user ▲/▼ ranking nudges (login required)
-- `/league/<slug>/keepers` — 🔮 The Oracle, for any registered league
-- `/league/<slug>/draft-patterns` — 📜 The Maester: what this league actually drafts and when (position mix per round, when each position goes, average pick for QB1/RB1/…), from its own draft history
-- `/league/<slug>/draft-analysis` — 📜 The Maester: draft slot vs final rank, and position-by-round outcomes, for any registered league
-- `/mock-draft` — ⚔️ The General: full mock draft simulator (BPA + manager tendencies)
-- `/league/<slug>/mock-draft` — ⚔️ The General, for any registered league (uses that league's own team/round counts and starter slots)
-- `/draft-history` — 📜 The Maester: historical draft results by year
-- `/standings` — 🛡️ The Paladin: league standings and performance
-- `/sleeper` — 📯 The Herald: Sleeper league list (6 leagues); `/sleeper/<league_id>` for standings/rosters/draft (🛡️ The Paladin)
-- `/my/leagues`, `/my/onboard` — 📯 The Herald: multi-user login + league import (Sleeper username, ESPN league ID)
+- `/keepers-board` — interactive keeper card picker for the Yahoo league (click to toggle kept), plus the post-keeper draft board with week-over-week movement and per-user ▲/▼ ranking nudges (login required)
+- `/league/<slug>/keepers` — keeper board for any registered league
+- `/league/<slug>/draft-patterns` — what this league actually drafts and when (position mix per round, when each position goes, average pick for QB1/RB1/…), from its own draft history
+- `/league/<slug>/draft-analysis` — draft slot vs final rank, and position-by-round outcomes, for any registered league
+- `/mock-draft` — full mock draft simulator (BPA + manager tendencies)
+- `/league/<slug>/mock-draft` — mock draft for any registered league (uses that league's own team/round counts and starter slots)
+- `/draft-history` — historical draft results by year
+- `/standings` — league standings and performance
+- `/sleeper` — Sleeper league list (6 leagues); `/sleeper/<league_id>` for standings/rosters/draft
+- `/my/leagues`, `/my/onboard` — multi-user login + league import (Sleeper username, ESPN league ID)
 
 ## ⚙️ Setup details
 
@@ -183,7 +176,3 @@ Other leagues set their own rules in `data/config/leagues.json` / DB overrides �
 `app/league_service.resolve_league()`.
 
 Details: `data/config/league_rules.json` + `CLAUDE.md`
-
----
-
-*🔮 May your keepers be correctly forecasted and your sleepers found before Week 1.*

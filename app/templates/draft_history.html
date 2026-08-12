@@ -2,7 +2,7 @@
 {% block title %}{{ year }} draft — Yahoo Fantasy{% endblock %}
 {% block content %}
       <section class="card">
-        <h2>{{ year }} draft <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        <h2>{{ year }} draft</h2>
         <div class="year-links">
           <a href="/draft-history/{{ year }}?mode=all" class="{{ 'active' if mode == 'all' or not mode }}">All picks</a>
           <a href="/draft-history/{{ year }}?mode=live" class="{{ 'active' if mode == 'live' }}">Live draft only</a>

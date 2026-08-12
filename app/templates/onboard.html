@@ -2,7 +2,7 @@
 {% block title %}Import leagues{% endblock %}
 {% block content %}
       <section class="card">
-        <h2>Import Sleeper leagues <span class="pill" title="The Herald: announces and manages the realms">📯 The Herald</span></h2>
+        <h2>Import Sleeper leagues</h2>
         <p class="status">Sleeper's API is public — just a username, no password or app connection needed.</p>
         {% if error %}<div class="message">{{ error }}</div>{% endif %}
         <form method="post" action="/my/onboard">
@@ -35,7 +35,7 @@
       </section>
 
       <section class="card">
-        <h2>Import an ESPN league <span class="pill">beta</span> <span class="pill" title="The Herald: announces and manages the realms">📯 The Herald</span></h2>
+        <h2>Import an ESPN league <span class="pill">beta</span></h2>
         <p class="status">ESPN has no official API — public leagues import with just the league ID
           (find it in your league's URL: <code>leagueId=...</code>). Private leagues additionally need
           your <code>espn_s2</code> and <code>SWID</code> browser cookies (log in at espn.com → developer

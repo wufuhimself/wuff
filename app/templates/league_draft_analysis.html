@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block title %}{{ league_display_name }} draft analysis — Gridiron Sage{% endblock %}
+{% block title %}{{ league_display_name }} draft analysis — WuFF{% endblock %}
 {% block content %}
 
       {% if not has_data %}
       <section class="card">
-        <h2>Not enough history yet <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        <h2>Not enough history yet</h2>
         <p class="status">This analysis correlates draft decisions against where teams
           <em>finished</em>, so it needs at least one season with both draft results and final
-          standings saved. Once this league has a completed season on record, the Maester will
+          standings saved. Once this league has a completed season on record, WuFF will
           have something to say about it.</p>
       </section>
       {% else %}
 
       <section class="card">
-        <h2>Draft slot vs final rank <span class="pill" title="The Maester: keeper of records">📜 The Maester</span></h2>
+        <h2>Draft slot vs final rank</h2>
         {% if slot_summary %}
         <p class="status">Does picking early actually win leagues? Correlation of
           <strong>{{ slot_summary.correlation }}</strong> across

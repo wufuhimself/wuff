@@ -2,7 +2,7 @@
 {% block title %}Sleeper leagues{% endblock %}
 {% block content %}
       <section class="card">
-        <h2>Sleeper leagues{% if username %} — {{ username }}{% endif %} <span class="pill" title="The Herald: announces and manages the realms">📯 The Herald</span></h2>
+        <h2>Sleeper leagues{% if username %} — {{ username }}{% endif %}</h2>
         <p class="status">Readonly, unauthenticated public API. Run <code>python3 -m app sleeper-sync</code> to refresh all leagues.</p>
         {% if leagues %}
         <ul class="team-list">
