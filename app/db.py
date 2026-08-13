@@ -27,10 +27,20 @@ class Base(DeclarativeBase):
     pass
 
 
+_IS_SQLITE = DATABASE_URL.startswith('sqlite')
+
 engine = create_engine(
     DATABASE_URL,
     # SQLite objects to cross-thread use by default; Flask's dev server is threaded.
-    connect_args={'check_same_thread': False} if DATABASE_URL.startswith('sqlite') else {},
+    connect_args={'check_same_thread': False} if _IS_SQLITE else {},
+    # Postgres only. A pooled connection can be dead by the time it is reused
+    # -- Railway's proxy drops idle ones, and a database restart kills them
+    # all -- and psycopg2 only finds out mid-query, surfacing as
+    # "SSL SYSCALL error: EOF detected" on a random page. pre_ping costs one
+    # trivial round trip per checkout and retries transparently; recycle
+    # retires connections before the proxy's idle timeout can. Neither
+    # applies to SQLite, which has no server to disconnect from.
+    **({} if _IS_SQLITE else {'pool_pre_ping': True, 'pool_recycle': 280}),
 )
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)  # pylint: disable=invalid-name
 
