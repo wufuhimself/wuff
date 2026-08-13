@@ -12,6 +12,7 @@
             <button class="button" type="submit">Refresh rankings</button>
           </form>
           <form method="POST" action="{{ url_for('run_mock_draft_action') }}" style="display:inline;">
+            <input type="hidden" name="league_slug" value="{{ league_slug }}">
             <button class="button" type="submit">{% if ran %}Re-run{% else %}Run{% endif %} mock draft</button>
           </form>
           {% if not error and picks %}

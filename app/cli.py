@@ -377,6 +377,15 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser('leagues', help='List every league wuff observes (from data/config/leagues.json)')
 
+    grant_parser = subparsers.add_parser(
+        'grant-league',
+        help="Give an account access to a league (the only way a registry league such as frank-gore reaches a user)",
+    )
+    grant_parser.add_argument('--email', required=True, help='Email of an existing account (log in once to create it)')
+    grant_parser.add_argument('--league', required=True, help="League id from 'python3 -m app leagues'")
+    grant_parser.add_argument('--default', action='store_true',
+                              help="Also make it that user's default league (what / and /keepers-board resolve to)")
+
     leagues_init_parser = subparsers.add_parser(
         'leagues-init',
         help='Write data/config/leagues.json from the legacy single-league + Sleeper configs',
@@ -1724,6 +1733,18 @@ def _cmd_leagues(_args) -> None:
         print(f'{league.league_id}{marker}: {league.summary()}')
 
 
+def _cmd_grant_league(args) -> None:
+    from .db import init_db  # pylint: disable=import-outside-toplevel
+    from .membership import grant_league  # pylint: disable=import-outside-toplevel
+
+    init_db()
+    try:
+        print(grant_league(args.email, args.league, make_default=args.default))
+    except LookupError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
+
 def _cmd_leagues_init(args) -> None:
     path, written = init_leagues_config(force=args.force)
     if written:
@@ -1840,6 +1861,7 @@ _COMMAND_HANDLERS = {
     'resolve-outcomes': _cmd_resolve_outcomes,
     'outcome-accuracy': _cmd_outcome_accuracy,
     'leagues': _cmd_leagues,
+    'grant-league': _cmd_grant_league,
     'leagues-init': _cmd_leagues_init,
     'migrate-yahoo-data': _cmd_migrate_yahoo_data,
     'snapshot-position-map': _cmd_snapshot_position_map,

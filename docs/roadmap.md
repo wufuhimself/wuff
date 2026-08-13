@@ -167,14 +167,44 @@ The first version strangers can touch.
   private by default, and forgetting a decorator would leak silently.
   (Manager names/emails were never exposed — they live in `managers/`,
   which is not migrated and which nothing web-facing reads.)
+- ✅ **The default league is per user** (2026-08-12): `/`, `/keepers-board`,
+  `/mock-draft`, `/standings`, `/draft-history`, `/draft-picks` and
+  `/draft-order` used to resolve to `default_league_id()` — frank-gore — for
+  every logged-in account. Login stopped strangers reading it; a second real
+  user still landed on my league instead of their own. Now `app/membership.py`
+  answers both questions: which leagues a user may see (a `user_leagues` row,
+  matched on (platform, platform_league_id)) and which is theirs by default
+  (`User.default_league_slug`, a slug rather than a `leagues.id` FK because the
+  Yahoo league lives in the registry file and may have no DB row). No global
+  fallback: a user who follows nothing has no default and is sent to
+  onboarding, because falling back is the leak. Per-league routes and
+  `/sleeper/<id>` + `/espn/<id>` redirect to `/leagues` for non-members;
+  `/leagues` lists only the caller's leagues; `/my/leagues` gained a
+  "Make default" button. `/keepers-board` and `/mock-draft` accept
+  `?league=<slug>` so a Sleeper-default user can still open the Yahoo league
+  they follow rather than bouncing between the two pages.
+  Registry leagues (frank-gore and the local Sleeper entries) reach an account
+  only through `python3 -m app grant-league --email X --league <slug>
+  [--default]` — nothing imports them, so they otherwise have no follower and
+  are visible to nobody. Deliberately not a web action: a claim button on a
+  public deploy hands my league to the first stranger who clicks it.
+  ⚠️ **Deploy step:** run `grant-league` against production once (with
+  `DATABASE_URL` pointed at Railway's Postgres) or the owner account sees
+  empty pages — it follows no league until granted.
+  Gate was `scripts/check_league_scoping.py` (throwaway SQLite, real requests
+  through the Flask test client, one user per scenario) plus a full-body diff
+  of every Yahoo page before/after: byte-identical except the intended
+  `data-league-slug`/hidden-input additions. Fixed one pre-existing 500 found
+  on the way: `/sleeper/<id>` rendered `sleeper_league.html`, renamed to
+  `league_snapshot.html` back when ESPN landed — an un-synced Sleeper league
+  is now exactly where a Sleeper user's `/` sends them.
 - **Remaining for Phase 1 launch:**
   - Per-user league *views* still lean on the shared snapshot files; fine
     while snapshots are keyed by platform league id, revisit at hosting.
-  - The default league (frank-gore) is still *everyone's* default once
-    logged in — `/`, `/keepers-board` and `/mock-draft` resolve to it for
-    any user. Login now stops strangers reading it, but a second real user
-    would still land on it rather than their own league. Scoping the
-    default per user is the next multi-tenancy step.
+  - `keeper_marks` stay per-league and shared between that league's users
+    (board adjustments are per-user). Right for co-managers, wrong the day
+    two users in one league disagree about a keeper — revisit when a real
+    league has two accounts.
   - ✅ **Scheduler decision (2026-08-12):** in-process APScheduler assumes
     one process. Deploy with `gunicorn --workers 1` — N workers would each
     start their own scheduler and independently sweep every Sleeper league,

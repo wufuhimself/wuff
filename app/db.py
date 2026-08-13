@@ -46,19 +46,24 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)  # pylint: disa
 
 
 # Columns added after a table first shipped; create_all won't ALTER existing
-# tables, so init_db backfills these on SQLite. (Alembic replaces this before
-# any production deploy.)
+# tables, so init_db backfills these. (Alembic replaces this eventually.)
+# Runs on Postgres too, not just SQLite: production's tables were created by an
+# earlier deploy's create_all, so a column added later would exist in the model
+# and not in the database -- and the failure is an UndefinedColumn 500 on the
+# first query touching it, i.e. every page. Each entry is skipped when the
+# column is already present, so this is a no-op on a freshly created database.
 _COLUMN_BACKFILLS = [
     ('leagues', 'rules_json', 'VARCHAR(4000)'),
     # Pre-existing rows have no action -- backfill default matches their old,
     # only-possible meaning ("this player is kept").
     ('keeper_marks', 'action', "VARCHAR(8) NOT NULL DEFAULT 'include'"),
+    # NULL for every pre-existing user: no stored preference, so membership.py
+    # falls back to their first followed league.
+    ('users', 'default_league_slug', 'VARCHAR(80)'),
 ]
 
 
 def _ensure_columns() -> None:
-    if not DATABASE_URL.startswith('sqlite'):
-        return
     inspector = inspect(engine)
     tables = set(inspector.get_table_names())
     for table, column, ddl_type in _COLUMN_BACKFILLS:

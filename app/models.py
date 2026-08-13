@@ -36,6 +36,14 @@ class User(UserMixin, Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     display_name: Mapped[Optional[str]] = mapped_column(String(255))
+    # Which league the un-scoped pages (/, /keepers-board, /mock-draft,
+    # /standings, /draft-history) resolve to for this user. A wuff slug rather
+    # than a leagues.id FK, because the Yahoo league lives in the registry file
+    # (leagues.json) and may have no DB row -- app/league_service.resolve_league
+    # resolves either. NULL means "no preference": app/membership.py falls back
+    # to the user's first followed league, and to nothing at all when they
+    # follow none (which is the whole point -- there is no global default).
+    default_league_slug: Mapped[Optional[str]] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     leagues = relationship('UserLeague', back_populates='user', cascade='all, delete-orphan')

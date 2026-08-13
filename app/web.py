@@ -33,20 +33,26 @@ from .draft_patterns import (
 )
 from .free_rankings import refresh_free_rankings
 from .keeper_service import (
-    _default_league_platform_ids,
     keeper_board_state,
     load_keeper_marks,
     log_team_keeper_forecast,
     team_pick_numbers,
 )
 from .league_context import load_league_format
-from .league_registry import default_league_id, get_league, load_leagues
 from .league_service import resolve_league, save_league_rules
 from .mailer import send_magic_link
 from .manager_report import manager_report_card
+from .membership import (
+    default_league_for_user,
+    followed_league_rows,
+    followed_leagues,
+    set_default_league,
+    user_follows,
+    user_follows_platform_league,
+)
 from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON
-from .repository import get_repository, repository_for
+from .repository import repository_for
 from .sleeper_manager import (
     load_sleeper_leagues_config,
     load_synced_drafts,
@@ -110,13 +116,83 @@ def _league_href(platform: str, platform_league_id: str) -> str:
     return '/'
 
 
+def _current_default_league():
+    """The league this user's un-scoped pages (/, /keepers-board, /mock-draft,
+    /standings, /draft-history) resolve to. None when they follow no league --
+    there is no global fallback any more, see app/membership.py."""
+    if not current_user.is_authenticated:
+        return None
+    return default_league_for_user(current_user.id)
+
+
+def _yahoo_page_league():
+    """League for the file-backed Yahoo pages (/keepers-board, /mock-draft).
+
+    `?league=<slug>` when given -- so a user whose default is a Sleeper league
+    can still open the Yahoo league they follow, instead of bouncing between
+    /league/<slug>/keepers and /keepers-board forever -- otherwise their
+    default league. None means "not yours / no league"."""
+    slug = request.args.get('league', '').strip()
+    if slug:
+        return _member_league(slug)
+    return _current_default_league()
+
+
+def _default_repo():
+    """Repository for this user's default league, or None when they have none.
+
+    The pages that read a league's own history (/standings, /draft-history,
+    /draft-picks, /draft-order) go through the repository interface, so they
+    serve whichever league is the caller's -- they used to hardcode
+    get_repository(), i.e. the Yahoo league, for everyone."""
+    league = _current_default_league()
+    return repository_for(league) if league is not None else None
+
+
+def _no_league_redirect():
+    return redirect(url_for(
+        'my_leagues',
+        message='No league selected yet — import one, or ask for access to an existing league.',
+    ))
+
+
+def _member_league(league_id: str):
+    """A league by slug, but only if the current user follows it.
+
+    None covers both "no such league" and "not one of yours", deliberately
+    indistinguishable: every caller redirects to /leagues, so an outsider
+    can't probe which slugs exist."""
+    league = resolve_league(league_id)
+    if league is None or not current_user.is_authenticated or not user_follows(current_user.id, league):
+        return None
+    return league
+
+
+def _is_file_backed_yahoo(league) -> bool:
+    """The original single-league Yahoo setup, whose keeper board/format come
+    from the local config files rather than from DbLeague.rules_json."""
+    return league is not None and league.platform == 'yahoo'
+
+
+def _board_state_args(league):
+    """(league, include_file_prefs) for keeper_service.keeper_board_state().
+
+    The Yahoo league keeps the league=None path it has always used (file-based
+    format + keeper prefs), so its board math is untouched by this scoping."""
+    if _is_file_backed_yahoo(league):
+        return None, True
+    return league, False
+
+
 @app.context_processor
 def _inject_league_context():
-    try:
-        name = get_league().name
-    except (KeyError, OSError):
-        name = 'My league'
-    return {'default_league_name': name}
+    league = _current_default_league()
+    return {
+        'default_league_name': league.name if league is not None else 'My leagues',
+        # The shared pages (/standings, /draft-history, ...) now serve whichever
+        # league is the caller's, so the platform tag can't be a literal 'yahoo'.
+        'default_league_platform': league.platform if league is not None else '',
+    }
 
 
 def _structure_yahoo_roster(raw_players: list) -> tuple:
@@ -145,8 +221,14 @@ def _structure_yahoo_roster(raw_players: list) -> tuple:
 
 @app.route('/')
 def index():
-    repo = get_repository()
-    league = get_league()
+    league = _current_default_league()
+    if league is None:
+        return _no_league_redirect()
+    if not _is_file_backed_yahoo(league):
+        # Sleeper/ESPN leagues have their own overview page; this dashboard is
+        # built on the Yahoo snapshot shape (standings + parsed rosters).
+        return redirect(_league_href(league.platform, league.platform_league_id))
+    repo = repository_for(league)
 
     available_years = repo.standings_years()
     if not available_years:
@@ -200,6 +282,12 @@ def refresh_rankings():
 
 @app.route('/keepers-board')
 def keepers_board_view():
+    league = _yahoo_page_league()
+    if league is None:
+        return _no_league_redirect()
+    if not _is_file_backed_yahoo(league):
+        return redirect(url_for('league_keepers', league_id=league.league_id))
+
     state = keeper_board_state(user_id=current_user.id if current_user.is_authenticated else None)
     if state['error']:
         return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[],
@@ -245,6 +333,12 @@ def keepers_board_view():
 
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
+        # Feeds the cards'/board rows' data-league-slug, so the mark and adjust
+        # POSTs name the league explicitly instead of relying on the poster's
+        # default -- which may be a different league entirely when this page was
+        # reached via ?league=. (base.html's nav ignores it for active pages
+        # in the global tool list, so the chrome is unchanged.)
+        league_slug=league.league_id,
         remaining_board=remaining_board, keeper_count=state['keeper_count'],
         keeper_forecasts=state['keeper_forecasts'], keeper_impact=state['keeper_impact'],
         my_team=my_team, team_names=team_names, error=None,
@@ -268,21 +362,17 @@ def keeper_mark():
     checked = request.form.get('checked', '').strip() == '1'
     league_slug = request.form.get('league_slug', '').strip()
 
-    league = None
-    if league_slug:
-        league = resolve_league(league_slug)
-        if league is None:
-            return {'error': 'Unknown league.'}, 404
+    league = _member_league(league_slug) if league_slug else _current_default_league()
+    if league is None:
+        return {'error': 'Unknown league.'}, 404
 
     if not team or not player:
         return {'error': 'Missing team or player.'}, 400
 
-    platform, platform_league_id = (
-        (league.platform, league.platform_league_id) if league is not None else _default_league_platform_ids()
-    )
-    include_file_prefs = league is None
+    platform, platform_league_id = league.platform, league.platform_league_id
+    board_league, include_file_prefs = _board_state_args(league)
 
-    state_before = keeper_board_state(league, include_file_prefs=include_file_prefs)
+    state_before = keeper_board_state(board_league, include_file_prefs=include_file_prefs)
     if state_before['error']:
         return {'error': state_before['error']}, 409
 
@@ -345,7 +435,7 @@ def keeper_mark():
                                        team_name=team, player_name=player, action=action))
         session.commit()
 
-    state_after = keeper_board_state(league, include_file_prefs=include_file_prefs)
+    state_after = keeper_board_state(board_league, include_file_prefs=include_file_prefs)
     if state_after['error']:
         return {'error': state_after['error']}, 409
 
@@ -385,15 +475,12 @@ def board_adjust():
     if not player or direction not in ('up', 'down', 'reset'):
         return {'error': 'Missing player or direction.'}, 400
 
-    league = None
-    if league_slug:
-        league = resolve_league(league_slug)
-        if league is None:
-            return {'error': 'Unknown league.'}, 404
+    league = _member_league(league_slug) if league_slug else _current_default_league()
+    if league is None:
+        return {'error': 'Unknown league.'}, 404
 
-    platform, platform_league_id = (
-        (league.platform, league.platform_league_id) if league is not None else _default_league_platform_ids()
-    )
+    platform, platform_league_id = league.platform, league.platform_league_id
+    board_league, include_file_prefs = _board_state_args(league)
 
     if direction == 'reset':
         clear_adjustment(current_user.id, platform, platform_league_id, player)
@@ -401,7 +488,7 @@ def board_adjust():
         bump_adjustment(current_user.id, platform, platform_league_id, player,
                         spots if direction == 'up' else -spots)
 
-    state = keeper_board_state(league, include_file_prefs=league is None, user_id=current_user.id)
+    state = keeper_board_state(board_league, include_file_prefs=include_file_prefs, user_id=current_user.id)
     if state['error']:
         return {'error': state['error']}, 409
     return {
@@ -417,15 +504,14 @@ def board_reset():
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
     league_slug = request.form.get('league_slug', '').strip()
-    league = resolve_league(league_slug) if league_slug else None
-    platform, platform_league_id = (
-        (league.platform, league.platform_league_id) if league is not None else _default_league_platform_ids()
-    )
-    removed = clear_all_adjustments(current_user.id, platform, platform_league_id)
+    league = _member_league(league_slug) if league_slug else _current_default_league()
+    if league is None:
+        return _no_league_redirect()
+    removed = clear_all_adjustments(current_user.id, league.platform, league.platform_league_id)
     message = f'Reset {removed} board adjustment(s).' if removed else 'No board adjustments to reset.'
-    if league is not None:
-        return redirect(url_for('league_keepers', league_id=league.league_id, message=message))
-    return redirect(url_for('keepers_board_view', message=message))
+    if _is_file_backed_yahoo(league):
+        return redirect(url_for('keepers_board_view', league=league.league_id, message=message))
+    return redirect(url_for('league_keepers', league_id=league.league_id, message=message))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -470,14 +556,10 @@ def logout():
 @app.route('/my/leagues')
 @login_required
 def my_leagues():
+    rows = followed_league_rows(current_user.id)
+    default_league = _current_default_league()
+    default_slug = default_league.league_id if default_league is not None else None
     with SessionLocal() as session:
-        rows = (
-            session.query(DbLeague)
-            .join(UserLeague, UserLeague.league_id == DbLeague.id)
-            .filter(UserLeague.user_id == current_user.id)
-            .order_by(DbLeague.name)
-            .all()
-        )
         entries = []
         for row in rows:
             last_run = (
@@ -488,11 +570,13 @@ def my_leagues():
             )
             entries.append({
                 'name': row.name,
+                'slug': row.slug,
                 'platform': row.platform,
                 'platformLeagueId': row.platform_league_id,
                 'season': row.season,
                 'teams': row.total_teams,
                 'href': _league_href(row.platform, row.platform_league_id),
+                'isDefault': row.slug == default_slug,
                 'lastSyncAt': last_run.started_at.strftime('%Y-%m-%d %H:%M UTC') if last_run else None,
                 'lastSyncStatus': last_run.status if last_run else None,
             })
@@ -500,6 +584,18 @@ def my_leagues():
         'my_leagues.html', active='my-leagues', leagues=entries,
         message=request.args.get('message', ''),
     )
+
+
+@app.route('/my/leagues/default', methods=['POST'])
+@login_required
+def my_league_set_default():
+    """Pick which league the un-scoped pages resolve to. Rejects leagues the
+    user doesn't follow (see membership.set_default_league) -- this must not
+    double as a way to claim access to someone else's league."""
+    slug = request.form.get('slug', '').strip()
+    if set_default_league(current_user.id, slug):
+        return redirect(url_for('my_leagues', message='Default league updated.'))
+    return redirect(url_for('my_leagues', message='Not one of your leagues.'))
 
 
 @app.route('/my/leagues/sync/<platform_league_id>', methods=['POST'])
@@ -658,11 +754,11 @@ def _league_page_ctx(league, tool: str) -> dict:
 
 @app.route('/league/<league_id>/keepers')
 def league_keepers(league_id: str):
-    league = resolve_league(league_id)
+    league = _member_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
     if league.platform == 'yahoo':
-        return redirect(url_for('keepers_board_view'))
+        return redirect(url_for('keepers_board_view', league=league.league_id))
 
     ctx = _league_page_ctx(league, 'keepers')
     if league.format.keeper_slots <= 0:
@@ -694,7 +790,7 @@ def league_draft_analysis(league_id: str):
     Both analyses correlate against final standings, so a league only has
     something to show once it has at least one season with BOTH draft results
     and saved standings; that's an empty state, not an error."""
-    league = resolve_league(league_id)
+    league = _member_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
 
@@ -724,7 +820,7 @@ def league_manager_report(league_id: str):
     results and saved standings). Also see that module's identity-resolution
     caveat, surfaced on the page itself -- rows are "team-name lineages," not
     verified people, when Yahoo's rename note never linked two names."""
-    league = resolve_league(league_id)
+    league = _member_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
 
@@ -745,7 +841,7 @@ def league_draft_patterns(league_id: str):
     the final standings. This one just describes behaviour: position mix per
     round, when each position comes off the board, and the average pick for the
     Nth player at a position."""
-    league = resolve_league(league_id)
+    league = _member_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
 
@@ -768,7 +864,7 @@ def league_draft_patterns(league_id: str):
 
 @app.route('/league/<league_id>/settings', methods=['GET', 'POST'])
 def league_settings(league_id: str):
-    league = resolve_league(league_id)
+    league = _member_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
 
@@ -800,9 +896,12 @@ def league_settings(league_id: str):
 
 @app.route('/leagues')
 def leagues_view():
-    default_id = default_league_id()
+    """Only the current user's leagues. This used to list every league in
+    leagues.json regardless of who was looking."""
+    default_league = _current_default_league()
+    default_id = default_league.league_id if default_league is not None else None
     providers: dict = {}
-    for league in load_leagues().values():
+    for league in followed_leagues(current_user.id):
         providers.setdefault(league.platform, []).append({
             'leagueId': league.league_id,
             'name': league.name,
@@ -840,6 +939,10 @@ def sleeper_leagues_view():
     config = load_sleeper_leagues_config()
     leagues = []
     for entry in config.get('leagues', []):
+        # The local config file lists every league the CLI ever discovered;
+        # a web user only sees the ones they actually follow.
+        if not user_follows_platform_league(current_user.id, 'sleeper', entry['leagueId']):
+            continue
         synced = load_synced_league(entry['leagueId'])
         leagues.append({
             **entry,
@@ -853,13 +956,22 @@ def sleeper_leagues_view():
 
 @app.route('/sleeper/<league_id>')
 def sleeper_league_view(league_id: str):
+    if not user_follows_platform_league(current_user.id, 'sleeper', league_id):
+        return redirect(url_for('leagues_view'))
     config = load_sleeper_leagues_config()
     entry = next((l for l in config.get('leagues', []) if l['leagueId'] == league_id), None)
     league = load_synced_league(league_id)
     if league is None:
-        return render_template('sleeper_league.html', active='sleeper', league_id=league_id,
+        # sleeper_league.html was renamed to league_snapshot.html when ESPN
+        # landed (commit e49664a) and this branch kept the old name -- a 500 on
+        # any un-synced Sleeper league, which is now where a Sleeper user's
+        # `/` sends them.
+        return render_template('league_snapshot.html', active='sleeper', league_id=league_id,
                                 entry=entry, league=None, rosters=[], drafts=[],
-                                error="Not synced yet — run `python3 -m app sleeper-sync --league-id " + league_id + "`.")
+                                league_display_name=(entry or {}).get('name') or league_id,
+                                league_platform='sleeper', league_slug=f'sleeper-{league_id}',
+                                league_tool='overview', league_overview_href=f'/sleeper/{league_id}',
+                                error='Not synced yet — sync it from /my/leagues.')
 
     rosters = load_synced_rosters(league_id)
     rosters_sorted = sorted(rosters, key=lambda r: (-(r.get('wins') or 0), r.get('losses') or 0))
@@ -878,6 +990,8 @@ def sleeper_league_view(league_id: str):
 
 @app.route('/espn/<league_id>')
 def espn_league_view(league_id: str):
+    if not user_follows_platform_league(current_user.id, 'espn', league_id):
+        return redirect(url_for('leagues_view'))
     league = espn_manager.load_synced_league(league_id)
     if league is None:
         return render_template('league_snapshot.html', active='espn', league_id=league_id,
@@ -902,13 +1016,19 @@ def espn_league_view(league_id: str):
 
 @app.route('/draft-history')
 def draft_history_years():
-    years = get_repository().draft_years()
+    repo = _default_repo()
+    if repo is None:
+        return _no_league_redirect()
+    years = repo.draft_years()
     return render_template('draft_history_years.html', active='draft-history', years=sorted(years.keys(), reverse=True))
 
 
 @app.route('/draft-history/<int:year>')
 def draft_history_view(year: int):
-    years = get_repository().draft_years()
+    repo = _default_repo()
+    if repo is None:
+        return _no_league_redirect()
+    years = repo.draft_years()
     picks = years.get(year)
     if picks is None:
         return render_template(
@@ -931,13 +1051,19 @@ def draft_history_view(year: int):
 
 @app.route('/standings')
 def standings_years():
-    years = get_repository().standings_years()
+    repo = _default_repo()
+    if repo is None:
+        return _no_league_redirect()
+    years = repo.standings_years()
     return render_template('standings_years.html', active='standings', years=years)
 
 
 @app.route('/standings/<int:year>')
 def standings_view(year: int):
-    standings = get_repository().standings(year)
+    repo = _default_repo()
+    if repo is None:
+        return _no_league_redirect()
+    standings = repo.standings(year)
     if standings is None:
         return render_template('standings.html', active='standings', year=year, standings=[], error=f'No saved standings for {year}.')
     return render_template('standings.html', active='standings', year=year, standings=standings, error=None)
@@ -945,7 +1071,10 @@ def standings_view(year: int):
 
 @app.route('/draft-order/<int:standings_year>')
 def draft_order_view(standings_year: int):
-    standings = get_repository().standings(standings_year)
+    repo = _default_repo()
+    if repo is None:
+        return _no_league_redirect()
+    standings = repo.standings(standings_year)
     if standings is None:
         return render_template(
             'draft_order.html', active='standings', standings_year=standings_year, rounds={},
@@ -958,7 +1087,10 @@ def draft_order_view(standings_year: int):
 
 @app.route('/draft-picks/<int:year>')
 def draft_picks_view(year: int):
-    picks = get_repository().draft_picks(year)
+    repo = _default_repo()
+    if repo is None:
+        return _no_league_redirect()
+    picks = repo.draft_picks(year)
     if picks is None:
         return render_template(
             'draft_picks.html', active='draft-history', year=year, teams={}, all_rounds=[],
@@ -970,7 +1102,14 @@ def draft_picks_view(year: int):
 
 @app.route('/draft-order/<int:standings_year>/board')
 def draft_order_board_view(standings_year: int):
-    repo = get_repository()
+    league = _current_default_league()
+    if league is None:
+        return _no_league_redirect()
+    if not _is_file_backed_yahoo(league):
+        # This board is built on the file-backed league format + shared keeper
+        # marks; the per-league equivalent is /league/<slug>/keepers.
+        return redirect(url_for('league_keepers', league_id=league.league_id))
+    repo = repository_for(league)
     standings = repo.standings(standings_year)
     if standings is None:
         return render_template(
@@ -1069,10 +1208,18 @@ def mock_draft_view():
     """Empty state by default -- simulating a full draft isn't free, so it's an
     explicit action (POST /actions/run-mock-draft) rather than run-on-every-GET.
     ?ran=1 (set by that action's redirect) renders the just-computed result."""
+    league = _yahoo_page_league()
+    if league is None:
+        return _no_league_redirect()
+    if not _is_file_backed_yahoo(league):
+        passthrough = {k: v for k, v in request.args.items() if k != 'league'}
+        return redirect(url_for('league_mock_draft', league_id=league.league_id, **passthrough))
+
     if request.args.get('ran') != '1':
         return render_template(
             'mock_draft.html', active='mock-draft', picks=[], picks_by_round={}, picks_by_team={},
-            error=None, ran=False, message=request.args.get('message', ''),
+            error=None, ran=False, league_slug=league.league_id,
+            message=request.args.get('message', ''),
         )
 
     try:
@@ -1081,7 +1228,7 @@ def mock_draft_view():
         result = {'picks': [], 'picks_by_round': {}, 'picks_by_team': {}, 'error': str(exc)}
 
     return render_template(
-        'mock_draft.html', active='mock-draft', ran=True,
+        'mock_draft.html', active='mock-draft', ran=True, league_slug=league.league_id,
         message=request.args.get('message', ''), **result,
     )
 
@@ -1090,11 +1237,12 @@ def mock_draft_view():
 def league_mock_draft(league_id: str):
     """Mock draft for any registered league (Phase 3 port). Same explicit-run
     pattern as /mock-draft: empty until ?ran=1."""
-    league = resolve_league(league_id)
+    league = _member_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
     if league.platform == 'yahoo':
-        return redirect(url_for('mock_draft_view', **request.args))
+        passthrough = {k: v for k, v in request.args.items() if k != 'league'}
+        return redirect(url_for('mock_draft_view', league=league.league_id, **passthrough))
 
     ctx = _league_page_ctx(league, 'mock-draft')
     if request.args.get('ran') != '1':
@@ -1117,9 +1265,12 @@ def run_mock_draft_action():
     first if you want fresh ADP baked in). league_slug posts back to that
     league's own page instead of the default one."""
     league_slug = request.form.get('league_slug', '').strip()
-    if league_slug:
-        return redirect(url_for('league_mock_draft', league_id=league_slug, ran='1'))
-    return redirect(url_for('mock_draft_view', ran='1'))
+    league = _member_league(league_slug) if league_slug else _current_default_league()
+    if league is None:
+        return _no_league_redirect()
+    if _is_file_backed_yahoo(league):
+        return redirect(url_for('mock_draft_view', league=league.league_id, ran='1'))
+    return redirect(url_for('league_mock_draft', league_id=league.league_id, ran='1'))
 
 
 if __name__ == '__main__':

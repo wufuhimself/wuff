@@ -131,7 +131,7 @@
       ] %}
       {% if active in ['dashboard', 'keepers-board', 'mock-draft', 'draft-history', 'standings'] %}
       <nav class="league-nav">
-        <span class="platform-tag">yahoo</span>
+        <span class="platform-tag">{{ default_league_platform }}</span>
         <span class="league-name">{{ default_league_name }}</span>
         {% for tool_id, href, label in league_tools %}
         <a href="{{ href }}" class="{{ 'active' if active == tool_id }}">{{ label }}</a>
