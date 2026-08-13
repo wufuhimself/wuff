@@ -455,9 +455,31 @@ Each step is its own commit with a full-output diff as the gate.
    nflverse" is true, but the Sleeper cache carries all 32 as `DEF` rows.
    Gate: `scripts/check_player_resolution.py`, which asserts per-source
    floors rather than zero unresolved — forcing zero would mean guessing.
-2. **1b. Collapse name normalization** onto `resolve()` — separate commit
-   (step 1 adds, 1b removes). Gate: full-output diff of keeper board, mock
-   draft, draft analysis, draft patterns, manager report.
+2. ✅ **1b. Collapse name normalization** (2026-08-13): the ten normalizers,
+   plus a dozen inline `.lower().strip()` keys the count had missed
+   (mock_draft alone had seven), now share
+   `player_registry.normalize_name`. Two stay separate *on purpose* and say
+   so in their docstrings — `outcome_log`'s `decision_id` slug and
+   `rankings_manager.normalize_player_id` generate **persisted** keys, so
+   changing the format orphans rows rather than improving a lookup.
+   `nfl_position_map.json` was regenerated in the same commit: its keys come
+   from the same normalizer and are read back by `draft_patterns` and
+   `qb_historical_adjustment`, so those three had to move together.
+   **The full-output diff earned its keep again**, catching three things that
+   raised no error: (a) the live rankings board carries the same player twice
+   under two spellings ("Aaron Jones Sr." at 93 *and* "Aaron Jones" at 268),
+   and once a shared key collapses them every naive
+   `{normalize(name): row}` comprehension kept the *worse* duplicate — the
+   same last-row-wins collision `fantasy_position_map` documents; (b) those
+   duplicates meant the mock draft was drafting the same human twice and the
+   trend column showed a confident "down 237" for a player who had not moved;
+   (c) the first cut of the fix reintroduced the bug one layer up. New
+   `index_rows_by_name()` (better-ranked row wins, suffix-preserving key
+   indexed too) and `dedupe_rows_by_name()` at the repository seam.
+   Verified improvements: Aaron Jones RB71→RB34, Brian Thomas WR92→WR39,
+   Harold Fannin TE26→TE6, Kenneth Walker III unranked→RB14; draft-history
+   position resolution 541→577 picks, completing rounds 2 and 3. No player
+   added to or dropped from any keeper board.
 3. **Franchise identity** — `franchises` table, stable id + name history.
    Sleeper's `roster_id`/`owner_id` are already synced and dropped at the
    repository boundary; Yahoo needs the hand-authored alias file
