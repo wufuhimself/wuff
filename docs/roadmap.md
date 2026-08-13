@@ -433,10 +433,28 @@ Steps 1–4 are refactor (no new data, net code removal); steps 5–8 are new
 per-platform ingest, three times over — a different cost class, don't bundle.
 Each step is its own commit with a full-output diff as the gate.
 
-1. **Player identity registry** — `app/player_registry.py` + `players` table,
-   built from the Sleeper cache + nflverse CSVs, one `resolve()` API. Gate:
-   `scripts/check_player_resolution.py` prints resolved/unresolved per source;
-   ship with the unresolved list visible, not forced to zero.
+1. ✅ **Player identity registry** (2026-08-13): `app/player_registry.py`
+   (build + resolve) + `app/player_store.py` (persistence + process cache) +
+   `app/player_models.py` (`players`, `player_aliases`). CLI
+   `build-player-registry`; daily `player-registry-daily` scheduler job.
+   Canonical ids are `sleeper:{id}` first — **not** gsis-first as originally
+   planned, because a rookie can reach Sleeper before nflverse assigns a gsis
+   id, which would silently change that player's key on the next rebuild.
+   Resolution never guesses: an ambiguous name returns None, and an explicit
+   non-fantasy position that matches nothing returns unknown rather than
+   falling through to a fantasy player. Coverage across every registered
+   league: rosters 711/711, rankings 3885/3892, draft history 1643/1648; the
+   five stragglers are genuinely unresolvable (Sleeper stores both Frank
+   Gores as "Frank Gore", Ronald Jones appears twice identically, Will Fuller
+   V is in neither source). `data/config/player_aliases.json` is the
+   hand-authored escape hatch for nicknames and short forms.
+   Two silent bugs the gate caught: duplicate `nfl:` identities for players
+   whose Sleeper row has no gsis id (Jake Bates, Cade York, Mike Washington),
+   and team defenses matching none of the four spellings sources use.
+   **Correction to Phase 2's note above:** DST *does* resolve — "not in
+   nflverse" is true, but the Sleeper cache carries all 32 as `DEF` rows.
+   Gate: `scripts/check_player_resolution.py`, which asserts per-source
+   floors rather than zero unresolved — forcing zero would mean guessing.
 2. **1b. Collapse name normalization** onto `resolve()` — separate commit
    (step 1 adds, 1b removes). Gate: full-output diff of keeper board, mock
    draft, draft analysis, draft patterns, manager report.
