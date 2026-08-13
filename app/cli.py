@@ -377,6 +377,12 @@ def parse_args() -> argparse.Namespace:
         help='Print team names by season plus a starting franchise_aliases.json for a league',
     )
     alias_template_parser.add_argument('--league', default=None, help='League id (default: your default league)')
+    alias_template_parser.add_argument(
+        '--from-managers', action='store_true',
+        help='Group team names by manager email from the local data/raw/managers/ archive instead of guessing')
+    alias_template_parser.add_argument(
+        '--write', action='store_true',
+        help='Write data/config/franchise_aliases.json instead of printing (commit the result)')
 
     player_registry_parser = subparsers.add_parser(
         'build-player-registry',
@@ -1837,43 +1843,64 @@ def _cmd_build_franchises(args) -> None:
 
 
 def _cmd_franchise_alias_template(args) -> None:
-    """Print a fill-in-the-blanks alias file for a name-identified league."""
+    """Build (or scaffold) the franchise alias file for a name-identified league."""
+    from .franchise_registry import build_franchises, manager_alias_groups, slugify  # pylint: disable=import-outside-toplevel
     from .league_registry import get_league  # pylint: disable=import-outside-toplevel
+    from .paths import FRANCHISE_ALIASES_FILE  # pylint: disable=import-outside-toplevel
     from .repository import repository_for  # pylint: disable=import-outside-toplevel
 
     league = get_league(args.league)
     repo = repository_for(league)
-    by_year = {}
-    for year in sorted(repo.standings_years()):
-        by_year[year] = [row.get('team') for row in (repo.standings(year) or [])]
-    if not by_year:
-        print('No saved standings for this league, so there are no names to group.', file=sys.stderr)
-        sys.exit(1)
 
-    print('# Team names by season — group the ones belonging to the same manager.\n')
-    for year, names in by_year.items():
-        print(f'{year}:')
-        for name in names:
-            print(f'    {name}')
-        print()
-    # Built with an EMPTY alias map on purpose: the template has to reproduce
-    # what wuff already infers, so pasting it in changes nothing and every
-    # later edit is visibly the author's. Generating it from raw season names
-    # instead would silently un-merge groups the rename note had linked.
-    from .franchise_registry import build_franchises, slugify  # pylint: disable=import-outside-toplevel
-
-    inferred = build_franchises(repo, league, aliases={})
-    template = {
-        league.platform: {
-            str(league.platform_league_id): {
-                slugify(f.name): sorted(f.names or [f.name]) for f in inferred
+    if args.from_managers:
+        # The real answer, not a template: data/raw/managers/{year}.json holds
+        # one row per manager per season WITH their email, which is the
+        # persistent owner id the standings snapshots lack. No hand-authoring
+        # and no guessing. Output carries team names only -- the emails stay
+        # in the local archive, which is gitignored.
+        groups = manager_alias_groups()
+        if not groups:
+            print('No manager archive under data/raw/managers/. This machine may not have it.',
+                  file=sys.stderr)
+            sys.exit(1)
+        payload = {league.platform: {str(league.platform_league_id): groups}}
+        linked = sum(1 for names in groups.values() if len(names) > 1)
+        print(f'{len(groups)} managers from the email archive, {linked} spanning more than one season.')
+    else:
+        by_year = {}
+        for year in sorted(repo.standings_years()):
+            by_year[year] = [row.get('team') for row in (repo.standings(year) or [])]
+        if not by_year:
+            print('No saved standings for this league, so there are no names to group.', file=sys.stderr)
+            sys.exit(1)
+        print('# Team names by season — group the ones belonging to the same manager.\n')
+        for year, names in by_year.items():
+            print(f'{year}:')
+            for name in names:
+                print(f'    {name}')
+            print()
+        # Built with an EMPTY alias map on purpose: the template has to reproduce
+        # what wuff already infers, so pasting it in changes nothing and every
+        # later edit is visibly the author's. Generating it from raw season names
+        # instead would silently un-merge groups the rename note had linked.
+        inferred = build_franchises(repo, league, aliases={})
+        payload = {
+            league.platform: {
+                str(league.platform_league_id): {
+                    slugify(f.name): sorted(f.names or [f.name]) for f in inferred
+                }
             }
         }
-    }
-    print("# Starting point for data/config/franchise_aliases.json. It reproduces what wuff\n"
-          "# already infers, so pasting it in as-is changes nothing. To link a manager's\n"
-          "# seasons, merge their names into ONE list and delete the now-empty keys.\n")
-    print(json.dumps(template, indent=2))
+        print("# Starting point for data/config/franchise_aliases.json. It reproduces what wuff\n"
+              "# already infers, so pasting it in as-is changes nothing. To link a manager's\n"
+              "# seasons, merge their names into ONE list and delete the now-empty keys.\n")
+
+    if args.write:
+        ensure_parent_dir(FRANCHISE_ALIASES_FILE)
+        FRANCHISE_ALIASES_FILE.write_text(json.dumps(payload, indent=2) + '\n')
+        print(f'Wrote {FRANCHISE_ALIASES_FILE} — commit it, then run `build-franchises`.')
+    else:
+        print(json.dumps(payload, indent=2))
 
 
 def _cmd_migrate_yahoo_data(args) -> None:

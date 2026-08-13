@@ -37,7 +37,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from .paths import FRANCHISE_ALIASES_FILE
+from .paths import FRANCHISE_ALIASES_FILE, RAW_MANAGERS_DIR
 from .standings import current_team_names
 
 logger = logging.getLogger(__name__)
@@ -65,6 +65,52 @@ class Franchise:
     def summary(self) -> str:
         extra = f' ({len(self.names)} names)' if len(self.names) > 1 else ''
         return f'{self.name}{extra} [{self.franchise_id}]'
+
+
+def manager_alias_groups(directory=RAW_MANAGERS_DIR) -> Dict[str, List[str]]:
+    """{franchise key: [team names]} grouped by manager EMAIL, from the local
+    manager archive (`data/raw/managers/{year}.json`).
+
+    This is the persistent owner id `manager_report.py` said did not exist --
+    it does, just not in the standings snapshots: the archive carries one row
+    per manager per season with their email, and those team names match the
+    standings names exactly (verified 12/12 for every saved season). So Yahoo
+    identity is resolvable after all, and without anyone hand-authoring it.
+
+    The archive lives under the gitignored `data/raw/` and is local-only, so
+    this is a *generator* for the committed alias file rather than something
+    the app reads at runtime -- same shape as `snapshot-position-map`. That
+    also keeps the emails on this machine: the file it produces contains only
+    team names and a slug derived from one, never an address or a real name.
+    """
+    by_email: Dict[str, Dict[int, str]] = {}
+    try:
+        files = sorted(directory.glob('*.json'))
+    except OSError:
+        return {}
+    for path in files:
+        try:
+            payload = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        year = payload.get('year')
+        for manager in payload.get('managers') or []:
+            email = str(manager.get('email') or '').strip().lower()
+            team = manager.get('team_name')
+            if email and team and year is not None:
+                by_email.setdefault(email, {})[int(year)] = str(team)
+
+    groups: Dict[str, List[str]] = {}
+    for seasons in by_email.values():
+        if not seasons:
+            continue
+        # Key off the manager's most recent team name, so the file reads as
+        # "this is who that is today" without carrying who they are.
+        key = slugify(seasons[max(seasons)])
+        while key in groups:
+            key = f'{key}-2'
+        groups[key] = sorted(set(seasons.values()))
+    return groups
 
 
 def load_alias_file(path=FRANCHISE_ALIASES_FILE) -> Dict[str, Dict[str, Dict[str, List[str]]]]:
