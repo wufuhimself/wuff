@@ -74,6 +74,17 @@ def get_all_players(sport: str = 'nfl') -> Dict[str, Any]:
     return _get(f'/players/{sport}')
 
 
+def get_league_transactions(league_id: str, week: int) -> List[Dict[str, Any]]:
+    """Trades, waiver claims and free-agent moves reported under this week.
+
+    'Week' is Sleeper's own bucketing, not necessarily the calendar week the
+    move happened -- pre-season and week-1 free-agent activity both land
+    under low week numbers, and week 0 is a real, populated bucket, not an
+    off-by-one to skip. Call for weeks 0 through the league's current week to
+    get everything reported so far."""
+    return _get(f'/league/{league_id}/transactions/{week}')
+
+
 def get_league_winners_bracket(league_id: str) -> List[Dict[str, Any]]:
     return _get(f'/league/{league_id}/winners_bracket')
 

@@ -437,7 +437,7 @@ def parse_args() -> argparse.Namespace:
 
     sleeper_sync_parser = subparsers.add_parser(
         'sleeper-sync',
-        help='Sync rosters/users/draft results for Sleeper leagues into data/raw/sleeper/',
+        help='Sync rosters/users/draft results/transactions for Sleeper leagues into data/raw/sleeper/',
     )
     sleeper_sync_parser.add_argument('--league-id', help='Sync a single league by ID (default: all leagues in sleeper_leagues.json)')
 
@@ -1977,7 +1977,8 @@ def _cmd_sleeper_sync(args) -> None:
         results = sleeper_sync_all_leagues()
     for r in results:
         draft_note = f", {len(r['drafts'])} draft(s)" if r['drafts'] else ''
-        print(f"  {r['leagueId']}  {r['name']}: {r['rosterCount']} rosters{draft_note}")
+        txn_note = f", {r['transactions']} transaction(s)" if r.get('transactions') else ''
+        print(f"  {r['leagueId']}  {r['name']}: {r['rosterCount']} rosters{draft_note}{txn_note}")
     print(f'\nSynced {len(results)} league(s) to data/raw/sleeper/.')
 
 

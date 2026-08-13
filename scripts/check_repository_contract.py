@@ -22,7 +22,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # pylint: disable=wrong-import-position
-from app.domain import DraftPick, RankingRow, RosterTeam, StandingRow  # noqa: E402
+from app.domain import (  # noqa: E402
+    TRANSACTION_TYPES,
+    DraftPick,
+    RankingRow,
+    RosterTeam,
+    StandingRow,
+    Transaction,
+)
 from app.league_registry import load_leagues  # noqa: E402
 from app.repository import repository_for  # noqa: E402
 
@@ -125,6 +132,30 @@ def check_league(league_id, league) -> None:
     for row in rankings[:400]:
         check('ranking is RankingRow', isinstance(row, RankingRow), type(row).__name__)
         check('ranking row has a name', bool(row.name), repr(row.name))
+
+    raw_transactions = repo.raw_transactions()
+    transactions = repo.transactions()
+    check('transaction count preserved', len(transactions) == len(raw_transactions),
+          f'{len(raw_transactions)} vs {len(transactions)}')
+    move_resolved = move_total = 0
+    for txn in transactions:
+        check('transaction is Transaction', isinstance(txn, Transaction), type(txn).__name__)
+        check('transaction has an id', bool(txn.transaction_id), repr(txn.transaction_id))
+        check('transaction type is recognized', txn.type in TRANSACTION_TYPES, txn.type)
+        # A trade/waiver with zero moves AND zero pick_moves would be a
+        # transaction that moved nothing -- either a real Sleeper edge case
+        # (rare) or a normalization bug silently dropping every add/drop key.
+        if txn.type in ('trade', 'waiver', 'free_agent'):
+            check('transaction moves something', bool(txn.moves or txn.pick_moves),
+                  f'{txn.transaction_id} ({txn.type}): no moves or pick_moves')
+        for move in txn.moves:
+            check('move action is add or drop', move.action in ('add', 'drop'), move.action)
+            move_total += 1
+            if move.canonical_player_id:
+                move_resolved += 1
+    if transactions:
+        print(f'      transactions: {len(transactions)}, '
+              f'{move_resolved}/{move_total} player moves carry a canonical id')
 
     all_players = [p for t in teams for p in t.players]
     resolved = sum(1 for p in all_players if p.canonical_player_id)

@@ -191,12 +191,49 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
         })
         draft_summaries.append({'draftId': draft_id, 'status': draft.get('status'), 'pickCount': len(resolved_picks)})
 
+    transaction_count = sync_transactions(league_id, players_cache)
+
     return {
         'leagueId': league_id,
         'name': league.get('name'),
         'rosterCount': len(resolved_rosters),
         'drafts': draft_summaries,
+        'transactions': transaction_count,
     }
+
+
+# Sleeper reports transactions by "week", not necessarily the calendar week
+# the move happened in -- week 0 is a real, populated bucket for pre-season
+# activity. The league object exposes no "current week" field to bound this
+# by, and re-fetching every week on every sync is cheap (transactions/{week}
+# is one call, same budget as a roster fetch) and simpler than trying to
+# infer a cutoff, so this always walks the full range and lets Sleeper's own
+# empty-list response mark "hasn't happened yet."
+TRANSACTION_WEEKS = range(0, 19)
+
+
+def sync_transactions(league_id: str, players_cache: Optional[Dict[str, Any]] = None) -> int:
+    """Fetch every reported week's transactions and write one file per league.
+
+    Deliberately NOT resolved into team names/canonical player ids here --
+    that normalization happens once, in app/repository.py's typed API, the
+    same place roster/draft normalization happens. This function's job is
+    only to get Sleeper's own shape onto disk. Returns the transaction count.
+    """
+    if players_cache is None:
+        players_cache = load_players_cache()
+
+    league_dir = sleeper_league_dir(league_id)
+    transactions = []
+    for week in TRANSACTION_WEEKS:
+        transactions.extend(sleeper_client.get_league_transactions(league_id, week))
+
+    _write_json(league_dir / 'transactions.json', {
+        'leagueId': league_id,
+        'syncedAt': datetime.now(timezone.utc).isoformat(),
+        'transactions': transactions,
+    })
+    return len(transactions)
 
 
 def _read_json(path: Path) -> Optional[Any]:
@@ -226,6 +263,11 @@ def load_synced_drafts(league_id: str) -> List[Dict[str, Any]]:
         if data:
             drafts.append(data)
     return drafts
+
+
+def load_synced_transactions(league_id: str) -> List[Dict[str, Any]]:
+    payload = _read_json(sleeper_league_dir(league_id) / 'transactions.json')
+    return (payload or {}).get('transactions', [])
 
 
 def sync_all_leagues() -> List[Dict[str, Any]]:

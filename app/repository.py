@@ -36,6 +36,9 @@ from .domain import (
     RosterEntry,
     RosterTeam,
     StandingRow,
+    Transaction,
+    TransactionMove,
+    TransactionPickMove,
     _float,
     _int,
     _str,
@@ -80,6 +83,14 @@ class LeagueDataRepository:
 
     def draft_pick_origins(self, year: int) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
+
+    def raw_transactions(self) -> List[Dict[str, Any]]:
+        """Platform-native transaction dicts (Phase 5 step 6). Default `[]`,
+        not NotImplementedError -- unlike rosters/drafts/standings, a platform
+        genuinely not tracking transactions yet (ESPN, Yahoo -- see
+        app/domain.py's TRANSACTION_TYPES docstring) is a real, permanent
+        state, not a backend that forgot to implement something."""
+        return []
 
     # ---- Typed API (Phase 5 step 3) -------------------------------------
     # Implemented ONCE here, in terms of the dict methods above, rather than
@@ -241,6 +252,82 @@ class LeagueDataRepository:
             ))
         return rows
 
+    def _roster_id_lookup(self):
+        """{roster_id: (franchise_id, team_name)} -- transactions() and any
+        future consumer that has a platform's own roster id (not a name) need
+        this instead of franchises.by_name(), since a mid-season rename would
+        otherwise attribute an OLDER transaction to the CURRENT name -- correct
+        for the franchise identity, misleading as a change-log entry."""
+        franchises = self._franchises()
+        lookup = {}
+        for team in self.rosters():
+            roster_id = team.get('rosterId')
+            if roster_id is None:
+                continue
+            franchise = franchises.by_roster_id(roster_id) if franchises else None
+            lookup[roster_id] = (
+                franchise.franchise_id if franchise else None,
+                team.get('teamName'),
+            )
+        return lookup
+
+    def transactions(self) -> List[Transaction]:
+        """Trades, waiver claims and free-agent moves, normalized off
+        raw_transactions(). [] for a platform not tracking them, which is a
+        real state (see raw_transactions()'s docstring), not a resolution gap.
+        """
+        players = self._players()
+        roster_lookup = self._roster_id_lookup()
+
+        def team_for(roster_id):
+            return roster_lookup.get(roster_id, (None, None))
+
+        def player_move(action: str, player_id, roster_id) -> TransactionMove:
+            identity = players.by_platform_id('sleeper', player_id) if players else None
+            franchise_id, team_name = team_for(roster_id)
+            return TransactionMove(
+                action=action,
+                player_name=identity.full_name if identity else None,
+                canonical_player_id=identity.canonical_id if identity else None,
+                franchise_id=franchise_id,
+                team_name=team_name,
+            )
+
+        typed = []
+        for row in self.raw_transactions():
+            season = _int(self.league.season) or 0
+            moves = tuple(
+                player_move('add', player_id, roster_id)
+                for player_id, roster_id in (row.get('adds') or {}).items()
+            ) + tuple(
+                player_move('drop', player_id, roster_id)
+                for player_id, roster_id in (row.get('drops') or {}).items()
+            )
+            pick_moves = tuple(
+                TransactionPickMove(
+                    season=_int(pick.get('season')) or season,
+                    round=_int(pick.get('round')) or 0,
+                    from_franchise_id=team_for(pick.get('previous_owner_id'))[0],
+                    from_team_name=team_for(pick.get('previous_owner_id'))[1],
+                    to_franchise_id=team_for(pick.get('owner_id'))[0],
+                    to_team_name=team_for(pick.get('owner_id'))[1],
+                )
+                for pick in row.get('draft_picks') or []
+            )
+            typed.append(Transaction(
+                transaction_id=str(row.get('transaction_id') or ''),
+                type=str(row.get('type') or ''),
+                season=season,
+                week=_int(row.get('leg')),
+                status=_str(row.get('status')),
+                processed_at=_int(row.get('status_updated') or row.get('created')),
+                moves=moves,
+                pick_moves=pick_moves,
+                waiver_bid=_int((row.get('settings') or {}).get('waiver_bid')),
+                raw=row,
+            ))
+        return typed
+
 
 class YahooJsonRepository(LeagueDataRepository):
     """The original single-league data layout under data/raw/ — valid only for
@@ -388,6 +475,13 @@ class SnapshotJsonRepository(LeagueDataRepository):
 
     def draft_pick_origins(self, year: int) -> Optional[Dict[str, Any]]:
         return {}
+
+    def raw_transactions(self) -> List[Dict[str, Any]]:
+        # Base class default ([]) covers ESPN here -- espn_manager has no
+        # load_synced_transactions, so the attribute lookup below would raise
+        # for that subclass if this weren't guarded.
+        loader = getattr(self.snapshots, 'load_synced_transactions', None)
+        return loader(self._platform_id) if loader is not None else []
 
 
 class SleeperJsonRepository(SnapshotJsonRepository):

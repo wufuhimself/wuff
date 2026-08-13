@@ -133,6 +133,64 @@ class RankingRow:
     raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
 
 
+# 'trade' | 'waiver' | 'free_agent' | 'commissioner'. Sleeper's own vocabulary
+# (see app/sleeper_manager.py); kept as the canonical set rather than
+# reinvented, since it is the only platform this resolves for today (Phase 5
+# step 6) and a future ESPN/Yahoo importer maps onto it rather than the other
+# way around.
+TRANSACTION_TYPES = ('trade', 'waiver', 'free_agent', 'commissioner')
+
+
+@dataclass(frozen=True)
+class TransactionMove:
+    """One player added or dropped by one team, inside one Transaction.
+
+    A trade with 2 players changing hands is 2 TransactionMoves (one add, one
+    drop) per side -- 4 total -- not one row with two player lists, because a
+    waiver claim is naturally one add + one drop and a pure free-agent add is
+    one move alone; a single shape covers all three without a null-heavy
+    trade-only variant.
+    """
+    action: str  # 'add' | 'drop'
+    player_name: Optional[str] = None
+    canonical_player_id: Optional[str] = None
+    franchise_id: Optional[str] = None
+    team_name: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class TransactionPickMove:
+    """One draft pick changing hands inside a trade."""
+    season: int
+    round: int
+    from_franchise_id: Optional[str] = None
+    from_team_name: Optional[str] = None
+    to_franchise_id: Optional[str] = None
+    to_team_name: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class Transaction:
+    """One roster move: a trade, waiver claim, free-agent add/drop, or
+    commissioner action.
+
+    `week` is the platform's own reporting week, which is not always the
+    calendar week the move happened in -- Sleeper buckets pre-season and
+    in-season free-agent moves into week 0 and week 1 respectively, for
+    instance. Use `processed_at` for a real timestamp.
+    """
+    transaction_id: str
+    type: str  # one of TRANSACTION_TYPES
+    season: int
+    week: Optional[int]
+    status: Optional[str] = None
+    processed_at: Optional[int] = None  # epoch milliseconds, platform's own clock
+    moves: Tuple[TransactionMove, ...] = ()
+    pick_moves: Tuple[TransactionPickMove, ...] = ()
+    waiver_bid: Optional[int] = None
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+
 def _int(value: Any) -> Optional[int]:
     try:
         return int(value)
