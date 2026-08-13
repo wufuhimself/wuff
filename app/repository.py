@@ -6,7 +6,21 @@ snapshots (the Yahoo league's data/raw/ files, data/raw/sleeper/{id}/ for
 Sleeper leagues); when a database arrives it becomes another backend behind
 the same interface and call sites don't change.
 
-Normalized shapes every backend serves:
+Two APIs live here, on purpose (Phase 5 step 3):
+
+- The **dict API** (rosters/draft_years/standings/rankings) that every
+  consumer still uses. Its "normalized shape" is only a docstring, and the
+  backends visibly disagree inside it -- Yahoo rosters carry teamId/ownerName,
+  Sleeper's carry rosterId/ownerId/starters/records; Sleeper standings have no
+  rank field at all. That gap is where this project's silent-wrong-output bugs
+  have lived.
+- The **typed API** (roster_teams/drafts/standing_rows/ranking_rows), which
+  returns app/domain.py dataclasses carrying resolved `canonical_player_id`
+  and `franchise_id`. It is implemented once on the base class in terms of the
+  dict methods, so no backend can drift from it, and consumers migrate one at
+  a time rather than in one rewrite.
+
+Dict shapes each backend still serves underneath:
 - rosters(): [{'teamName': str, 'players': [{'playerId','playerName','position','team',...}]}]
 - draft_years(): {year: [{'round','pick','playerName','team',...}, ...]}
 - standings(year): [{'team','wins','losses',...}] or None when unsaved
@@ -16,6 +30,16 @@ import json
 from typing import Any, Dict, List, Optional
 
 from . import espn_manager, sleeper_manager, yahoo_store
+from .domain import (
+    DraftPick,
+    RankingRow,
+    RosterEntry,
+    RosterTeam,
+    StandingRow,
+    _float,
+    _int,
+    _str,
+)
 from .draft_history import load_draft_years
 from .draft_picks import load_draft_pick_origins, load_draft_picks
 from .league_registry import League, get_league
@@ -52,6 +76,150 @@ class LeagueDataRepository:
 
     def draft_pick_origins(self, year: int) -> Optional[Dict[str, Any]]:
         raise NotImplementedError
+
+    # ---- Typed API (Phase 5 step 3) -------------------------------------
+    # Implemented ONCE here, in terms of the dict methods above, rather than
+    # per backend. A backend therefore cannot drift from the contract by
+    # forgetting a field -- which is exactly how the dict "contract" failed,
+    # since it only ever existed in a docstring. Backends stay responsible for
+    # reading their own storage; normalization happens in one place.
+    #
+    # These attach the identity keys from Phase 5 steps 1 and 2. Resolution is
+    # best-effort: an unresolved player or franchise yields None rather than an
+    # error, because a freshly imported league legitimately has neither
+    # registry built yet.
+
+    def _players(self):
+        from .player_store import get_registry  # pylint: disable=import-outside-toplevel
+        try:
+            return get_registry()
+        except Exception:  # pylint: disable=broad-exception-caught
+            return None
+
+    def _franchises(self):
+        from .franchise_store import get_registry  # pylint: disable=import-outside-toplevel
+        try:
+            return get_registry(self.league, self)
+        except Exception:  # pylint: disable=broad-exception-caught
+            return None
+
+    def _canonical_player_id(self, players, name, team=None, position=None) -> Optional[str]:
+        if players is None or not name:
+            return None
+        found = players.resolve(name, team=team, position=position)
+        return found.canonical_id if found else None
+
+    def _roster_entry(self, players, row: Dict[str, Any]) -> RosterEntry:
+        name = _str(row.get('playerName')) or ''
+        position = _str(row.get('position'))
+        nfl_team = _str(row.get('team'))
+        return RosterEntry(
+            name=name,
+            position=position,
+            nfl_team=nfl_team,
+            platform_player_id=_str(row.get('playerId')),
+            canonical_player_id=self._canonical_player_id(players, name, nfl_team, position),
+            status=_str(row.get('status')),
+            selected_position=_str(row.get('selectedPosition')),
+            draft_round=_int(row.get('draftRound')),
+            draft_pick=_int(row.get('draftPick')),
+            draft_slot=_int(row.get('draftSlot')),
+            raw=row,
+        )
+
+    def roster_teams(self) -> List[RosterTeam]:
+        players, franchises = self._players(), self._franchises()
+        teams = []
+        for row in self.rosters():
+            team_name = _str(row.get('teamName')) or ''
+            # rosterId (Sleeper/ESPN) and teamId (Yahoo) are the same idea
+            # under two names -- one of the divergences this type exists to end.
+            platform_team_id = _str(row.get('rosterId')) or _str(row.get('teamId'))
+            teams.append(RosterTeam(
+                team_name=team_name,
+                franchise_id=franchises.id_for_name(team_name) if franchises else None,
+                manager_name=_str(row.get('managerDisplayName')) or _str(row.get('ownerName')),
+                platform_team_id=platform_team_id,
+                players=tuple(self._roster_entry(players, p) for p in row.get('players') or []),
+                starters=tuple(self._roster_entry(players, p) for p in row.get('starters') or []),
+                raw=row,
+            ))
+        return teams
+
+    def draft(self, season: int) -> List[DraftPick]:
+        return self.drafts().get(season, [])
+
+    def drafts(self) -> Dict[int, List[DraftPick]]:
+        players, franchises = self._players(), self._franchises()
+        out: Dict[int, List[DraftPick]] = {}
+        for season, picks in self.draft_years().items():
+            typed = []
+            for row in picks:
+                team_name = _str(row.get('team'))
+                name = _str(row.get('playerName'))
+                position = _str(row.get('position'))
+                typed.append(DraftPick(
+                    season=int(season),
+                    round=_int(row.get('round')) or 0,
+                    pick=_int(row.get('pick')),
+                    team_name=team_name,
+                    franchise_id=franchises.id_for_name(team_name) if franchises else None,
+                    player_name=name,
+                    # Draft history carries no position for the Yahoo league,
+                    # so the registry is what supplies one -- including for
+                    # team defenses, which nflverse rosters never had.
+                    canonical_player_id=self._canonical_player_id(players, name, position=position),
+                    position=position,
+                    platform_player_id=_str(row.get('playerId')),
+                    raw=row,
+                ))
+            out[int(season)] = typed
+        return out
+
+    def standing_rows(self, season: int) -> Optional[List[StandingRow]]:
+        rows = self.standings(season)
+        if rows is None:
+            return None
+        franchises = self._franchises()
+        typed = []
+        for index, row in enumerate(rows, start=1):
+            team_name = _str(row.get('team')) or ''
+            typed.append(StandingRow(
+                season=int(season),
+                # Sleeper/ESPN standings carry no rank field at all; the
+                # backend already sorts them, so position in the list IS the
+                # rank. Yahoo's explicit rank wins where present.
+                rank=_int(row.get('rank')) or index,
+                team_name=team_name,
+                franchise_id=franchises.id_for_name(team_name) if franchises else None,
+                wins=_int(row.get('wins')),
+                losses=_int(row.get('losses')),
+                ties=_int(row.get('ties')),
+                points_for=_float(row.get('pointsFor')),
+                points_against=_float(row.get('pointsAgainst')),
+                made_playoffs=row.get('madePlayoffs'),
+                raw=row,
+            ))
+        return typed
+
+    def ranking_rows(self) -> List[RankingRow]:
+        players = self._players()
+        rows = []
+        for row in self.rankings():
+            name = _str(row.get('playerName')) or ''
+            position = _str(row.get('position'))
+            nfl_team = _str(row.get('team'))
+            rows.append(RankingRow(
+                ranking=_int(row.get('ranking')),
+                name=name,
+                position=position,
+                nfl_team=nfl_team,
+                adp=_float(row.get('adp')),
+                source=_str(row.get('source')),
+                canonical_player_id=self._canonical_player_id(players, name, nfl_team, position),
+                raw=row,
+            ))
+        return rows
 
 
 class YahooJsonRepository(LeagueDataRepository):

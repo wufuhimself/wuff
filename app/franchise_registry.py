@@ -287,6 +287,13 @@ class FranchiseRegistry:
         for franchise in franchises:
             for name in franchise.names or [franchise.name]:
                 self._by_name.setdefault(name, franchise.franchise_id)
+                # Whitespace-insensitive too: one real Sleeper team is named
+                # " Griddy - ators " with padding, so a caller that trimmed
+                # the name (app/domain.py's typed layer does) would otherwise
+                # find no franchise at all. Only the lookup is lenient --
+                # Franchise.name keeps the exact spelling, because the keeper
+                # board keys teams by the roster's own string.
+                self._by_name.setdefault(name.strip(), franchise.franchise_id)
             if franchise.owner_id:
                 self._by_owner[str(franchise.owner_id)] = franchise.franchise_id
             if franchise.roster_id is not None:
@@ -298,7 +305,7 @@ class FranchiseRegistry:
     def by_name(self, team_name: Optional[str]) -> Optional[Franchise]:
         if not team_name:
             return None
-        franchise_id = self._by_name.get(team_name)
+        franchise_id = self._by_name.get(team_name) or self._by_name.get(team_name.strip())
         return self.franchises.get(franchise_id) if franchise_id else None
 
     def by_roster_id(self, roster_id: Any) -> Optional[Franchise]:

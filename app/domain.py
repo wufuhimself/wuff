@@ -1,0 +1,142 @@
+"""Typed domain shapes for league data (Phase 5 step 3).
+
+`app/repository.py` has been a real seam since Phase 0, but what it serves is
+untyped dicts whose "normalized shape" lives in a docstring and is enforced
+by nothing. The backends genuinely disagree, and always have:
+
+    Yahoo roster team:  teamId, teamName, ownerName, playerCount, players
+    Sleeper roster team: rosterId, ownerId, managerDisplayName, teamName,
+                         players, starters, wins, losses, ties, fpts, ...
+
+    Yahoo draft pick:   round, pick, playerName, team
+    Sleeper draft pick: + playerId, position, rosterId
+
+    Yahoo standing:     rank, streak, waiverBudget, moves, madePlayoffs, ...
+    Sleeper standing:   no rank at all
+
+Every silent-wrong-output bug this project has logged lived in that gap. The
+dataclasses here are the contract instead, and they carry the two identity
+keys Phase 5 steps 1 and 2 established -- `canonical_player_id` and
+`franchise_id` -- so a caller can join a roster to a stat line or a draft
+pick to a manager without going back through display names.
+
+`raw` on every type is the original dict. It is a **migration aid**, not part
+of the design: it lets a consumer move to the typed API one field at a time
+instead of in one risky rewrite. When nothing reads `.raw` any more, it goes.
+"""
+from dataclasses import dataclass, field
+from types import MappingProxyType
+from typing import Any, Mapping, Optional, Tuple
+
+# Read-only, so it is safe to share as a default across every instance --
+# and a plain {} is rejected outright as a mutable dataclass default anyway.
+_NO_RAW: Mapping[str, Any] = MappingProxyType({})
+
+
+@dataclass(frozen=True)
+class RosterEntry:
+    """One player on one team's roster."""
+    name: str
+    position: Optional[str] = None
+    nfl_team: Optional[str] = None
+    # The platform's own player id. Sleeper's opaque numeric string, or -- for
+    # the Yahoo league, whose rosters were paste-parsed -- the player's name.
+    platform_player_id: Optional[str] = None
+    # app/player_registry.py's cross-platform key. None when the name did not
+    # resolve, which is a state callers must handle rather than assume away.
+    canonical_player_id: Optional[str] = None
+    status: Optional[str] = None
+    selected_position: Optional[str] = None
+    draft_round: Optional[int] = None
+    draft_pick: Optional[int] = None
+    draft_slot: Optional[int] = None
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+
+@dataclass(frozen=True)
+class RosterTeam:
+    """One team's current roster."""
+    team_name: str
+    franchise_id: Optional[str] = None
+    manager_name: Optional[str] = None
+    platform_team_id: Optional[str] = None
+    players: Tuple[RosterEntry, ...] = ()
+    # Sleeper/ESPN report a starting lineup; Yahoo's paste does not, so this
+    # is empty there rather than guessed at from position eligibility.
+    starters: Tuple[RosterEntry, ...] = ()
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+
+@dataclass(frozen=True)
+class DraftPick:
+    """One pick in one season's draft."""
+    season: int
+    round: int
+    pick: Optional[int] = None
+    team_name: Optional[str] = None
+    franchise_id: Optional[str] = None
+    player_name: Optional[str] = None
+    canonical_player_id: Optional[str] = None
+    position: Optional[str] = None
+    platform_player_id: Optional[str] = None
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+    def overall(self, teams: int) -> Optional[int]:
+        """Overall pick number. `pick` is already overall in Sleeper's payload
+        and per-round in Yahoo's, so this cannot be precomputed without knowing
+        which -- callers pass their league's team count and get the value under
+        the per-round reading, matching what keeper_service/draft_analysis
+        already compute by hand."""
+        if self.pick is None or not teams:
+            return None
+        return (self.round - 1) * teams + self.pick
+
+
+@dataclass(frozen=True)
+class StandingRow:
+    """One team's finish in one season."""
+    season: int
+    rank: int
+    team_name: str
+    franchise_id: Optional[str] = None
+    wins: Optional[int] = None
+    losses: Optional[int] = None
+    ties: Optional[int] = None
+    points_for: Optional[float] = None
+    points_against: Optional[float] = None
+    made_playoffs: Optional[bool] = None
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+
+@dataclass(frozen=True)
+class RankingRow:
+    """One player on the market board."""
+    ranking: Optional[int]
+    name: str
+    position: Optional[str] = None
+    nfl_team: Optional[str] = None
+    adp: Optional[float] = None
+    source: Optional[str] = None
+    canonical_player_id: Optional[str] = None
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+
+def _int(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _float(value: Any) -> Optional[float]:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _str(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
