@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime
 
@@ -55,6 +56,15 @@ from .sleeper_manager import (
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .strategy import _normalize_name, league_keeper_board
 from .sync_scheduler import ensure_scheduler_started, queue_league_sync
+
+# The root logger defaults to WARNING, which hides the background jobs'
+# progress lines under gunicorn -- and those jobs fetch the data whose
+# absence degrades pages silently, so their logs are the only way to tell a
+# skipped refresh from a working one. LOG_LEVEL overrides.
+logging.basicConfig(
+    level=os.environ.get('LOG_LEVEL', 'INFO').upper(),
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+)
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 # Dev fallback only — any deploy sets a real SECRET_KEY (docs/roadmap.md Phase 4).

@@ -12,6 +12,7 @@ Every attempt is recorded as a SyncRun row (status running -> ok/error), so
 the UI can show "last synced X, status Y" without parsing snapshot files.
 API pacing is enforced globally in sleeper_client, not here.
 """
+import logging
 import os
 import threading
 from datetime import datetime, timedelta, timezone
@@ -32,6 +33,8 @@ from .sleeper_manager import (
     refresh_players_cache,
     sync_league,
 )
+
+logger = logging.getLogger(__name__)
 
 SYNC_INTERVAL_MINUTES = int(os.environ.get('SLEEPER_SYNC_INTERVAL_MINUTES', '360'))
 PLAYERS_CACHE_MAX_AGE_HOURS = int(os.environ.get('SLEEPER_PLAYERS_CACHE_MAX_AGE_HOURS', '168'))
@@ -154,7 +157,10 @@ def refresh_rankings_job() -> None:
     try:
         refresh_free_rankings()
     except Exception:  # pylint: disable=broad-exception-caught
-        pass  # transient API failure; yesterday's board stays in place
+        # Transient API failure; yesterday's board stays in place. Logged
+        # rather than swallowed -- a silently skipped refresh looks exactly
+        # like a working one from the outside.
+        logger.exception('free-rankings refresh failed')
 
 
 def refresh_nfl_rosters_job() -> None:
@@ -176,12 +182,17 @@ def refresh_nfl_rosters_job() -> None:
         season for season in range(NFL_ROSTER_FIRST_SEASON, current + 1)
         if season == current or not (RAW_NFL_ROSTERS_DIR / f'{season}.csv').exists()
     ]
+    logger.info('nfl-rosters job: dir=%s seasons=%s', RAW_NFL_ROSTERS_DIR, missing or 'none needed')
     if not missing:
         return
     try:
-        fetch_and_save_rosters(missing)
+        written = fetch_and_save_rosters(missing)
+        logger.info('nfl-rosters job: wrote %s', sorted(written) or 'nothing')
     except Exception:  # pylint: disable=broad-exception-caught
-        pass  # transient nflverse failure; whatever is already on disk stays
+        # Whatever is already on disk stays. Logged, not swallowed: an empty
+        # position map degrades silently (see the docstring above), so a
+        # failure here must be visible in the logs or it is undebuggable.
+        logger.exception('nfl-rosters fetch failed')
 
 
 def ensure_scheduler_started() -> bool:
