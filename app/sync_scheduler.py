@@ -115,6 +115,8 @@ def sync_one_league(platform: str, platform_league_id: str) -> str:
         detail = f"{summary.get('rosterCount', 0)} rosters, {len(summary.get('drafts', []))} draft(s)"
         if 'transactions' in summary:
             detail += f", {summary['transactions']} transaction(s)"
+        if summary.get('matchupWeeks'):
+            detail += f", {summary['matchupWeeks']} scored week(s)"
     except Exception as exc:  # pylint: disable=broad-exception-caught
         status = 'error'
         detail = str(exc)[:500]

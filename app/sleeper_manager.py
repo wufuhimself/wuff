@@ -192,6 +192,7 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
         draft_summaries.append({'draftId': draft_id, 'status': draft.get('status'), 'pickCount': len(resolved_picks)})
 
     transaction_count = sync_transactions(league_id, players_cache)
+    matchup_week_count = sync_matchups(league_id, league)
 
     return {
         'leagueId': league_id,
@@ -199,6 +200,7 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
         'rosterCount': len(resolved_rosters),
         'drafts': draft_summaries,
         'transactions': transaction_count,
+        'matchupWeeks': matchup_week_count,
     }
 
 
@@ -268,6 +270,53 @@ def load_synced_drafts(league_id: str) -> List[Dict[str, Any]]:
 def load_synced_transactions(league_id: str) -> List[Dict[str, Any]]:
     payload = _read_json(sleeper_league_dir(league_id) / 'transactions.json')
     return (payload or {}).get('transactions', [])
+
+
+def sync_matchups(league_id: str, league: Optional[Dict[str, Any]] = None) -> int:
+    """Fetch every week's matchups through the league's own reported current
+    week and write one file per league.
+
+    Bounded by settings.leg -- Sleeper's own "this is the current/last-played
+    week" field, present on both an in-progress league and a completed one
+    (checked: a finished 17-week regular season still reports leg=17, not
+    something reset to 0). Walking to a fixed 18 like transactions does would
+    be wasted calls for most of a season and silently return an unbounded
+    number of empty rows for a not-yet-played week -- unlike the transactions
+    endpoint, an unplayed week's matchups response is NOT empty, it is real
+    rows with every score at 0.0, so "response is empty" can't be the signal
+    here the way it is for transactions.
+
+    THIS SEASON ONLY. Sleeper chains a league across seasons via
+    previous_league_id under a DIFFERENT league_id -- deliberately not walked
+    here; see Phase 5 roadmap notes. A league whose season hasn't started yet
+    (no games played) legitimately syncs 0 weeks, not an error.
+    """
+    league = league if league is not None else sleeper_client.get_league(league_id)
+    try:
+        current_week = int((league.get('settings') or {}).get('leg') or 0)
+    except (TypeError, ValueError):
+        current_week = 0
+
+    league_dir = sleeper_league_dir(league_id)
+    weeks = {}
+    for week in range(1, current_week + 1):
+        rows = sleeper_client.get_league_matchups(league_id, week)
+        if rows:
+            weeks[str(week)] = rows
+
+    _write_json(league_dir / 'matchups.json', {
+        'leagueId': league_id,
+        'season': league.get('season'),
+        'syncedAt': datetime.now(timezone.utc).isoformat(),
+        'weeks': weeks,
+    })
+    return len(weeks)
+
+
+def load_synced_matchups(league_id: str) -> Dict[str, List[Dict[str, Any]]]:
+    """{week_str: [roster rows]} as last synced."""
+    payload = _read_json(sleeper_league_dir(league_id) / 'matchups.json')
+    return (payload or {}).get('weeks', {})
 
 
 def sync_all_leagues() -> List[Dict[str, Any]]:

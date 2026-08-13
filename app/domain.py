@@ -191,6 +191,45 @@ class Transaction:
     raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
 
 
+@dataclass(frozen=True)
+class MatchupSide:
+    """One team's side of one weekly matchup.
+
+    `points` is the platform's OWN computed total, not one wuff derives from
+    LeagueFormat.scoring -- Sleeper's real scoring settings run to ~130 rule
+    keys (IDP tackles, special-teams return yards, per-bracket defense
+    bonuses) against LeagueFormat's 9. Recomputing would silently diverge
+    from what the league itself sees on any rule this project doesn't model;
+    trusting the platform's number is the correct scope, not a shortcut.
+    """
+    franchise_id: Optional[str]
+    team_name: Optional[str]
+    points: Optional[float]
+    # {canonical_player_id or platform_player_id: points}. Canonical where the
+    # player resolved, the raw platform id as a fallback key so a starter's
+    # score is never silently dropped just because the name didn't resolve.
+    player_points: Mapping[str, float] = field(default_factory=dict)
+    starter_ids: Tuple[str, ...] = ()  # canonical where resolved, else platform id
+
+
+@dataclass(frozen=True)
+class Matchup:
+    """One head-to-head pairing for one week. Two Matchups with the same
+    week and non-tuple identity would be the same real-world game reported
+    twice -- callers that want "all games in week N" should get exactly
+    teams/2 of these, which check_repository_contract.py asserts."""
+    season: int
+    week: int
+    home: MatchupSide
+    away: MatchupSide
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+    @property
+    def is_tie(self) -> bool:
+        return (self.home.points is not None and self.away.points is not None
+                and self.home.points == self.away.points)
+
+
 def _int(value: Any) -> Optional[int]:
     try:
         return int(value)

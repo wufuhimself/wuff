@@ -27,11 +27,13 @@ Dict shapes each backend still serves underneath:
 - rankings(): market rankings [{'playerName','position','team','ranking',...}]
 """
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import espn_manager, sleeper_manager, yahoo_store
 from .domain import (
     DraftPick,
+    Matchup,
+    MatchupSide,
     RankingRow,
     RosterEntry,
     RosterTeam,
@@ -91,6 +93,12 @@ class LeagueDataRepository:
         app/domain.py's TRANSACTION_TYPES docstring) is a real, permanent
         state, not a backend that forgot to implement something."""
         return []
+
+    def raw_matchups(self) -> Dict[str, List[Dict[str, Any]]]:
+        """{week_str: [platform-native per-team rows]} (Phase 5 step 7).
+        Default `{}` for the same reason raw_transactions() defaults to `[]`
+        -- a platform/season with no scored weeks yet is real, not missing."""
+        return {}
 
     # ---- Typed API (Phase 5 step 3) -------------------------------------
     # Implemented ONCE here, in terms of the dict methods above, rather than
@@ -328,6 +336,68 @@ class LeagueDataRepository:
             ))
         return typed
 
+    def matchups(self, season: Optional[int] = None) -> List[Matchup]:
+        """Weekly head-to-head pairings for one season (this league's current
+        season when omitted), pairing raw_matchups()' per-team rows by their
+        shared matchup_id.
+
+        A week whose rows are all still 0.0 is dropped, not returned as a
+        0-0 tie -- Sleeper's "current week" field (settings.leg) marks a week
+        as current from the moment it STARTS, not from when it finishes, so
+        the latest synced week for an in-progress or not-yet-started season is
+        real rows with no scores in them yet, not a finished game. This is a
+        heuristic, not a guaranteed signal (a genuine 0-0 final is
+        theoretically possible and would be dropped too) -- but confirmed
+        against a completed season first: 17 real weeks, no phantom all-zero
+        18th, so this only ever discards a week that has not actually
+        happened.
+        """
+        players = self._players()
+        roster_lookup = self._roster_id_lookup()  # already resolves franchise_id per team
+        season = season if season is not None else _int(self.league.season)
+
+        def resolved_starters(row) -> Tuple[str, ...]:
+            player_points = row.get('players_points') or {}
+            ids = []
+            for pid in row.get('starters') or []:
+                identity = players.by_platform_id('sleeper', pid) if players else None
+                ids.append(identity.canonical_id if identity else str(pid))
+            return tuple(ids), player_points
+
+        def side_for(row) -> MatchupSide:
+            franchise_id, team_name = roster_lookup.get(row.get('roster_id'), (None, None))
+            starter_ids, player_points = resolved_starters(row)
+            return MatchupSide(
+                franchise_id=franchise_id,
+                team_name=team_name,
+                points=_float(row.get('points')),
+                player_points={str(k): v for k, v in player_points.items()},
+                starter_ids=starter_ids,
+            )
+
+        typed = []
+        for week_key, rows in self.raw_matchups().items():
+            try:
+                week = int(week_key)
+            except (TypeError, ValueError):
+                continue
+            if not any((row.get('points') or 0) > 0 for row in rows):
+                continue  # not actually played yet -- see docstring
+            by_matchup: Dict[Any, List[Dict[str, Any]]] = {}
+            for row in rows:
+                by_matchup.setdefault(row.get('matchup_id'), []).append(row)
+            for pair in by_matchup.values():
+                if len(pair) != 2:
+                    continue  # a bye or malformed pairing; never silently guess a side
+                typed.append(Matchup(
+                    season=season or 0,
+                    week=week,
+                    home=side_for(pair[0]),
+                    away=side_for(pair[1]),
+                    raw={'home': pair[0], 'away': pair[1]},
+                ))
+        return typed
+
 
 class YahooJsonRepository(LeagueDataRepository):
     """The original single-league data layout under data/raw/ — valid only for
@@ -482,6 +552,12 @@ class SnapshotJsonRepository(LeagueDataRepository):
         # for that subclass if this weren't guarded.
         loader = getattr(self.snapshots, 'load_synced_transactions', None)
         return loader(self._platform_id) if loader is not None else []
+
+    def raw_matchups(self) -> Dict[str, List[Dict[str, Any]]]:
+        # Same ESPN guard as raw_transactions() -- espn_manager has no
+        # load_synced_matchups yet.
+        loader = getattr(self.snapshots, 'load_synced_matchups', None)
+        return loader(self._platform_id) if loader is not None else {}
 
 
 class SleeperJsonRepository(SnapshotJsonRepository):

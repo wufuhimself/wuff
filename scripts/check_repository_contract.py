@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.domain import (  # noqa: E402
     TRANSACTION_TYPES,
     DraftPick,
+    Matchup,
     RankingRow,
     RosterTeam,
     StandingRow,
@@ -157,6 +158,33 @@ def check_league(league_id, league) -> None:
         print(f'      transactions: {len(transactions)}, '
               f'{move_resolved}/{move_total} player moves carry a canonical id')
 
+    matchups = repo.matchups()
+    starter_resolved = starter_total = 0
+    weeks_seen = set()
+    for matchup in matchups:
+        check('matchup is Matchup', isinstance(matchup, Matchup), type(matchup).__name__)
+        check('matchup week is positive', matchup.week >= 1, matchup.week)
+        weeks_seen.add(matchup.week)
+        for side in (matchup.home, matchup.away):
+            # Zero points on a matchup this function chose to return would be
+            # exactly the "week hasn't happened yet" state repository.matchups()
+            # promises to filter out -- a leak here means that filter broke.
+            check('matchup side has a score', side.points is not None and side.points > 0,
+                  f'week {matchup.week} {side.team_name}: {side.points}')
+            for sid in side.starter_ids:
+                starter_total += 1
+                if sid.startswith('sleeper:') or sid.startswith('nfl:'):
+                    starter_resolved += 1
+    # One matchup_id pairs exactly two teams; a week with an odd team count
+    # (odd-sized league, or a bye) legitimately has fewer pairs than teams/2,
+    # so this checks "even" and "no lopsided week", not an exact count.
+    for week in weeks_seen:
+        count = sum(1 for m in matchups if m.week == week)
+        check(f'week {week} has a sane pairing count', 1 <= count <= 20, count)
+    if matchups:
+        print(f'      matchups: {len(matchups)} across {len(weeks_seen)} scored week(s), '
+              f'{starter_resolved}/{starter_total} starters carry a canonical id')
+
     all_players = [p for t in teams for p in t.players]
     resolved = sum(1 for p in all_players if p.canonical_player_id)
     total = len(all_players)
@@ -174,6 +202,46 @@ def check_league(league_id, league) -> None:
               f'{with_bye}/{len(skaters)} carry a bye week')
 
 
+def check_completed_season_matchups() -> None:
+    """None of the 6 registered Sleeper leagues have played a game yet (2026
+    season, pre-kickoff) -- the per-league loop above exercises matchups()
+    honestly, but every one of its assertions passes vacuously on zero rows.
+    This targets a real completed prior season (reachable only via Sleeper's
+    previous_league_id chain, deliberately NOT walked by sync -- see the
+    Phase 5 roadmap note) so the pairing/resolution logic gets checked against
+    real scored weeks at least once. Synced on demand here rather than kept
+    registered, since it belongs to no wuff league.
+    """
+    import os  # pylint: disable=import-outside-toplevel
+
+    from app.league_context import LeagueFormat  # pylint: disable=import-outside-toplevel
+    from app.league_registry import League  # pylint: disable=import-outside-toplevel
+    from app.repository import SleeperJsonRepository  # pylint: disable=import-outside-toplevel
+    from app.sleeper_manager import sync_league  # pylint: disable=import-outside-toplevel
+
+    if os.environ.get('WUFF_SKIP_LIVE_CHECKS') == '1':
+        return
+    completed_league_id = '1180225300948316160'  # a real completed 2025 Sleeper season
+    print(f'  completed-season sample ({completed_league_id})')
+    try:
+        sync_league(completed_league_id)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        print(f'    skipped (offline or unreachable: {type(exc).__name__}: {exc})')
+        return
+    league = League(league_id='__completed_sample__', platform='sleeper',
+                    platform_league_id=completed_league_id, name='completed sample',
+                    season='2025', format=LeagueFormat())
+    repo = SleeperJsonRepository(league)
+    matchups = repo.matchups()
+    check('completed season has 17 scored weeks', len({m.week for m in matchups}) == 17,
+          sorted({m.week for m in matchups}))
+    check('completed season resolves every team name', matchups and all(
+        m.home.team_name and m.away.team_name for m in matchups), 'a side had no team_name')
+    check('completed season has no zero-point sides', not any(
+        (s.points or 0) <= 0 for m in matchups for s in (m.home, m.away)),
+        'a real week leaked a zero score')
+
+
 def main() -> int:
     print('Repository contract:')
     for league_id, league in load_leagues().items():
@@ -182,6 +250,8 @@ def main() -> int:
         except Exception as exc:  # pylint: disable=broad-exception-caught
             FAILURES.append(f'{league_id}: {type(exc).__name__}: {exc}')
             print(f'    FAIL {league_id} raised {type(exc).__name__}: {exc}')
+
+    check_completed_season_matchups()
 
     print()
     if FAILURES:
