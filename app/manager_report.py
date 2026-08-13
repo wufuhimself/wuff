@@ -19,18 +19,25 @@ would predict, using this league's own multi-year history as the only
 baseline (no external assumption, no hand-tuned threshold). No letter
 grades either -- WuFF's copy stays numbers, not personas.
 
-⚠️ Identity resolution is only as good as Yahoo's own rename note, and that
-note doesn't fire for most historical renames -- checked against real data
-2026-08-11: a 12-team league across 5 seasons produced 24 "manager" rows,
-not ~12, because e.g. "Balls Deep" (2022-24) and "BALLS DEEP" (2025) never
-got linked. No persistent owner id is saved in data/raw/standings/{year}.json
-to do this properly (only team name + season stats), and re-fetching through
-the Yahoo API to get one is blocked (OAuth approval pending, see
-league_rules.json's platform notes). So: each row is really "one team-name
-lineage," not a verified person, and every row carries `team_names` (every
-raw name folded into it) so that limit stays visible on the page instead of
-silently overclaiming identity. A hand-authored alias file is the fix if
-this needs to be exact -- deliberately not built speculatively.
+Identity comes from `app/franchise_registry.py` (Phase 5 step 2), which for
+this league resolves from **manager email**: `data/raw/managers/{year}.json`
+carries one row per manager per season with theirs, and its team names match
+the standings names exactly. A row here is a verified person, not a
+team-name lineage.
+
+That corrects what this docstring claimed until 2026-08-13 -- that identity
+could only be as good as Yahoo's rename note (which fires for 1 of ~47
+renames in this league), that no persistent owner id was saved anywhere, and
+that a hand-authored alias file was the only fix. It produced 24 "manager"
+rows for a 12-team league; it is 14 now. The owner id existed all along, in
+a file nothing web-facing read. Rows still carry `team_names` (every raw
+name folded in), now as provenance rather than as a disclaimer.
+
+⚠️ Remaining limit, unchanged: only seasons with BOTH draft results and
+saved standings count, so a manager with no such season has no row at all
+(15 managers in the archive, 14 rows here). A league with no manager archive
+falls back to name-as-identity and its rows are lineages again --
+`data/config/franchise_aliases.json` is the manual escape hatch there.
 """
 from collections import defaultdict
 from statistics import mean

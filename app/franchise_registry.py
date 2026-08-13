@@ -14,14 +14,18 @@ How identity is established, per platform, in descending order of trust:
   simply dropped them and keyed on the display name instead. `ownerId` is the
   strongest key (it survives a manager taking over a different roster slot),
   `rosterId` is the fallback.
-- **Yahoo: not solvable algorithmically, and this is settled.** The standings
-  snapshots hold team name and season stats, no owner id, and re-fetching one
-  is blocked on API approval. Yahoo's own rename note fires for exactly one
-  of the ~47 name changes in this league's history. `manager_report.py`
-  already concluded a hand-authored alias file is the only real fix; this
-  module reads that file (`data/config/franchise_aliases.json`) and falls
-  back to name-as-identity for anything it doesn't cover, which is the
-  current behaviour rather than a guess.
+- **Yahoo: solved from the manager archive.** The standings snapshots hold a
+  team name and season stats and no owner id, and Yahoo's rename note fires
+  for exactly one of the ~47 name changes in this league's history -- which
+  is why this was written up (here and in `manager_report.py`) as needing a
+  hand-authored file. It does not: `data/raw/managers/{year}.json` carries
+  one row per manager per season **with their email**, and its team names
+  match the standings names exactly. `manager_alias_groups()` below turns
+  that into `data/config/franchise_aliases.json` via
+  `franchise-alias-template --from-managers`; frank-gore resolves to 15
+  managers rather than 48 name-lineages. The alias file stays hand-editable
+  for leagues with no such archive, and anything it doesn't cover still falls
+  back to name-as-identity rather than a guess.
 
 Nothing here infers identity from name *similarity*. The only name-based
 links it will make are exact ones: two names whose slugs are identical

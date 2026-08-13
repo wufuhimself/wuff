@@ -485,11 +485,22 @@ Each step is its own commit with a full-output diff as the gate.
    `franchise_names`), CLI `build-franchises` and
    `franchise-alias-template`. Sleeper/ESPN resolve from `ownerId` (fallback
    `rosterId`) — the data was already synced and being thrown away at the
-   repository boundary. Yahoo cannot be resolved algorithmically, full stop:
-   its standings carry no owner id and the rename note fired for exactly ONE
-   of ~47 name changes, so `data/config/franchise_aliases.json` is the
-   hand-authored answer, shipped scaffolded to reproduce current inference
-   (a no-op until edited). The only automatic name links are *exact* ones —
+   repository boundary. **Yahoo turned out to be resolvable too** — not from
+   the standings (no owner id; the rename note fired for 1 of ~47 name
+   changes) but from `data/raw/managers/{year}.json`, which carries one row
+   per manager per season **with their email**, and whose team names match the
+   standings names 12/12 in every saved season. Both this file and
+   `manager_report.py` had recorded that no persistent owner id was saved
+   anywhere and that hand-authoring was the only fix; it existed all along in
+   a file nothing web-facing read. `franchise-alias-template --from-managers
+   --write` generates `data/config/franchise_aliases.json` from it:
+   frank-gore resolves to **15 managers instead of 48 name-lineages**, and
+   `manager_report` drops 24 rows → 14 (14 not 15 — one manager has no season
+   with both a draft and saved standings). The archive is gitignored and
+   local-only, so this is a *generator* for the committed file, same shape as
+   `snapshot-position-map`; the output carries team names and a slug only,
+   never an email or a real name. The file stays hand-editable for leagues
+   with no such archive. The only automatic name links are *exact* ones —
    identical slugs, and a roster name whose tail after `" - "` matches a
    known team. `KeeperMark.franchise_id` was added **alongside** `team_name`,
    backfilled by `build-franchises`, with NULL falling back to name matching.

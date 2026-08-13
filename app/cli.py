@@ -1838,8 +1838,9 @@ def _cmd_build_franchises(args) -> None:
                 line += f", {marks['unresolved']} unresolved (still matched by name)"
         print(line)
 
-    print('\nYahoo leagues resolve identity only as far as data/config/franchise_aliases.json goes '
-          '— see `python3 -m app franchise-alias-template`.')
+    print('\nName-identified leagues resolve only as far as data/config/franchise_aliases.json goes. '
+          'Regenerate it with `python3 -m app franchise-alias-template --from-managers --write` '
+          '(uses the local manager-email archive) or hand-edit it.')
 
 
 def _cmd_franchise_alias_template(args) -> None:
