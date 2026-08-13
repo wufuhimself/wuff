@@ -81,6 +81,27 @@ def _start_background_sync():
     ensure_scheduler_started()
 
 
+# Endpoints reachable without an account. Everything else -- including the
+# default league's dashboard, keeper board and mock draft -- requires login.
+PUBLIC_ENDPOINTS = frozenset({'login', 'login_verify', 'logout', 'static'})
+
+
+@app.before_request
+def _require_login():
+    """Gate the whole app rather than decorating routes one by one.
+
+    Every page except /login served a real league's rosters, standings and
+    draft history to anonymous visitors -- a leftover from when wuff was a
+    single-user local tool and there was no one else to hide it from. Doing
+    this as an allowlist instead of ~30 @login_required decorators means a
+    newly added route is private by default; forgetting a decorator would
+    leak silently, which is the failure mode worth designing out.
+    """
+    if request.endpoint in PUBLIC_ENDPOINTS or current_user.is_authenticated:
+        return None
+    return login_manager.unauthorized()
+
+
 def _league_href(platform: str, platform_league_id: str) -> str:
     if platform == 'sleeper':
         return f'/sleeper/{platform_league_id}'

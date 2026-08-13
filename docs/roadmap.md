@@ -157,9 +157,24 @@ The first version strangers can touch.
   snapshots), and `managers/` + `season_rosters/` (read only by
   `keeper_history.py`'s CLI commands, never by the web app — still
   local-only, migrate them if anything web-facing ever needs them).
+- ✅ **The app requires login** (2026-08-12): every endpoint except
+  `login`/`login_verify`/`logout`/`static` now goes through `_require_login`
+  in `web.py`. Until then every page — the dashboard, keeper board, mock
+  draft, draft history, per-league pages — served the default league's real
+  rosters, standings and draft history to *anonymous* visitors, a leftover
+  from when wuff was a single-user local tool. Deliberately an allowlist
+  rather than ~30 `@login_required` decorators: a newly added route is then
+  private by default, and forgetting a decorator would leak silently.
+  (Manager names/emails were never exposed — they live in `managers/`,
+  which is not migrated and which nothing web-facing reads.)
 - **Remaining for Phase 1 launch:**
   - Per-user league *views* still lean on the shared snapshot files; fine
     while snapshots are keyed by platform league id, revisit at hosting.
+  - The default league (frank-gore) is still *everyone's* default once
+    logged in — `/`, `/keepers-board` and `/mock-draft` resolve to it for
+    any user. Login now stops strangers reading it, but a second real user
+    would still land on it rather than their own league. Scoping the
+    default per user is the next multi-tenancy step.
   - ✅ **Scheduler decision (2026-08-12):** in-process APScheduler assumes
     one process. Deploy with `gunicorn --workers 1` — N workers would each
     start their own scheduler and independently sweep every Sleeper league,
