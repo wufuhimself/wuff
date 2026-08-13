@@ -38,6 +38,13 @@ KNOWN_POSITIONS = {
     'NT', 'SS', 'FS', 'MLB', 'EDGE', 'ATH', 'OT', 'OG', 'UNK',
 }
 
+# From the Sleeper players cache, surveyed 2026-08-13 (app/player_registry.py's
+# docstring). An unrecognized value here is a source-format change worth
+# knowing about, not necessarily wrong -- so this is a check, not an
+# assertion the set is exhaustive forever.
+KNOWN_STATUSES = {'Active', 'Inactive', 'Injured Reserve'}
+KNOWN_INJURY_STATUSES = {'Questionable', 'IR', 'PUP', 'NA', 'Sus', 'Out', 'DNR', 'Doubtful'}
+
 
 def check(label, condition, detail=''):
     global CHECKS  # pylint: disable=global-statement
@@ -70,6 +77,19 @@ def check_league(league_id, league) -> None:
             if entry.position:
                 check('position is recognized', entry.position.upper() in KNOWN_POSITIONS,
                       f'{entry.name}: {entry.position!r}')
+            if entry.bye_week is not None:
+                check('bye week is a real week number', 1 <= entry.bye_week <= 18,
+                      f'{entry.name}: {entry.bye_week}')
+                # A resolved player whose bye is known should never ALSO look
+                # unrostered -- a resolved-but-bye-less active player would be
+                # the team-code mismatch bug (schedule said 'LA', registry
+                # said 'LAR') showing up again under a different team.
+            if entry.status:
+                check('status is recognized', entry.status in KNOWN_STATUSES,
+                      f'{entry.name}: {entry.status!r}')
+            if entry.injury_status:
+                check('injury status is recognized', entry.injury_status in KNOWN_INJURY_STATUSES,
+                      f'{entry.name}: {entry.injury_status!r}')
 
     raw_years = repo.draft_years()
     drafts = repo.drafts()
@@ -106,11 +126,21 @@ def check_league(league_id, league) -> None:
         check('ranking is RankingRow', isinstance(row, RankingRow), type(row).__name__)
         check('ranking row has a name', bool(row.name), repr(row.name))
 
-    resolved = sum(1 for t in teams for p in t.players if p.canonical_player_id)
-    total = sum(len(t.players) for t in teams)
+    all_players = [p for t in teams for p in t.players]
+    resolved = sum(1 for p in all_players if p.canonical_player_id)
+    total = len(all_players)
     franchised = sum(1 for t in teams if t.franchise_id)
+    # Bye/status denominator excludes DEF: a team defense has no injury
+    # status, and a snapshot with no schedule fetched for the current season
+    # yet is a real, non-error state (see bye_weeks.py), not a resolution gap.
+    skaters = [p for p in all_players if p.canonical_player_id and p.position != 'DEF']
+    with_status = sum(1 for p in skaters if p.status)
+    with_bye = sum(1 for p in skaters if p.bye_week is not None)
     print(f'      players {resolved}/{total} carry a canonical id; '
           f'{franchised}/{len(teams)} teams carry a franchise id')
+    if skaters:
+        print(f'      of resolved non-DEF players: {with_status}/{len(skaters)} carry a status, '
+              f'{with_bye}/{len(skaters)} carry a bye week')
 
 
 def main() -> int:

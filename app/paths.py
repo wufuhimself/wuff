@@ -18,6 +18,7 @@ RAW_NFL_STATS_DIR = RAW_DIR / 'nfl_stats'
 RAW_NFL_WEEKLY_STATS_DIR = RAW_NFL_STATS_DIR / 'weekly'
 RAW_NFL_SEASONAL_STATS_DIR = RAW_NFL_STATS_DIR / 'seasonal'
 RAW_NFL_ROSTERS_DIR = RAW_NFL_STATS_DIR / 'rosters'
+RAW_NFL_SCHEDULES_DIR = RAW_NFL_STATS_DIR / 'schedules'
 PROCESSED_ROSTERS_DIR = PROCESSED_DIR / 'rosters'
 PROCESSED_DRAFT_ANALYSIS_DIR = PROCESSED_DIR / 'draft_analysis'
 RAW_SLEEPER_DIR = RAW_DIR / 'sleeper'
@@ -31,6 +32,10 @@ SLEEPER_PLAYERS_CACHE_FILE = RAW_SLEEPER_DIR / 'players_cache.json'
 # container can resolve player positions without the nflverse CSVs, which it
 # has no copy of. Regenerate with `python3 -m app snapshot-position-map`.
 NFL_POSITION_MAP_FILE = CONFIG_DIR / 'nfl_position_map.json'
+# Committed for the same reason as NFL_POSITION_MAP_FILE: a deployed
+# container has no copy of the nflverse schedule CSVs. Regenerate with
+# `python3 -m app snapshot-byes`.
+NFL_BYE_WEEKS_FILE = CONFIG_DIR / 'nfl_bye_weeks.json'
 # Hand-authored name -> real name map for the players no algorithm can link:
 # nicknames ("Hollywood Brown" is Marquise Brown) and short forms ("Josh
 # Palmer" is Joshua Palmer). Committed, because it is curated data.

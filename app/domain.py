@@ -45,7 +45,19 @@ class RosterEntry:
     # app/player_registry.py's cross-platform key. None when the name did not
     # resolve, which is a state callers must handle rather than assume away.
     canonical_player_id: Optional[str] = None
+    # Roster status ('Active', 'Inactive', 'Injured Reserve') and the
+    # separate injury designation ('Questionable', 'IR', 'PUP', 'NA', ...).
+    # Neither comes from any platform's roster snapshot -- Yahoo's paste never
+    # carried one and Sleeper's roster payload doesn't either -- both are
+    # filled from app/player_registry.py, which gets them from the Sleeper
+    # players cache regardless of which platform this roster belongs to.
+    # None on both fields when the player did not resolve.
     status: Optional[str] = None
+    injury_status: Optional[str] = None
+    # This player's NFL team's bye week for the league's season, from
+    # app/bye_weeks.py. None when unresolved or the season's schedule isn't
+    # available yet (future weeks not yet released).
+    bye_week: Optional[int] = None
     selected_position: Optional[str] = None
     draft_round: Optional[int] = None
     draft_pick: Optional[int] = None

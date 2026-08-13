@@ -49,6 +49,10 @@ from .standings import load_standings
 from .strategy import load_yahoo_rankings
 
 
+def _canonical_id(identity) -> Optional[str]:
+    return identity.canonical_id if identity else None
+
+
 class LeagueDataRepository:
     """Interface. draft_picks/draft_pick_origins (traded-pick ownership) may
     legitimately be None for platforms that don't track them."""
@@ -103,23 +107,38 @@ class LeagueDataRepository:
         except Exception:  # pylint: disable=broad-exception-caught
             return None
 
-    def _canonical_player_id(self, players, name, team=None, position=None) -> Optional[str]:
+    def _resolve_identity(self, players, name, team=None, position=None):
+        """The resolved PlayerIdentity (not just its canonical id) so callers
+        that also want status/injury_status don't do a second lookup."""
         if players is None or not name:
             return None
-        found = players.resolve(name, team=team, position=position)
-        return found.canonical_id if found else None
+        return players.resolve(name, team=team, position=position)
 
-    def _roster_entry(self, players, row: Dict[str, Any]) -> RosterEntry:
+    def _current_season_byes(self):
+        from .bye_weeks import bye_week_map  # pylint: disable=import-outside-toplevel
+        from .nfl_stats import current_nfl_season  # pylint: disable=import-outside-toplevel
+        try:
+            return bye_week_map(current_nfl_season())
+        except Exception:  # pylint: disable=broad-exception-caught
+            return {}
+
+    def _roster_entry(self, players, byes: Dict[str, int], row: Dict[str, Any]) -> RosterEntry:
         name = _str(row.get('playerName')) or ''
         position = _str(row.get('position'))
         nfl_team = _str(row.get('team'))
+        identity = self._resolve_identity(players, name, nfl_team, position)
+        # A team defense has no bye of its own to look up, and byes is keyed
+        # by NFL team code anyway -- this reads the same map either way.
+        bye = byes.get((identity.team if identity else nfl_team) or '')
         return RosterEntry(
             name=name,
             position=position,
             nfl_team=nfl_team,
             platform_player_id=_str(row.get('playerId')),
-            canonical_player_id=self._canonical_player_id(players, name, nfl_team, position),
-            status=_str(row.get('status')),
+            canonical_player_id=identity.canonical_id if identity else None,
+            status=identity.status if identity else None,
+            injury_status=identity.injury_status if identity else None,
+            bye_week=bye,
             selected_position=_str(row.get('selectedPosition')),
             draft_round=_int(row.get('draftRound')),
             draft_pick=_int(row.get('draftPick')),
@@ -129,6 +148,7 @@ class LeagueDataRepository:
 
     def roster_teams(self) -> List[RosterTeam]:
         players, franchises = self._players(), self._franchises()
+        byes = self._current_season_byes()
         teams = []
         for row in self.rosters():
             team_name = _str(row.get('teamName')) or ''
@@ -140,8 +160,8 @@ class LeagueDataRepository:
                 franchise_id=franchises.id_for_name(team_name) if franchises else None,
                 manager_name=_str(row.get('managerDisplayName')) or _str(row.get('ownerName')),
                 platform_team_id=platform_team_id,
-                players=tuple(self._roster_entry(players, p) for p in row.get('players') or []),
-                starters=tuple(self._roster_entry(players, p) for p in row.get('starters') or []),
+                players=tuple(self._roster_entry(players, byes, p) for p in row.get('players') or []),
+                starters=tuple(self._roster_entry(players, byes, p) for p in row.get('starters') or []),
                 raw=row,
             ))
         return teams
@@ -168,7 +188,7 @@ class LeagueDataRepository:
                     # Draft history carries no position for the Yahoo league,
                     # so the registry is what supplies one -- including for
                     # team defenses, which nflverse rosters never had.
-                    canonical_player_id=self._canonical_player_id(players, name, position=position),
+                    canonical_player_id=_canonical_id(self._resolve_identity(players, name, position=position)),
                     position=position,
                     platform_player_id=_str(row.get('playerId')),
                     raw=row,
@@ -216,7 +236,7 @@ class LeagueDataRepository:
                 nfl_team=nfl_team,
                 adp=_float(row.get('adp')),
                 source=_str(row.get('source')),
-                canonical_player_id=self._canonical_player_id(players, name, nfl_team, position),
+                canonical_player_id=_canonical_id(self._resolve_identity(players, name, nfl_team, position)),
                 raw=row,
             ))
         return rows

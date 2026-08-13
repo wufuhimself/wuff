@@ -251,6 +251,17 @@ def parse_args() -> argparse.Namespace:
     nfl_stats_parser.add_argument('--start-season', type=int, default=None, help='Start season (inclusive)')
     nfl_stats_parser.add_argument('--end-season', type=int, default=None, help='End season (inclusive)')
 
+    fetch_schedules_parser = subparsers.add_parser(
+        'fetch-schedules', help='Fetch nflverse schedule CSVs (source data for bye weeks)')
+    fetch_schedules_parser.add_argument('--seasons', nargs='+', type=int, default=None,
+                                        help='Specific seasons (default: 2019-current)')
+
+    snapshot_byes_parser = subparsers.add_parser(
+        'snapshot-byes',
+        help='Write data/config/nfl_bye_weeks.json from the local schedule CSVs (commit the result)')
+    snapshot_byes_parser.add_argument('--seasons', nargs='+', type=int, default=None,
+                                      help='Seasons to include (default: 2020 through the current season)')
+
     draft_slot_parser = subparsers.add_parser(
         'draft-slot-outcomes',
         help='Analyze draft slot (round-1 pick number) vs final standings rank',
@@ -1290,6 +1301,34 @@ def _cmd_fetch_nfl_stats(args) -> None:
 
 
 
+def _cmd_fetch_schedules(args) -> None:
+    from .bye_weeks import fetch_and_save_schedule  # pylint: disable=import-outside-toplevel
+    from .nfl_stats import FIRST_SEASON, current_nfl_season  # pylint: disable=import-outside-toplevel
+
+    seasons = args.seasons or list(range(FIRST_SEASON, current_nfl_season() + 1))
+    for season in seasons:
+        try:
+            path = fetch_and_save_schedule(season)
+            print(f'  {season}: {path}')
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print(f'  {season}: failed ({type(exc).__name__}: {exc})', file=sys.stderr)
+
+
+def _cmd_snapshot_byes(args) -> None:
+    from .bye_weeks import save_bye_weeks_snapshot  # pylint: disable=import-outside-toplevel
+    from .nfl_stats import current_nfl_season  # pylint: disable=import-outside-toplevel
+    from .paths import NFL_BYE_WEEKS_FILE  # pylint: disable=import-outside-toplevel
+
+    seasons = args.seasons or list(range(2020, current_nfl_season() + 1))
+    written = save_bye_weeks_snapshot(seasons)
+    if not written:
+        print('No schedule CSVs found. Run `python3 -m app fetch-schedules` first.', file=sys.stderr)
+        sys.exit(1)
+    for season, count in sorted(written.items()):
+        print(f'  {season}: {count} teams')
+    print(f'Wrote {NFL_BYE_WEEKS_FILE} — commit it so the deploy has it.')
+
+
 def _cmd_draft_slot_outcomes(args) -> None:
     repo = _repo_for_league_arg(args.league)
     outcomes = draft_slot_vs_final_rank(repo=repo)
@@ -1981,6 +2020,8 @@ _COMMAND_HANDLERS = {
     'list-league-keys': _cmd_list_league_keys,
     'fetch-standings': _cmd_fetch_standings,
     'fetch-nfl-stats': _cmd_fetch_nfl_stats,
+    'fetch-schedules': _cmd_fetch_schedules,
+    'snapshot-byes': _cmd_snapshot_byes,
     'draft-slot-outcomes': _cmd_draft_slot_outcomes,
     'manager-report': _cmd_manager_report,
     'position-round-outcomes': _cmd_position_round_outcomes,

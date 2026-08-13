@@ -196,6 +196,33 @@ def refresh_nfl_rosters_job() -> None:
         logger.exception('nfl-rosters fetch failed')
 
 
+def refresh_schedule_job() -> None:
+    """Fetch the current season's nflverse schedule CSV (Phase 5 step 5).
+
+    Same failure shape as refresh_nfl_rosters_job's docstring: nothing else
+    fetches this, so a deployed container had no schedule and every bye week
+    resolved through the committed data/config/nfl_bye_weeks.json snapshot
+    only -- correct through the season this shipped in, silently stale for
+    trades/relocations in a later one. The committed snapshot stays as the
+    fallback (bye_weeks.bye_week_map() prefers a live CSV when present); this
+    job is what keeps the live copy from going missing on a fresh container.
+    Only the current season -- past seasons don't change, and the committed
+    snapshot already covers them.
+    """
+    from .bye_weeks import fetch_and_save_schedule  # pylint: disable=import-outside-toplevel
+
+    season = current_nfl_season()
+    try:
+        path = fetch_and_save_schedule(season)
+        logger.info('schedule job: wrote %s', path)
+    except Exception:  # pylint: disable=broad-exception-caught
+        # The committed bye-weeks snapshot stays in place either way. Logged
+        # rather than swallowed for the same reason as the sibling jobs above:
+        # a stale schedule degrades silently (a rescheduled bye reads wrong,
+        # not missing), so a failure here has to be visible in the logs.
+        logger.exception('schedule fetch failed')
+
+
 def refresh_player_registry_job() -> None:
     """Rebuild the cross-platform player identity registry (Phase 5 step 1).
 
@@ -266,6 +293,18 @@ def ensure_scheduler_started() -> bool:
                 hours=24,
                 id='player-registry-daily',
                 next_run_time=datetime.now() + timedelta(seconds=180),
+                max_instances=1,
+                coalesce=True,
+            )
+            # Independent of the others (no reader depends on it yet, and it
+            # reads nothing they write) -- schedule is small (~285 rows/season)
+            # so a fixed offset is enough, no need to chain it after anything.
+            scheduler.add_job(
+                refresh_schedule_job,
+                'interval',
+                hours=24,
+                id='nfl-schedule-daily',
+                next_run_time=datetime.now() + timedelta(seconds=90),
                 max_instances=1,
                 coalesce=True,
             )
