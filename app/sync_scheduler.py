@@ -23,8 +23,9 @@ from . import espn_manager
 from .crypto import decrypt_value
 from .db import SessionLocal
 from .free_rankings import refresh_free_rankings
+from .nfl_stats import current_nfl_season, fetch_and_save_rosters
 from .models import DbLeague, EspnCredential, SyncRun
-from .paths import SLEEPER_PLAYERS_CACHE_FILE
+from .paths import RAW_NFL_ROSTERS_DIR, SLEEPER_PLAYERS_CACHE_FILE
 from .sleeper_manager import (
     load_players_cache,
     load_sleeper_leagues_config,
@@ -34,6 +35,10 @@ from .sleeper_manager import (
 
 SYNC_INTERVAL_MINUTES = int(os.environ.get('SLEEPER_SYNC_INTERVAL_MINUTES', '360'))
 PLAYERS_CACHE_MAX_AGE_HOURS = int(os.environ.get('SLEEPER_PLAYERS_CACHE_MAX_AGE_HOURS', '168'))
+# Position resolution needs a roster snapshot per season, and the league
+# analyses that use it only go back this far (see CLAUDE.md) -- fetching
+# earlier seasons would be dead weight.
+NFL_ROSTER_FIRST_SEASON = int(os.environ.get('NFL_ROSTER_FIRST_SEASON', '2022'))
 
 _scheduler: Optional[BackgroundScheduler] = None  # pylint: disable=invalid-name
 _scheduler_lock = threading.Lock()
@@ -152,6 +157,33 @@ def refresh_rankings_job() -> None:
         pass  # transient API failure; yesterday's board stays in place
 
 
+def refresh_nfl_rosters_job() -> None:
+    """Fetch the nflverse roster CSVs that fantasy_position_map() reads.
+
+    Nothing else fetches these -- they were only ever written by the manual
+    `fetch-nfl-stats` CLI, so a deployed container had none and
+    fantasy_position_map() returned {} forever. That fails *silently*: the
+    draft-patterns page renders "no draft history", and
+    compute_historical_qb_pick_targets() finds no positions and returns [],
+    so the rankings board quietly ships without the QB adjustment.
+
+    Only the roster CSVs (~1MB/season), not the weekly/seasonal stats -- the
+    position map is all the web app needs. Existing files are left alone
+    except the current season, which is still changing.
+    """
+    current = current_nfl_season()
+    missing = [
+        season for season in range(NFL_ROSTER_FIRST_SEASON, current + 1)
+        if season == current or not (RAW_NFL_ROSTERS_DIR / f'{season}.csv').exists()
+    ]
+    if not missing:
+        return
+    try:
+        fetch_and_save_rosters(missing)
+    except Exception:  # pylint: disable=broad-exception-caught
+        pass  # transient nflverse failure; whatever is already on disk stays
+
+
 def ensure_scheduler_started() -> bool:
     """Start the background scheduler once per process. False when disabled."""
     global _scheduler  # pylint: disable=global-statement
@@ -177,6 +209,17 @@ def ensure_scheduler_started() -> bool:
                 hours=24,
                 id='free-rankings-daily',
                 next_run_time=datetime.now() + timedelta(seconds=120),
+                max_instances=1,
+                coalesce=True,
+            )
+            # Ahead of the rankings refresh: that job's QB adjustment needs
+            # the position map these CSVs back.
+            scheduler.add_job(
+                refresh_nfl_rosters_job,
+                'interval',
+                hours=24,
+                id='nfl-rosters-daily',
+                next_run_time=datetime.now() + timedelta(seconds=30),
                 max_instances=1,
                 coalesce=True,
             )
