@@ -26,6 +26,7 @@ DEFAULT_TOP_N = 7
 def compute_historical_qb_pick_targets(
     years: Optional[List[int]] = None,
     teams: int = DEFAULT_TEAMS,
+    years_data: Optional[Dict[int, List[dict]]] = None,
 ) -> List[int]:
     """Average overall pick number for QB1, QB2, ... QBn across past drafts.
 
@@ -33,8 +34,13 @@ def compute_historical_qb_pick_targets(
     usable; years without it are silently skipped. Keeper-slot rounds are
     excluded via live_draft_picks so a QB's keeper round doesn't get counted
     as fresh draft-day demand.
+
+    Pass years_data (from a repository's draft_years()) rather than letting
+    it read the JSON files: draft history lives in the database now, and the
+    JSON fallback returns {} on a deployed container, which would silently
+    drop the adjustment instead of failing.
     """
-    years_data = load_draft_years()
+    years_data = years_data if years_data is not None else load_draft_years()
     candidate_years = years if years is not None else sorted(years_data.keys())
 
     picks_by_qb_rank: Dict[int, List[int]] = {}

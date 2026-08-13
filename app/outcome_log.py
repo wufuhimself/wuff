@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional
 from .draft_history import keeper_slot_picks, live_draft_picks, load_draft_years
 from .league_registry import load_leagues
 from .paths import PROCESSED_DIR, ensure_parent_dir
-from .repository import repository_for
+from .repository import get_repository, repository_for
 
 OUTCOME_LOG_FILE = PROCESSED_DIR / 'outcome_log.json'
 
@@ -274,8 +274,14 @@ def resolve_outcomes(teams: int = 12) -> Dict[str, int]:
         else:
             # Unregistered/legacy league (or the default Yahoo league, which
             # historically read draft_history directly rather than through
-            # the repository) -- fall back to the global loader + passed teams.
-            years_data = load_draft_years()
+            # the repository) -- fall back to the default league's repository
+            # + passed teams. Not load_draft_years(): that reads the
+            # gitignored JSON, which is empty on a deployed container now
+            # that draft history lives in the database.
+            try:
+                years_data = get_repository().draft_years()
+            except Exception:  # pylint: disable=broad-except
+                years_data = load_draft_years()
             league_teams = teams
         resolved += _resolve_keeper_forecasts(group_entries, years_data)
         resolved += _resolve_qb_adjustments(group_entries, years_data, league_teams)

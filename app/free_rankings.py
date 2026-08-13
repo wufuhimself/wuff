@@ -37,6 +37,19 @@ SLEEPER_TAIL_LIMIT = 300
 _RANKABLE_POSITIONS = {'QB', 'RB', 'WR', 'TE', 'DEF', 'PK', 'K'}
 
 
+def _default_league_draft_years() -> Dict[int, List[dict]]:
+    """The default league's draft history, or {} if it can't be read.
+
+    Imported lazily to keep this module importable without the DB layer
+    (the CLI ranking commands run in contexts that never touch it).
+    """
+    try:
+        from .repository import get_repository  # pylint: disable=import-outside-toplevel
+        return get_repository().draft_years()
+    except Exception:  # pylint: disable=broad-except
+        return {}
+
+
 def fetch_ffc_adp(scoring: str = 'ppr', teams: int = 12, year: Optional[int] = None) -> List[Dict[str, Any]]:
     """Raw FFC ADP entries, already sorted by ADP."""
     params = {'teams': teams, 'year': year or datetime.now().year}
@@ -139,7 +152,10 @@ def refresh_free_rankings(scoring: str = 'ppr', teams: int = 12, year: Optional[
 
     qb_adjusted = False
     working_board = rankings
-    targets = compute_historical_qb_pick_targets()
+    # Draft history comes from the default league's repository (the database),
+    # not the gitignored JSON files -- this runs on the deployed container
+    # under the daily scheduler, where those files do not exist.
+    targets = compute_historical_qb_pick_targets(years_data=_default_league_draft_years())
     if targets:
         working_board = apply_qb_historical_adjustment(rankings, targets=targets)
         qb_adjusted = True

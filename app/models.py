@@ -15,6 +15,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .db import Base
 from .league_context import LeagueFormat
 from .league_registry import League
+# Imported for its side effect of registering the hand-curated Yahoo league
+# tables on Base.metadata, so init_db()'s create_all() creates them too.
+from .yahoo_models import (  # noqa: F401  pylint: disable=unused-import
+    YahooDraftPick,
+    YahooDraftPickOwnership,
+    YahooRosterPlayerRow,
+    YahooRosterTeam,
+    YahooStanding,
+)
 
 
 def _utcnow() -> datetime:

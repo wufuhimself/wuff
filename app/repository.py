@@ -15,7 +15,7 @@ Normalized shapes every backend serves:
 import json
 from typing import Any, Dict, List, Optional
 
-from . import espn_manager, sleeper_manager
+from . import espn_manager, sleeper_manager, yahoo_store
 from .draft_history import load_draft_years
 from .draft_picks import load_draft_pick_origins, load_draft_picks
 from .league_registry import League, get_league
@@ -83,6 +83,43 @@ class YahooJsonRepository(LeagueDataRepository):
 
     def draft_pick_origins(self, year: int) -> Optional[Dict[str, Any]]:
         return load_draft_pick_origins(year)
+
+
+class YahooDbRepository(LeagueDataRepository):
+    """The hand-curated Yahoo league data, read from the database.
+
+    Replaces YahooJsonRepository because data/raw/ is gitignored and the
+    deploy's filesystem is ephemeral, so the JSON files never reached
+    production -- every page backed by them rendered empty with no error.
+    rankings() deliberately still reads the file: that board is rewritten
+    daily by refresh_free_rankings(), so it self-heals on a fresh container
+    the way the Sleeper/ESPN snapshots do.
+    """
+
+    @property
+    def _ids(self) -> tuple:
+        return self.league.platform, self.league.platform_league_id
+
+    def rosters(self) -> List[Dict[str, Any]]:
+        return yahoo_store.load_rosters(*self._ids)
+
+    def draft_years(self) -> Dict[int, List[dict]]:
+        return yahoo_store.load_draft_years(*self._ids)
+
+    def standings_years(self) -> List[int]:
+        return yahoo_store.standings_years(*self._ids)
+
+    def standings(self, year: int) -> Optional[List[Dict[str, Any]]]:
+        return yahoo_store.load_standings(*self._ids, year)
+
+    def rankings(self) -> List[Dict[str, Any]]:
+        return load_yahoo_rankings()
+
+    def draft_picks(self, year: int) -> Optional[Dict[str, Any]]:
+        return yahoo_store.load_draft_picks(*self._ids, year)
+
+    def draft_pick_origins(self, year: int) -> Optional[Dict[str, Any]]:
+        return yahoo_store.load_draft_pick_origins(*self._ids, year)
 
 
 class SnapshotJsonRepository(LeagueDataRepository):
@@ -177,7 +214,7 @@ def repository_for(league: League) -> LeagueDataRepository:
     if league.platform == 'espn':
         return EspnJsonRepository(league)
     if league.platform == 'yahoo':
-        return YahooJsonRepository(league)
+        return YahooDbRepository(league)
     raise ValueError(f"No repository backend for platform '{league.platform}' (league '{league.league_id}').")
 
 

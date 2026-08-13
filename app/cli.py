@@ -359,6 +359,15 @@ def parse_args() -> argparse.Namespace:
     outcome_accuracy_parser.add_argument('--league', default=None,
         help="League id from 'python3 -m app leagues' to scope to one league (default: every league in the log)")
 
+    migrate_yahoo_parser = subparsers.add_parser(
+        'migrate-yahoo-data',
+        help="Load the hand-curated Yahoo JSON under data/raw/ into the database (DATABASE_URL decides which)",
+    )
+    migrate_yahoo_parser.add_argument('--platform', default='yahoo', help='Platform key to store rows under')
+    migrate_yahoo_parser.add_argument('--platform-league-id', default='9410',
+                                      help="Platform league id to store rows under (frank-gore's is 9410)")
+    migrate_yahoo_parser.add_argument('--yes', action='store_true', help='Skip the confirmation prompt')
+
     subparsers.add_parser('leagues', help='List every league wuff observes (from data/config/leagues.json)')
 
     leagues_init_parser = subparsers.add_parser(
@@ -1512,10 +1521,8 @@ def _cmd_parse_rosters(_args) -> None:
     print(f'\nParsed {len(teams)} teams:')
     print(format_roster_preview(teams))
 
-    response = input('\nSave to data/raw/rosters/yahoo_league_rosters.json? (y/n): ').strip().lower()
+    response = input('\nSave rosters? (y/n): ').strip().lower()
     if response == 'y':
-        output_path = YAHOO_LEAGUE_ROSTERS_JSON
-        ensure_parent_dir(output_path)
         rosters_data = []
         for i, team in enumerate(teams, 1):
             rosters_data.append({
@@ -1525,8 +1532,24 @@ def _cmd_parse_rosters(_args) -> None:
                 'playerCount': len(team['players']),
                 'players': team['players'],
             })
+
+        # The database is what the app reads (data/raw/ is gitignored and
+        # never reaches the deploy). The JSON file is still written as a
+        # local working copy -- it is what migrate-yahoo-data re-imports if
+        # the DB is ever rebuilt from scratch.
+        from .yahoo_migrate import DEFAULT_PLATFORM, DEFAULT_PLATFORM_LEAGUE_ID  # pylint: disable=import-outside-toplevel
+        from .yahoo_store import save_rosters  # pylint: disable=import-outside-toplevel
+        from .db import init_db  # pylint: disable=import-outside-toplevel
+
+        init_db()
+        players_written = save_rosters(DEFAULT_PLATFORM, DEFAULT_PLATFORM_LEAGUE_ID, rosters_data)
+
+        output_path = YAHOO_LEAGUE_ROSTERS_JSON
+        ensure_parent_dir(output_path)
         output_path.write_text(json.dumps(rosters_data, indent=2))
-        print(f'Saved {len(rosters_data)} team rosters to {output_path}')
+
+        print(f'Saved {len(rosters_data)} team rosters ({players_written} players) to the database')
+        print(f'Local copy written to {output_path}')
     else:
         print('Rosters not saved.')
 
@@ -1702,6 +1725,24 @@ def _cmd_leagues_init(args) -> None:
         print(f'{path} already exists; re-run with --force to overwrite.')
 
 
+def _cmd_migrate_yahoo_data(args) -> None:
+    from .db import DATABASE_URL  # pylint: disable=import-outside-toplevel
+    from .yahoo_migrate import migrate_all  # pylint: disable=import-outside-toplevel
+
+    target = 'SQLite (local)' if DATABASE_URL.startswith('sqlite') else 'a remote database'
+    redacted = DATABASE_URL if DATABASE_URL.startswith('sqlite') else DATABASE_URL.split('@')[-1]
+    print(f'Loading data/raw/ Yahoo JSON into {target}: {redacted}')
+    if not args.yes:
+        response = input('Continue? (y/n): ').strip().lower()
+        if response != 'y':
+            print('Aborted.')
+            return
+
+    for line in migrate_all(platform=args.platform, platform_league_id=args.platform_league_id):
+        print(f'  {line}')
+    print('Done. Verify with: python3 scripts/compare_yahoo_backends.py')
+
+
 def _cmd_sleeper_discover(args) -> None:
     sleeper_config = sleeper_discover_leagues(args.username, args.season)
     print(f"Found {len(sleeper_config['leagues'])} league(s) for '{args.username}' ({args.season}):")
@@ -1778,6 +1819,7 @@ _COMMAND_HANDLERS = {
     'outcome-accuracy': _cmd_outcome_accuracy,
     'leagues': _cmd_leagues,
     'leagues-init': _cmd_leagues_init,
+    'migrate-yahoo-data': _cmd_migrate_yahoo_data,
     'sleeper-discover': _cmd_sleeper_discover,
     'sleeper-sync': _cmd_sleeper_sync,
     'sleeper-refresh-players': _cmd_sleeper_refresh_players,
