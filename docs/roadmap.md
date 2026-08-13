@@ -579,9 +579,25 @@ Each step is its own commit with a full-output diff as the gate.
    CLI: `fetch-schedules`, `snapshot-byes`. Gate: `check_repository_contract`
    extended to 14,425 checks (recognized-value sets, valid week range,
    per-league coverage reporting).
-7. **Transactions** — real ingest work per platform. Sleeper
-   `/league/{id}/transactions/{week}`; ESPN unofficial; Yahoo still blocked.
-   Unlocks add/drop and the trade analyzer already in the backlog.
+7. ✅ **Transactions** (2026-08-13) — Sleeper only, since that's the only
+   platform actually buildable right now (ESPN has no transaction endpoint
+   wrapped; Yahoo still blocked). `app/sleeper_client.get_league_transactions()`
+   wraps `/league/{id}/transactions/{week}`, walking weeks 0–18 every sync
+   since Sleeper exposes no "current week" field and an empty response marks
+   "hasn't happened" cheaply enough not to need one. Wired into `sync_league()`,
+   so every existing sync path (scheduled + manual) picks it up automatically.
+   `app/domain.py` gains `Transaction`/`TransactionMove`/`TransactionPickMove`
+   — a trade with 2 players is 4 `TransactionMove`s (add+drop per side), one
+   shape covering trades/waivers/free-agent adds without a null-heavy
+   trade-only variant. `repository.transactions()` resolves player moves via
+   `by_platform_id('sleeper', ...)` (exact, no name matching needed) and
+   attributes both player moves and traded picks by **roster_id, not team
+   name** — a mid-season rename would otherwise mis-attribute an older
+   transaction to the team's current name. Verified against all 6 real
+   Sleeper leagues (17 transactions: 4 free_agent, 8 waiver, 6 trade,
+   including a picks-only trade and a same-franchise add+drop waiver) — 100%
+   player-move resolution everywhere real moves exist. Gate:
+   `check_repository_contract` extended to 14,520 checks. Purely additive.
 8. **Matchups + scoring engine** — something that finally reads
    `LeagueFormat.scoring`. Then **playoffs** (bracket, seeding, odds) last.
 
