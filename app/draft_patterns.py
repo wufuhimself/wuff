@@ -8,12 +8,15 @@ Per-league: every entry point takes a repository (app/repository.py) and reads
 that league's own drafts; omit it for the default league.
 
 Data reality worth knowing before trusting any of this:
-- Draft-history picks carry no position, so it's resolved via
-  nfl_stats.load_rosters(year). That limits usable seasons to ones with an
-  nflverse roster snapshot saved (2022+ locally) and resolves ~82-91% of picks.
-- Roughly 4 seasons x ~140 resolved picks. That supports **per-round**
-  aggregates (~45 samples/round); it does NOT support per-exact-pick ones
-  (~3 samples/slot). Don't build pick-level models on this without more years.
+- Draft-history picks carry no position. It is resolved from the season's
+  nflverse roster snapshot FIRST (season-accurate: it knows what a player
+  played that year), falling back to app/player_registry.py, which knows only
+  what they play today. Since Phase 5 step 3 that fallback covers what the
+  snapshot never could -- team defenses (Sleeper has all 32, nflverse rosters
+  have none) and seasons with no saved CSV.
+- Still roughly 4-6 seasons of picks. That supports **per-round** aggregates;
+  it does NOT support per-exact-pick ones (~3 samples/slot). Don't build
+  pick-level models on this without more years.
 """
 from statistics import mean, median
 from typing import Any, Dict, List, Optional
@@ -37,6 +40,39 @@ def _normalize_position(value: Any) -> Optional[str]:
     return text if text in TRACKED_POSITIONS else 'OTHER'
 
 
+def _player_registry():
+    """None rather than an exception when no registry is built yet -- position
+    resolution then falls back to the roster snapshot exactly as before."""
+    try:
+        from .player_store import get_registry  # pylint: disable=import-outside-toplevel
+        return get_registry()
+    except Exception:  # pylint: disable=broad-exception-caught
+        return None
+
+
+def _resolve_position(typed, name: str, position_map: Dict[str, str], players) -> Optional[str]:
+    """Position for one pick: the season's roster snapshot first, then the
+    player registry.
+
+    Snapshot first on purpose. It is season-accurate -- it knows what a player
+    played THAT year -- while the registry only knows their position today, so
+    preferring the registry would silently rewrite history for anyone who
+    changed position. The registry is the fallback that fills what the
+    snapshot cannot: team defenses, and seasons with no saved CSV.
+    """
+    if position_map:
+        resolved = _normalize_position(position_map.get(normalize_name(name)))
+        if resolved is not None:
+            return resolved
+    if typed is not None and typed.position:
+        return _normalize_position(typed.position)
+    if players is not None and name:
+        found = players.resolve(name)
+        if found is not None and found.position:
+            return _normalize_position(found.position)
+    return None
+
+
 def resolved_picks(
     repo: Optional[LeagueDataRepository] = None, years: Optional[List[int]] = None,
 ) -> List[Dict[str, Any]]:
@@ -49,19 +85,28 @@ def resolved_picks(
     draft_years = repo.draft_years()
     teams = repo.league.format.teams
     candidate_years = years if years is not None else sorted(draft_years.keys())
+    # Typed picks (app/domain.py) carry canonical_player_id, so a position can
+    # come from the player registry rather than only from an nflverse roster
+    # snapshot. That lifts both limits this module's docstring recorded: team
+    # defenses resolve (Sleeper has all 32; nflverse rosters have none), and a
+    # season with no saved roster CSV is no longer skipped outright.
+    typed_by_year = repo.drafts()
+    players = _player_registry()
 
     out: List[Dict[str, Any]] = []
     for year in candidate_years:
         position_map = fantasy_position_map(year)
-        if not position_map:
-            continue
+        typed_by_key = {
+            (p.round, p.pick, p.player_name): p for p in typed_by_year.get(year, [])
+        }
         for pick in live_draft_picks(year, draft_years):
-            name = normalize_name(pick.get('playerName', ''))
-            position = _normalize_position(position_map.get(name))
-            if position is None:
-                continue
             round_num = pick.get('round') or 0
             in_round = pick.get('pick') or 0
+            name = pick.get('playerName') or ''
+            typed = typed_by_key.get((round_num, in_round, name))
+            position = _resolve_position(typed, name, position_map, players)
+            if position is None:
+                continue
             out.append({
                 'year': year,
                 'round': round_num,
