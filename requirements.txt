@@ -1,6 +1,7 @@
 APScheduler
 Flask
 Flask-Login
+itsdangerous
 SQLAlchemy
 requests
 python-dotenv

@@ -1,19 +1,65 @@
-"""Login plumbing (Flask-Login) with a dev email-only login.
+"""Login plumbing (Flask-Login) with magic-link email as the login transport.
 
-No password and no email verification yet — this is the local-development
-account system so the multi-user flows can be built and exercised. A real
-login transport (magic-link email or Google sign-in) replaces the dev form
-before any public deploy; see docs/roadmap.md Phase 1/4.
+A login token is a signed, expiring token (itsdangerous) that encodes an
+email address — not a session, not a password. /login POSTs an email and
+gets one mailed via app/mailer.py; /login/verify/<token> checks the
+signature + expiry and only then creates/logs in the User row. Proves
+ownership of the inbox, which the earlier dev-only "type any email in" form
+never did (see docs/roadmap.md Phase 1).
 """
+import threading
+import time
 from typing import Optional
 
 from flask import Flask
 from flask_login import LoginManager
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from .db import SessionLocal
 from .models import User
 
 login_manager = LoginManager()
+
+LOGIN_TOKEN_MAX_AGE_SECONDS = 15 * 60
+_LOGIN_TOKEN_SALT = 'wuff-magic-link'
+
+# Per-email send cooldown, separate from app/rate_limit.py's RateLimiter:
+# that one blocks-and-waits for a shared budget (right for outbound API
+# calls), this one rejects outright so repeated clicks/refreshes on the
+# login form can't be used to spam one inbox or burn Resend quota.
+LOGIN_SEND_COOLDOWN_SECONDS = 60
+_last_sent_at: dict = {}
+_last_sent_lock = threading.Lock()
+
+
+def login_send_allowed(email: str) -> bool:
+    """True (and records the attempt) if a magic link may be sent to this
+    email now; False if one was sent too recently."""
+    normalized = email.strip().lower()
+    now = time.monotonic()
+    with _last_sent_lock:
+        last = _last_sent_at.get(normalized)
+        if last is not None and now - last < LOGIN_SEND_COOLDOWN_SECONDS:
+            return False
+        _last_sent_at[normalized] = now
+        return True
+
+
+def _serializer(app_secret_key: str) -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(app_secret_key, salt=_LOGIN_TOKEN_SALT)
+
+
+def generate_login_token(app_secret_key: str, email: str) -> str:
+    return _serializer(app_secret_key).dumps(email.strip().lower())
+
+
+def verify_login_token(app_secret_key: str, token: str) -> Optional[str]:
+    """Returns the email the token was issued for, or None if the token is
+    expired, tampered with, or otherwise invalid. Never raises."""
+    try:
+        return _serializer(app_secret_key).loads(token, max_age=LOGIN_TOKEN_MAX_AGE_SECONDS)
+    except (BadSignature, SignatureExpired):
+        return None
 
 
 def init_auth(app: Flask) -> None:

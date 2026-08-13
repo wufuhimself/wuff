@@ -6,7 +6,14 @@ from flask import Flask, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from . import espn_manager, sleeper_client
-from .auth import get_or_create_user, init_auth, login_manager
+from .auth import (
+    generate_login_token,
+    get_or_create_user,
+    init_auth,
+    login_manager,
+    login_send_allowed,
+    verify_login_token,
+)
 from .board_service import bump_adjustment, clear_adjustment, clear_all_adjustments
 from .crypto import encrypt_value
 from .db import SessionLocal, init_db
@@ -34,6 +41,7 @@ from .keeper_service import (
 from .league_context import load_league_format
 from .league_registry import default_league_id, get_league, load_leagues
 from .league_service import resolve_league, save_league_rules
+from .mailer import send_magic_link
 from .manager_report import manager_report_card
 from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON
@@ -396,11 +404,30 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
         if '@' not in email:
-            return render_template('login.html', active='login', error='Enter a valid email address.')
-        user = get_or_create_user(email)
-        login_user(user, remember=True)
-        return redirect(url_for('my_leagues'))
-    return render_template('login.html', active='login', error=None)
+            return render_template('login.html', active='login', error='Enter a valid email address.', sent=False)
+        if not login_send_allowed(email):
+            return render_template(
+                'login.html', active='login', sent=False,
+                error='A login link was already sent recently — check your inbox, or wait a minute to resend.',
+            )
+        token = generate_login_token(app.secret_key, email)
+        login_url = url_for('login_verify', token=token, _external=True)
+        send_magic_link(email, login_url)
+        return render_template('login.html', active='login', error=None, sent=True)
+    return render_template('login.html', active='login', error=None, sent=False)
+
+
+@app.route('/login/verify/<token>')
+def login_verify(token):
+    email = verify_login_token(app.secret_key, token)
+    if email is None:
+        return render_template(
+            'login.html', active='login', sent=False,
+            error='That login link is invalid or expired. Enter your email to get a new one.',
+        )
+    user = get_or_create_user(email)
+    login_user(user, remember=True)
+    return redirect(url_for('my_leagues'))
 
 
 @app.route('/logout', methods=['POST'])
