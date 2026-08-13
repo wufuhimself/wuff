@@ -33,14 +33,55 @@ _DEF_ALIASES = {'DEF', 'DST', 'D/ST'}
 # 8th-round mark by raw value, but real managers deprioritize them well past
 # that -- without a floor the sim drafts a defense at its board rank and then
 # the rest cascade a round later on position need. Kickers go later still.
+#
+# This is the FALLBACK, used when a league has no draft history (freshly
+# imported) or too little of it to trust (see MIN_TIMING_SAMPLES below) --
+# never the primary source when real history exists. It was the only source
+# until Phase 5 step 3 made DST resolvable at all; checked against frank-gore's
+# actual history the day that shipped, it does not hold up as a hand-tuned
+# constant: the 0.8 K fraction of a 15-round draft floors K at round 12, but
+# this league's own history has K going as early as round 10 -- so the
+# constant was blocking picks that really happen, not just being imprecise.
 _EARLIEST_ROUND_FRACTION = {'DST': 0.6, 'K': 0.8}
 
+# Below this many historical picks, position_timing()'s first_round is more
+# likely to be a small-sample fluke than a real signal -- a single early
+# outlier pick sets the floor for every future draft. 20 is roughly two
+# 12-team seasons' worth of DST/K picks, the point past which frank-gore's own
+# numbers stopped moving between one added season and the next.
+MIN_TIMING_SAMPLES = 20
 
-def earliest_rounds_for(league_format: LeagueFormat) -> Dict[str, int]:
-    """First round each streamed position becomes draftable, for this league's
-    draft length (a 15-round draft: DST from round 9, K from round 12)."""
+
+def earliest_rounds_for(league_format: LeagueFormat, repo: Optional[LeagueDataRepository] = None) -> Dict[str, int]:
+    """First round each streamed position becomes draftable.
+
+    Data-derived when `repo` is given and the league has enough of its own
+    draft history (see MIN_TIMING_SAMPLES): the earliest round that position
+    has ever actually been taken in THIS league, from
+    draft_patterns.position_timing() -- the "honest input for a floor" its own
+    docstring names. Falls back to the fraction-of-total-rounds heuristic
+    below per-position, for a league with no or too little history (every
+    Sleeper league here has zero DST/K samples after one season; a fresh
+    import has none at all)."""
     total = league_format.total_draft_rounds
-    return {pos: max(1, round(total * frac)) for pos, frac in _EARLIEST_ROUND_FRACTION.items()}
+    fallback = {pos: max(1, round(total * frac)) for pos, frac in _EARLIEST_ROUND_FRACTION.items()}
+    if repo is None:
+        return fallback
+
+    # Imported here, not at module scope: keeps a lazy, shallow import graph
+    # between the two analysis modules rather than a mandatory one.
+    from .draft_patterns import position_timing  # pylint: disable=import-outside-toplevel
+    try:
+        timing = position_timing(repo=repo)
+    except Exception:  # pylint: disable=broad-exception-caught
+        return fallback
+
+    rounds = dict(fallback)
+    for pos in fallback:
+        observed = timing.get(pos)
+        if observed and observed['n'] >= MIN_TIMING_SAMPLES:
+            rounds[pos] = observed['first_round']
+    return rounds
 
 # Bench depth allowed beyond a position's starter slots before the scoring
 # function starts penalizing more of it. Tuned against the frank-gore board;
@@ -413,19 +454,25 @@ def simulate_draft(
     draft_order: List[str],
     manager_profiles: Dict[str, Dict[str, Dict[int, float]]],
     league_format: Optional[LeagueFormat] = None,
+    repo: Optional[LeagueDataRepository] = None,
 ) -> List[Dict[str, Any]]:
     """Simulate this league's draft. Returns list of picks.
 
     Round/team counts and which rounds are keeper slots come from
     league_format (defaults to the default league's). The simulation runs for
     as many picks as draft_order actually contains, so a league with traded
-    picks -- where a round isn't exactly one pick per team -- still lines up."""
+    picks -- where a round isn't exactly one pick per team -- still lines up.
+
+    repo: optional, feeds earliest_rounds_for() this league's own draft-timing
+    history instead of the hardcoded fraction heuristic. None (the old
+    behaviour, still used by any caller that doesn't pass one) means
+    heuristic-only."""
     league_format = league_format if league_format is not None else load_league_format()
     teams = league_format.teams
     keeper_rounds = league_format.keeper_slot_round_set
     position_limits = position_limits_for(league_format)
     starter_slots = starter_slots_for(league_format)
-    earliest_rounds = earliest_rounds_for(league_format)
+    earliest_rounds = earliest_rounds_for(league_format, repo=repo)
     # "Late" defense-boost rounds: the final fifth of the draft, i.e. round 12
     # of 15 -- the value this was hardcoded to before the per-league port.
     late_round_start = max(1, (league_format.total_draft_rounds * 4) // 5)
@@ -573,7 +620,7 @@ def run_mock_draft(
 
     return simulate_draft(
         keeper_predictions, rankings_lookup, rankings_all, draft_order, manager_profiles,
-        league_format=league_format,
+        league_format=league_format, repo=repo,
     )
 
 
