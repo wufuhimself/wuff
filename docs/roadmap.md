@@ -532,11 +532,21 @@ Each step is its own commit with a full-output diff as the gate.
    player registry. frank-gore goes 541 → 980 resolved picks of 1128, 4 → 6
    seasons, and **DST resolves for the first time** (64 picks — nflverse has
    no team defenses, Sleeper has all 32). Zero picks fall through to OTHER.
-   ⚠️ Two follow-ups this surfaced: `mock_draft`'s earliest-draftable-round
-   floors are hand-set constants (DST 9, K 12) and league history now says
-   DST first goes round 7, K round 10 — so the K floor blocks picks that
-   really happen; and `qb_historical_adjustment` still resolves positions the
-   old way, deliberately left alone because it moves the daily rankings board.
+   ✅ **Both follow-ups closed same day.** `earliest_rounds_for(league_format,
+   repo=None)` now prefers `position_timing()`'s real `first_round` per
+   position once a league has ≥`MIN_TIMING_SAMPLES` (20) picks there, else
+   the old fraction heuristic — every Sleeper league here still uses the
+   heuristic (0–8 samples after one season); frank-gore's floor moved 9→7
+   (DST) and 12→10 (K), though checked and confirmed **not the binding
+   constraint** in its simulated draft (DST already lands rounds 9–10 on
+   scoring/scarcity alone; this league's format has zero K starter slots, so
+   K is never drafted regardless). `qb_historical_adjustment._is_qb()` gained
+   the identical snapshot-first/registry-fallback resolution: 2020–2021 now
+   contribute (16 and 26 QB picks, verified pick-by-pick, e.g. 2021's
+   Patrick Mahomes at 1.1), moving QB1's historical target pick **2 → 6**.
+   That one feeds the *daily* rankings board rather than a page render, so it
+   got its own commit and its own sanity check on the resulting board (top
+   10: Gibbs/Robinson/Nacua/Chase/Allen) before trusting the number.
 5. ✅ **Backend contract suite** (2026-08-13):
    `scripts/check_repository_contract.py` — 12,941 assertions over every
    backend × every league: one typed record per dict record, names preserved,
