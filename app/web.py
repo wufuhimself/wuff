@@ -60,7 +60,8 @@ from .sleeper_manager import (
     load_synced_rosters,
 )
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
-from .strategy import _normalize_name, league_keeper_board
+from .player_registry import normalize_name
+from .strategy import league_keeper_board
 from .sync_scheduler import ensure_scheduler_started, queue_league_sync
 
 # The root logger defaults to WARNING, which hides the background jobs'
@@ -378,7 +379,7 @@ def keeper_mark():
 
     team_entry = next((t for t in state_before['per_team'] if t['team'] == team), None)
     was_auto_chosen = bool(team_entry) and any(
-        _normalize_name(c.get('playerName', '')) == _normalize_name(player) for c in team_entry['chosen']
+        normalize_name(c.get('playerName', '')) == normalize_name(player) for c in team_entry['chosen']
     )
     chosen_count = len(team_entry['chosen']) if team_entry else 0
 
@@ -411,7 +412,7 @@ def keeper_mark():
         # explicitly included, so they'd vanish instead of staying kept).
         if not already_has_marks and team_entry:
             for other in team_entry['chosen']:
-                if _normalize_name(other.get('playerName', '')) == _normalize_name(player):
+                if normalize_name(other.get('playerName', '')) == normalize_name(player):
                     continue
                 session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
                                        team_name=team, player_name=other['playerName'], action='include'))

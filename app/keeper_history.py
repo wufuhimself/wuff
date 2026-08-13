@@ -14,6 +14,7 @@ from difflib import SequenceMatcher
 
 from .draft_history import load_draft_years
 from .paths import PROCESSED_DIR, RAW_DIR
+from .player_registry import normalize_name
 
 
 def get_keeper_rounds(year: int) -> tuple[int, int]:
@@ -137,7 +138,7 @@ def get_team_keeper_strategy(keeper_history: Dict[str, Dict[int, List[str]]], te
 
 def normalize_player_name(name: str) -> str:
     """Normalize player names for matching across sources."""
-    return name.lower().strip()
+    return normalize_name(name)
 
 
 def name_similarity(name1: str, name2: str) -> float:

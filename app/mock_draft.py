@@ -19,6 +19,7 @@ from collections import defaultdict
 
 from .league_context import LeagueFormat, load_league_format
 from .paths import PROCESSED_DIR
+from .player_registry import index_rows_by_name, normalize_name
 from .repository import LeagueDataRepository, get_repository
 
 SUPERFLEX_ELIGIBLE = {'QB'}
@@ -138,13 +139,9 @@ def rankings_for(repo: LeagueDataRepository) -> Tuple[Dict[str, Dict[str, Any]],
         for player in rankings
     ]
 
-    lookup = {}
-    for player in rankings:
-        key = player.get('playerName', '').lower().strip()
-        if key:
-            lookup[key] = player
-
-    return lookup, rankings
+    # Collision-safe: the board duplicates players under two spellings, and a
+    # plain comprehension keeps the worse-ranked one (see index_rows_by_name).
+    return index_rows_by_name(rankings), rankings
 
 
 def _normalized_team_order(standings: List[Dict[str, Any]], current_team_names: set) -> List[str]:
@@ -260,7 +257,7 @@ def build_manager_profiles(
             team = pick.get('team', '')
             if not team:
                 continue
-            player_data = rankings_lookup.get(str(pick.get('playerName', '')).lower().strip())
+            player_data = rankings_lookup.get(normalize_name(str(pick.get('playerName', ''))))
             if not player_data:
                 continue
             pos = player_data.get('position', 'UNK')
@@ -291,7 +288,7 @@ def build_position_need_scores(keeper_names: List[str], rankings_lookup: Dict,
     keeper_positions = defaultdict(int)
 
     for keeper_name in keeper_names:
-        key = keeper_name.lower().strip()
+        key = normalize_name(keeper_name)
         if key in rankings_lookup:
             pos = rankings_lookup[key].get('position', 'UNK')
             keeper_positions[pos] += 1
@@ -443,7 +440,7 @@ def simulate_draft(
     keepers_to_add = {}
     for team, keeper_names in keeper_predictions.items():
         for keeper_name in keeper_names:
-            key = keeper_name.lower().strip()
+            key = normalize_name(keeper_name)
             keeper_player = rankings_lookup.get(key)
             if keeper_player:
                 # Block keeper from being drafted in normal rounds
@@ -465,7 +462,7 @@ def simulate_draft(
         if is_keeper_round and team in keepers_to_add and keepers_to_add[team]:
             # Auto-pick keeper
             keeper = keepers_to_add[team].pop(0)
-            player_key = keeper.get('playerName', '').lower().strip()
+            player_key = normalize_name(keeper.get('playerName', ''))
             taken_players.add(player_key)
             taken_by_team[team].append(player_key)
 
@@ -503,7 +500,7 @@ def simulate_draft(
         best_score = float('-inf')
 
         for player in rankings_all:
-            player_key = player.get('playerName', '').lower().strip()
+            player_key = normalize_name(player.get('playerName', ''))
 
             # Skip if already taken
             if player_key in taken_players:
@@ -524,7 +521,7 @@ def simulate_draft(
                 best_player = player
 
         if best_player:
-            player_key = best_player.get('playerName', '').lower().strip()
+            player_key = normalize_name(best_player.get('playerName', ''))
             taken_players.add(player_key)
             taken_by_team[team].append(player_key)
 

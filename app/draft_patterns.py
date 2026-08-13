@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from .draft_history import live_draft_picks
 from .nfl_stats import fantasy_position_map
+from .player_registry import normalize_name
 from .repository import LeagueDataRepository, get_repository
 
 # Positions worth reporting on; anything else resolves to OTHER.
@@ -55,7 +56,7 @@ def resolved_picks(
         if not position_map:
             continue
         for pick in live_draft_picks(year, draft_years):
-            name = str(pick.get('playerName', '')).strip().lower()
+            name = normalize_name(pick.get('playerName', ''))
             position = _normalize_position(position_map.get(name))
             if position is None:
                 continue

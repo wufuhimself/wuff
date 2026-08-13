@@ -28,12 +28,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .paths import RAW_RANKINGS_DIR, ensure_parent_dir
+from .player_registry import index_rows_by_name
+from .player_registry import normalize_name as _normalize
 
 RANKING_HISTORY_DIR = RAW_RANKINGS_DIR / 'history'
-
-
-def _normalize(name: str) -> str:
-    return ' '.join(str(name).strip().lower().split())
 
 
 def snapshot_path(day: Optional[date] = None) -> Path:
@@ -98,16 +96,18 @@ def movement_since(previous: Optional[Dict[str, Any]]) -> Dict[str, Dict[str, An
     """
     if not previous:
         return {}
-    out = {}
-    for entry in previous.get('players', []):
-        name = _normalize(entry.get('playerName', ''))
-        if name:
-            out[name] = {
-                'prevRanking': entry.get('ranking'),
-                'prevAdp': entry.get('adp'),
-                'prevDate': previous.get('date'),
-            }
-    return out
+    # Collision-safe: a snapshot can hold the same player twice under two
+    # spellings ("James Cook III" at 20, "James Cook" at 257). Keyed naively,
+    # the duplicate wins and yesterday's rank reads as 257 -- so a flat player
+    # renders as "up 237", a wrong number presented with full confidence.
+    return {
+        name: {
+            'prevRanking': entry.get('ranking'),
+            'prevAdp': entry.get('adp'),
+            'prevDate': previous.get('date'),
+        }
+        for name, entry in index_rows_by_name(previous.get('players', [])).items()
+    }
 
 
 def annotate_with_movement(

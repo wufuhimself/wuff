@@ -5,13 +5,11 @@ For multi-source combining (Yahoo + CSV + PDF) see rankings_manager.py.
 import json
 from typing import Any, Dict, List, Optional
 
+from .player_registry import normalize_name
+
 Keeper = Dict[str, str]
 PlayerRanking = Dict[str, Any]
 AggregatedRanking = Dict[str, Any]
-
-
-def normalize_name(name: str) -> str:
-    return name.strip().lower()
 
 
 def is_keeper(ranking: PlayerRanking, keepers: List[Keeper]) -> bool:

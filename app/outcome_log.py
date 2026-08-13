@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Optional
 from .draft_history import keeper_slot_picks, live_draft_picks, load_draft_years
 from .league_registry import load_leagues
 from .paths import PROCESSED_DIR, ensure_parent_dir
+from .player_registry import normalize_name
 from .repository import get_repository, repository_for
 
 OUTCOME_LOG_FILE = PROCESSED_DIR / 'outcome_log.json'
@@ -40,8 +41,20 @@ DEFAULT_PLATFORM = 'yahoo'
 DEFAULT_PLATFORM_LEAGUE_ID = '9410'
 
 
-def _normalize(value: str) -> str:
+def _id_slug(value: str) -> str:
+    """Frozen. decision_ids built from this are PERSISTED in outcome_log.json,
+    so changing the format orphans every existing entry: a re-forecast would
+    stop overwriting its own pending row and pile up duplicates instead.
+    Deliberately NOT collapsed onto player_registry.normalize_name in step 1b
+    for that reason -- match on names with _normalize below, identify entries
+    with this."""
     return ' '.join(str(value).strip().lower().split())
+
+
+def _normalize(value: str) -> str:
+    """Name matching (forecast entity vs actual pick). Safe to share the
+    registry key: both sides are normalized at read time."""
+    return normalize_name(value)
 
 
 def _decision_id(
@@ -52,7 +65,7 @@ def _decision_id(
     # existing entries in outcome_log.json don't get orphaned by this change.
     league_prefix = None if (platform, platform_league_id) == (DEFAULT_PLATFORM, DEFAULT_PLATFORM_LEAGUE_ID) \
         else f'{platform}-{platform_league_id}'
-    parts = [league_prefix, decision_type, str(season), _normalize(team) if team else None, _normalize(entity)]
+    parts = [league_prefix, decision_type, str(season), _id_slug(team) if team else None, _id_slug(entity)]
     return '_'.join(p.replace(' ', '-') for p in parts if p)
 
 

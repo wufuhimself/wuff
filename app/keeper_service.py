@@ -16,6 +16,7 @@ from .league_registry import get_league
 from .models import KeeperMark
 from .outcome_log import load_outcomes, log_outcome, save_outcomes
 from .paths import YAHOO_LEAGUE_ROSTERS_JSON
+from .player_registry import normalize_name
 from .ranking_history import annotate_with_movement
 from .repository import get_repository, repository_for
 from .standings import snake_draft_order
@@ -74,9 +75,15 @@ def team_pick_numbers(
 
 
 def load_adp_map() -> dict:
-    """Load ADP data as dict keyed by normalized player name."""
-    from .adp_manager import load_adp_json
-    return {entry['playerName']: entry['adp'] for entry in load_adp_json()}
+    """Load ADP data as dict keyed by normalized player name.
+
+    Re-normalizes the stored key rather than trusting it: adp_combined.json is
+    written with whatever normalizer was current when it was last refreshed,
+    so a key format change would otherwise make every ADP lookup silently miss
+    until the next daily refresh rewrote the file.
+    """
+    from .adp_manager import load_adp_json, normalize_player_name
+    return {normalize_player_name(entry['playerName']): entry['adp'] for entry in load_adp_json()}
 
 
 def enrich_with_adp(player_list, adp_map):
@@ -156,7 +163,7 @@ def _best_available_confidence(keeper, position, rank, pos_rank_num, eligible_by
     eligible_at_pos = eligible_by_position.get(position)
     if not eligible_at_pos:
         return None
-    is_best_at_pos = eligible_at_pos[0]['name'].lower().strip() == keeper.get('playerName', '').lower().strip()
+    is_best_at_pos = normalize_name(eligible_at_pos[0]['name']) == normalize_name(keeper.get('playerName', ''))
     if not is_best_at_pos:
         return None
 

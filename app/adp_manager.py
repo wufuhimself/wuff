@@ -13,21 +13,24 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .paths import RAW_ADP_DIR, ensure_parent_dir
+from .player_registry import normalize_name
 
 
 def normalize_player_name(name: str) -> str:
-    """Normalize player name for matching across sources.
-    Handles: 'Player Name', 'Player Name (Bye)', 'Player Name Team'."""
-    # Remove bye week in parens
+    """Strip ADP-CSV decorations, then apply the shared name key.
+
+    The decoration stripping is a *parsing* concern specific to ADP exports
+    ("Bijan Robinson ATL", "Player Name (5)") and stays here; the key itself
+    is player_registry.normalize_name like everywhere else. Roman-numeral
+    suffixes are protected from the trailing-team regex, since "Will Fuller V"
+    ends in what looks like a team abbreviation.
+    """
+    import re  # pylint: disable=import-outside-toplevel
+
     name = name.split('(')[0].strip()
-    # Remove team abbrev (2-3 caps at end), but preserve Roman numerals (I, II, III, IV, V)
-    import re
-    # Check if ends with Roman numeral - if so, don't remove it
-    if re.search(r'\s+(I{1,3}|IV|VI{0,3}|IX)\s*$', name):
-        return name.lower()
-    # Otherwise remove trailing team abbrev
-    name = re.sub(r'\s+[A-Z]{2,3}\s*$', '', name).strip()
-    return name.lower()
+    if not re.search(r'\s+(I{1,3}|IV|VI{0,3}|IX)\s*$', name):
+        name = re.sub(r'\s+[A-Z]{2,3}\s*$', '', name).strip()
+    return normalize_name(name)
 
 
 def load_adp_csv(csv_path: Path) -> List[Dict[str, Any]]:

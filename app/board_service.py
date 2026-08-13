@@ -15,10 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from .db import SessionLocal
 from .models import BoardAdjustment
-
-
-def _normalize(name: str) -> str:
-    return ' '.join(str(name).strip().lower().split())
+from .player_registry import normalize_name as _normalize
 
 
 def load_adjustments(user_id: int, platform: str, platform_league_id: str) -> Dict[str, int]:

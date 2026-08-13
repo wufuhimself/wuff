@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .draft_history import consecutive_keeper_years, draft_round_for_player, load_draft_years
 from .league_context import LeagueFormat
 from .paths import YAHOO_RANKINGS_FILE, ensure_parent_dir
+from .player_registry import dedupe_rows_by_name, index_rows_by_name, normalize_name
 from .roster_player import RosterPlayer
 
 RANKINGS_FILE = YAHOO_RANKINGS_FILE
@@ -66,10 +67,6 @@ def _keeper_cap_status(
     return None
 
 
-def _normalize_name(value: str) -> str:
-    return ' '.join(value.strip().lower().split())
-
-
 def _normalize_position(value: str) -> str:
     if not value:
         return 'UNK'
@@ -87,7 +84,7 @@ def save_yahoo_rankings(rankings: List[Dict[str, Any]], path: Path = RANKINGS_FI
 
 def load_yahoo_rankings(path: Path = RANKINGS_FILE) -> List[Dict[str, Any]]:
     try:
-        return json.loads(path.read_text())
+        return dedupe_rows_by_name(json.loads(path.read_text()))
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
@@ -95,12 +92,12 @@ def load_yahoo_rankings(path: Path = RANKINGS_FILE) -> List[Dict[str, Any]]:
 def _find_ranking_for_player(
     player_id: str, player_name: str, rankings: List[Dict[str, Any]], player_team: Optional[str] = None,
 ) -> Optional[int]:
-    normalized_name = _normalize_name(player_name)
+    normalized_name = normalize_name(player_name)
 
     for item in rankings:
         if item.get('playerId') == player_id:
             return item.get('ranking')
-        if normalized_name and _normalize_name(str(item.get('playerName', ''))) == normalized_name:
+        if normalized_name and normalize_name(str(item.get('playerName', ''))) == normalized_name:
             return item.get('ranking')
 
     # DEF entries have no shared naming convention between roster snapshots
@@ -209,7 +206,13 @@ def _build_position_ranks(rankings: List[Dict[str, Any]]) -> Dict[str, Dict[str,
         position = _normalize_position(str(item.get('position', 'UNK')))
         counters[position] = counters.get(position, 0) + 1
         entry = {'position': position, 'positionRank': counters[position]}
-        lookup[_normalize_name(player_name)] = entry
+        # First writer wins, and the rows arrive best-rank-first: sources
+        # duplicate a player under two spellings ("Aaron Jones Sr." at 93 and
+        # "Aaron Jones" at 268), and last-writer-wins silently gave the good
+        # player the duplicate's rank. The suffix-preserving key is stored too
+        # so "Frank Gore" and "Frank Gore Jr." stay distinct.
+        lookup.setdefault(normalize_name(player_name), entry)
+        lookup.setdefault(normalize_name(player_name, strip_suffix=False), entry)
         if position == 'DEF':
             team = item.get('team')
             if team:
@@ -222,7 +225,9 @@ def _lookup_position_rank(
     position_ranks: Dict[str, Dict[str, int | str]], player_name: str,
     player_team: Optional[str] = None, player_position: Optional[str] = None,
 ) -> Dict[str, int | str]:
-    info = position_ranks.get(_normalize_name(player_name))
+    info = position_ranks.get(normalize_name(player_name, strip_suffix=False))
+    if info is None:
+        info = position_ranks.get(normalize_name(player_name))
     if info is not None:
         return info
     if player_team and _normalize_position(player_position or '') == 'DEF':
@@ -343,13 +348,13 @@ def roster_keeper_insight(
     league_format = league_format or LeagueFormat(teams=teams)
     position_ranks = _build_position_ranks(rankings)
     draft_years = draft_years if draft_years is not None else load_draft_years()
-    rankings_by_name = {_normalize_name(r.get('playerName', '')): r for r in rankings}
+    rankings_by_name = index_rows_by_name(rankings)
     insight = []
     for player in roster_players:
         ranking = _find_ranking_for_player(player.playerId, player.playerName, rankings, player.team)
         player_team = player.team
-        if player_team == 'UNK' and _normalize_name(player.playerName) in rankings_by_name:
-            player_team = rankings_by_name[_normalize_name(player.playerName)].get('team', 'UNK')
+        if player_team == 'UNK' and normalize_name(player.playerName) in rankings_by_name:
+            player_team = rankings_by_name[normalize_name(player.playerName)].get('team', 'UNK')
         expected_round = _expected_draft_round(ranking, teams) if ranking is not None else None
         keeper_round = player.draftRound if player.draftRound is not None else _draft_history_round(player.playerName, draft_years)
         keeper_eligible, keeper_status = _resolve_keeper_status(player, league_format, draft_years)
@@ -428,7 +433,7 @@ def select_best_keepers(
     excluded_keeper_names: Optional[List[str]] = None,
     stop_auto_fill: bool = False,
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    excluded_set = {_normalize_name(name) for name in (excluded_keeper_names or [])}
+    excluded_set = {normalize_name(name) for name in (excluded_keeper_names or [])}
 
     locked = [item for item in insight if item.get('keeperLocked') is True]
     eligible = [
@@ -436,7 +441,7 @@ def select_best_keepers(
         for item in insight
         if item.get('keeperEligible') is True
         and item.get('keeperLocked') is not True
-        and _normalize_name(item.get('playerName', '')) not in excluded_set
+        and normalize_name(item.get('playerName', '')) not in excluded_set
     ]
 
     costless = league_format is not None and not _uses_draft_round_as_keeper_cost(league_format)
@@ -637,7 +642,7 @@ def league_keeper_board(
         row['draftOrder'] = i
         player_name = str(r.get('playerName', ''))
         position = _normalize_position(str(r.get('position', 'UNK')))
-        position_rank_info = position_ranks.get(_normalize_name(player_name), {})
+        position_rank_info = _lookup_position_rank(position_ranks, player_name)
         position_rank = position_rank_info.get('positionRank')
         if position_rank:
             row['posRank'] = f'{position}{position_rank}'

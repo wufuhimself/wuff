@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from .draft_history import load_draft_years, live_draft_picks
 from .nfl_stats import fantasy_position_map
+from .player_registry import normalize_name
 
 DEFAULT_TEAMS = 12
 DEFAULT_TOP_N = 7
@@ -56,7 +57,7 @@ def compute_historical_qb_pick_targets(
 
         qb_picks = []
         for pick in live_draft_picks(year, years_data):
-            player_name = str(pick.get('playerName', '')).strip().lower()
+            player_name = normalize_name(pick.get('playerName', ''))
             if position_map.get(player_name) != 'QB':
                 continue
             overall_pick = (pick.get('round', 0) - 1) * teams + pick.get('pick', 0)

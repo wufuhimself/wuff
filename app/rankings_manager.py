@@ -52,7 +52,14 @@ def load_all_rankings() -> List[Dict[str, Any]]:
 
 
 def normalize_player_id(name: str, player_id: Optional[str] = None) -> str:
-    """Generate consistent player ID from name if not provided."""
+    """Generate consistent player ID from name if not provided.
+
+    An id generator, not a name normalizer -- and the ids it produces are
+    PERSISTED as `playerId` in rankings_combined.json, so it is deliberately
+    left off the step 1b collapse onto player_registry.normalize_name.
+    Cross-source player identity belongs to the registry now; this only has to
+    stay stable with the file it wrote.
+    """
     if player_id:
         return str(player_id).strip()
     return name.strip().lower().replace(' ', '_')

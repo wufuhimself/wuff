@@ -19,6 +19,7 @@ from . import espn_manager, sleeper_manager, yahoo_store
 from .draft_history import load_draft_years
 from .draft_picks import load_draft_pick_origins, load_draft_picks
 from .league_registry import League, get_league
+from .player_registry import dedupe_rows_by_name
 from .paths import RANKINGS_COMBINED_FILE, RAW_STANDINGS_DIR, YAHOO_LEAGUE_ROSTERS_JSON
 from .standings import load_standings
 from .strategy import load_yahoo_rankings
@@ -189,7 +190,10 @@ class SnapshotJsonRepository(LeagueDataRepository):
             payload = json.loads(RANKINGS_COMBINED_FILE.read_text())
         except (FileNotFoundError, json.JSONDecodeError):
             return []
-        return payload if isinstance(payload, list) else []
+        # Deduped for the same reason load_yahoo_rankings() is: the board can
+        # carry one player twice under two spellings, and every consumer
+        # downstream treats the duplicate as a second draftable human.
+        return dedupe_rows_by_name(payload) if isinstance(payload, list) else []
 
     def draft_picks(self, year: int) -> Optional[Dict[str, Any]]:
         return {}  # snapshot platforms don't expose traded-pick ownership by round

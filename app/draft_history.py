@@ -10,10 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .paths import RAW_DRAFT_HISTORY_DIR
-
-
-def _normalize_name(value: str) -> str:
-    return ' '.join(value.strip().lower().split())
+from .player_registry import normalize_name as _normalize_name
 
 
 def load_draft_years(directory: Path = RAW_DRAFT_HISTORY_DIR) -> Dict[int, List[dict]]:

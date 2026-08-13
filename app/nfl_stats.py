@@ -13,6 +13,7 @@ from .paths import (
     NFL_POSITION_MAP_FILE,
     ensure_parent_dir,
 )
+from .player_registry import normalize_name
 
 FIRST_SEASON = 2019
 
@@ -136,7 +137,7 @@ def _build_position_map(rosters: List[Dict[str, Any]]) -> Dict[str, str]:
     never disagree about how a name collision resolves."""
     position_map: Dict[str, str] = {}
     for row in rosters:
-        name = str(row.get('full_name', '')).strip().lower()
+        name = normalize_name(row.get('full_name', ''))
         position = str(row.get('position', '') or '').strip().upper()
         if not name or not position:
             continue
@@ -224,7 +225,7 @@ def load_qb_rushing_yards(season: int, directory: Path = RAW_NFL_SEASONAL_STATS_
     for row in stats:
         if row.get('position') != 'QB':
             continue
-        name = str(row.get('player_display_name') or row.get('player_name') or '').strip().lower()
+        name = normalize_name(row.get('player_display_name') or row.get('player_name') or '')
         rushing_yards = row.get('rushing_yards')
         if not name or rushing_yards is None:
             continue

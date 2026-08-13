@@ -111,6 +111,81 @@ def normalize_name(value: str, strip_suffix: bool = True) -> str:
     return ''.join(parts)
 
 
+def index_rows_by_name(rows: Iterable[Dict[str, Any]], name_key: str = 'playerName',
+                       rank_key: Optional[str] = 'ranking') -> Dict[str, Dict[str, Any]]:
+    """{name key: row} for a list of rows, collision-safe.
+
+    Two things make a plain `{normalize_name(r[name_key]): r for r in rows}`
+    comprehension wrong, and both are silent:
+
+    1. Sources duplicate a player under two spellings. The live board carries
+       "Aaron Jones Sr." at rank 93 *and* "Aaron Jones" at 268, "Deebo Samuel
+       Sr." at 98 and "Deebo Samuel" at 299. A comprehension keeps whichever
+       came last, so a top-100 RB silently reads as a rank-268 afterthought.
+       When `rank_key` is set, the better (lower) value wins instead; ties and
+       missing ranks fall back to first-writer-wins.
+    2. Suffix-stripped keys collide across generations (Frank Gore vs Frank
+       Gore Jr.). The suffix-preserving key is indexed too and wins on exact
+       match, same two-level scheme resolve() uses.
+
+    This is the same class of bug as nfl_stats.fantasy_position_map's
+    last-row-wins collision -- see CLAUDE.md.
+    """
+    index: Dict[str, Dict[str, Any]] = {}
+
+    def better(incumbent: Optional[Dict[str, Any]], challenger: Dict[str, Any]) -> bool:
+        if incumbent is None:
+            return True
+        if not rank_key:
+            return False
+        current, new = incumbent.get(rank_key), challenger.get(rank_key)
+        if new is None:
+            return False
+        if current is None:
+            return True
+        return new < current
+
+    for row in rows:
+        name = str(row.get(name_key) or '')
+        if not name:
+            continue
+        # Both keys go into ONE dict under the same better() rule. Keeping two
+        # dicts and unioning them looked tidier but was wrong: for an
+        # unsuffixed name the two keys are identical, so the "exact" copy
+        # clobbered a better-ranked base entry -- which is the duplicate bug
+        # again, one layer up.
+        for key in (normalize_name(name), normalize_name(name, strip_suffix=False)):
+            # The two keys are identical for unsuffixed names; the repeat write
+            # is a no-op because a row is never "better" than itself.
+            if key and better(index.get(key), row):
+                index[key] = row
+
+    return index
+
+
+def dedupe_rows_by_name(rows: Iterable[Dict[str, Any]], name_key: str = 'playerName',
+                        rank_key: Optional[str] = 'ranking') -> List[Dict[str, Any]]:
+    """Drop rows that are the same player under a second spelling, keeping the
+    better-ranked one and the original order.
+
+    The free-rankings board carries these: "James Cook III" at 20 and "James
+    Cook" at 257, "Travis Etienne Jr." at 45 and "Travis Etienne" at 259. They
+    are one player, and treating them as two is not cosmetic -- the mock draft
+    drafted the same human twice (once early, once in round 15), and the
+    week-over-week trend column rendered a confident "down 237" for a player
+    who had not moved.
+
+    `_sleeper_tail()` stops new duplicates being written now that its dedupe
+    check shares this module's name key, but a board already on disk keeps
+    them until the next daily refresh -- and until then every consumer would
+    see the phantom. Cheap enough to apply on read.
+    """
+    rows = list(rows)  # iterated twice; must not be a generator
+    best = index_rows_by_name(rows, name_key=name_key, rank_key=rank_key)
+    keep = {id(row) for row in best.values()}
+    return [row for row in rows if id(row) in keep]
+
+
 def normalize_position(value: Optional[str]) -> Optional[str]:
     if not value:
         return None
