@@ -15,6 +15,12 @@ from .paths import DATA_DIR
 
 DEFAULT_DB_URL = f'sqlite:///{DATA_DIR / "wuff.db"}'
 DATABASE_URL = os.environ.get('DATABASE_URL', DEFAULT_DB_URL)
+# Railway (and Heroku before it) hand out `postgres://`, a scheme SQLAlchemy
+# 2.x's psycopg dialect lookup rejects outright ("Can't load plugin:
+# sqlalchemy.dialects:postgres") -- normalize it rather than let a copied
+# env var 500 the app on first request.
+if DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 
 
 class Base(DeclarativeBase):

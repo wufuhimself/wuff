@@ -2,6 +2,8 @@ APScheduler
 Flask
 Flask-Login
 itsdangerous
+gunicorn
+psycopg2-binary
 SQLAlchemy
 requests
 python-dotenv
