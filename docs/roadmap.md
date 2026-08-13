@@ -598,8 +598,35 @@ Each step is its own commit with a full-output diff as the gate.
    including a picks-only trade and a same-franchise add+drop waiver) — 100%
    player-move resolution everywhere real moves exist. Gate:
    `check_repository_contract` extended to 14,520 checks. Purely additive.
-8. **Matchups + scoring engine** — something that finally reads
-   `LeagueFormat.scoring`. Then **playoffs** (bracket, seeding, odds) last.
+8. ✅ **Matchups** (2026-08-13) — Sleeper only (same scoping as step 6).
+   **Scope correction, decided with the user before building:** this does
+   *not* end up being "something that finally reads `LeagueFormat.scoring`."
+   Sleeper's real `scoring_settings` run to ~130 rule keys (IDP tackles,
+   special-teams yards, per-bracket defense bonuses) against `LeagueFormat`'s
+   9 — recomputing from raw stats would silently diverge from what the
+   league itself sees on any unmodeled rule. `MatchupSide.points` is
+   Sleeper's own computed total, trusted directly; a real scoring engine
+   stays future work, and only if `LeagueFormat.scoring` needs modeling for
+   something like a points *projection* — a different problem.
+   `sync_matchups()` bounds its fetch by `settings.leg` (Sleeper's own
+   current/last-played-week field, confirmed correct on a completed season
+   too — 17 weeks, `leg=17`, not reset) rather than walking a fixed range the
+   way transactions does, because an unplayed matchups week isn't an empty
+   response the way an unplayed transactions week is — it's real rows with
+   every score at 0.0. **This season only**, confirmed with the user first:
+   Sleeper chains history across seasons via `previous_league_id` under a
+   *different* league_id, deliberately not walked. `repository.matchups()`
+   drops any week where every side is still 0.0 — documented as a heuristic,
+   not a guaranteed signal, and checked against a real completed 2025 season
+   (reached via the chain, on demand, not registered) before trusting it: 82
+   matchups across 17 weeks, 100% franchise resolution, 1639/1640 starters
+   resolved (the one gap is Sleeper's own `'0'` empty-slot placeholder,
+   already filtered elsewhere in this codebase — not a bug). Gate:
+   `check_repository_contract` extended to 14,528 checks, including a
+   dedicated completed-season check since every *registered* league's own
+   matchup assertions currently pass vacuously on zero rows (none have
+   played a game yet). **Playoffs** (bracket, seeding, odds) is the last
+   piece of this phase, still open.
 
 **Out of scope, deliberately:** modeling all 16 entities up front (model to
 the decisions the product serves — keep, draft, start/sit, add/drop, then
