@@ -480,12 +480,31 @@ Each step is its own commit with a full-output diff as the gate.
    Harold Fannin TE26→TE6, Kenneth Walker III unranked→RB14; draft-history
    position resolution 541→577 picks, completing rounds 2 and 3. No player
    added to or dropped from any keeper board.
-3. **Franchise identity** — `franchises` table, stable id + name history.
-   Sleeper's `roster_id`/`owner_id` are already synced and dropped at the
-   repository boundary; Yahoo needs the hand-authored alias file
-   `manager_report.py` already identified as the fix. Add `franchise_id`
-   *alongside* `KeeperMark.team_name`, backfill, then switch reads — this is
-   live user data, never a rename-and-pray.
+3. ✅ **Franchise identity** (2026-08-13): `app/franchise_registry.py` +
+   `franchise_store.py` + `franchise_models.py` (`franchises`,
+   `franchise_names`), CLI `build-franchises` and
+   `franchise-alias-template`. Sleeper/ESPN resolve from `ownerId` (fallback
+   `rosterId`) — the data was already synced and being thrown away at the
+   repository boundary. Yahoo cannot be resolved algorithmically, full stop:
+   its standings carry no owner id and the rename note fired for exactly ONE
+   of ~47 name changes, so `data/config/franchise_aliases.json` is the
+   hand-authored answer, shipped scaffolded to reproduce current inference
+   (a no-op until edited). The only automatic name links are *exact* ones —
+   identical slugs, and a roster name whose tail after `" - "` matches a
+   known team. `KeeperMark.franchise_id` was added **alongside** `team_name`,
+   backfilled by `build-franchises`, with NULL falling back to name matching.
+   **Two invisible data problems surfaced:** the Yahoo roster paste prefixes
+   every team with the league name, so rosters and standings had never been
+   joinable on team at all; and a rename *target* only exists inside the note
+   text, so "Wuf" was not a known name and the one genuinely renamed team had
+   marks pointing at a franchise that did not exist. The before/after diff
+   also caught my own first cut using the prefixed roster name as the display
+   name, which silently stopped every frank-gore keeper mark from matching.
+   Result: all 7 leagues byte-identical except the intended
+   `manager_report` 24→23 rows (the one provable merge). It stays 23 rather
+   than 12 until the alias file is filled in by someone who knows the
+   managers. Gate: `scripts/check_franchise_identity.py` renames a team on
+   each platform's own terms and asserts the marks follow.
 4. **Typed domain layer** — `app/domain.py` frozen dataclasses (`Player`,
    `Franchise`, `Manager`, `RosterSlot`, `Roster`, `DraftPick`, `Draft`,
    `StandingRow`, `Transaction`, `PlayerStatus`, `Matchup`, `ScoringRules`).
