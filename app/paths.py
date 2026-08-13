@@ -30,6 +30,10 @@ SLEEPER_PLAYERS_CACHE_FILE = RAW_SLEEPER_DIR / 'players_cache.json'
 # container can resolve player positions without the nflverse CSVs, which it
 # has no copy of. Regenerate with `python3 -m app snapshot-position-map`.
 NFL_POSITION_MAP_FILE = CONFIG_DIR / 'nfl_position_map.json'
+# Hand-authored name -> real name map for the players no algorithm can link:
+# nicknames ("Hollywood Brown" is Marquise Brown) and short forms ("Josh
+# Palmer" is Joshua Palmer). Committed, because it is curated data.
+PLAYER_ALIASES_FILE = CONFIG_DIR / 'player_aliases.json'
 
 
 RAW_ESPN_DIR = RAW_DIR / 'espn'

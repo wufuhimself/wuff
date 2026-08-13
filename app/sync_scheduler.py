@@ -27,6 +27,7 @@ from .free_rankings import refresh_free_rankings
 from .nfl_stats import current_nfl_season, fetch_and_save_rosters
 from .models import DbLeague, EspnCredential, SyncRun
 from .paths import RAW_NFL_ROSTERS_DIR, SLEEPER_PLAYERS_CACHE_FILE
+from .player_store import rebuild_registry
 from .sleeper_manager import (
     load_players_cache,
     load_sleeper_leagues_config,
@@ -195,6 +196,30 @@ def refresh_nfl_rosters_job() -> None:
         logger.exception('nfl-rosters fetch failed')
 
 
+def refresh_player_registry_job() -> None:
+    """Rebuild the cross-platform player identity registry (Phase 5 step 1).
+
+    Runs after the nfl-rosters job so it can pick up the nflverse CSVs when
+    they exist, but it does not need them: the Sleeper players cache alone
+    carries espn_id/yahoo_id/gsis_id for every player, and that cache is the
+    one source a deployed container can always refetch. _fresh_players_cache()
+    is called first because a container that follows no Sleeper league never
+    otherwise downloads it, and an absent cache builds an empty registry that
+    resolves nothing.
+    """
+    try:
+        _fresh_players_cache()
+        stats = rebuild_registry()
+        logger.info('player-registry job: %s players written (%s sleeper, %s nflverse-only, %s id conflicts)',
+                    stats.get('written'), stats.get('sleeper'),
+                    stats.get('nflverse_only'), stats.get('id_conflicts'))
+    except Exception:  # pylint: disable=broad-exception-caught
+        # The stored registry stays in place. Logged rather than swallowed:
+        # an empty or stale registry degrades silently -- names simply stop
+        # resolving -- which is the failure mode this whole phase exists to end.
+        logger.exception('player-registry rebuild failed')
+
+
 def ensure_scheduler_started() -> bool:
     """Start the background scheduler once per process. False when disabled."""
     global _scheduler  # pylint: disable=global-statement
@@ -231,6 +256,16 @@ def ensure_scheduler_started() -> bool:
                 hours=24,
                 id='nfl-rosters-daily',
                 next_run_time=datetime.now() + timedelta(seconds=30),
+                max_instances=1,
+                coalesce=True,
+            )
+            # Last of the daily jobs: it reads what the two above write.
+            scheduler.add_job(
+                refresh_player_registry_job,
+                'interval',
+                hours=24,
+                id='player-registry-daily',
+                next_run_time=datetime.now() + timedelta(seconds=180),
                 max_instances=1,
                 coalesce=True,
             )

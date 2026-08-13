@@ -366,6 +366,13 @@ def parse_args() -> argparse.Namespace:
     position_map_parser.add_argument('--seasons', type=int, nargs='+', default=None,
                                      help='Seasons to include (default: 2022 through the current season)')
 
+    player_registry_parser = subparsers.add_parser(
+        'build-player-registry',
+        help='Build the cross-platform player identity registry from the Sleeper cache + nflverse CSVs',
+    )
+    player_registry_parser.add_argument('--check', action='store_true',
+                                        help='Print the follow-up verification command when done')
+
     migrate_yahoo_parser = subparsers.add_parser(
         'migrate-yahoo-data',
         help="Load the hand-curated Yahoo JSON under data/raw/ into the database (DATABASE_URL decides which)",
@@ -1768,6 +1775,24 @@ def _cmd_snapshot_position_map(args) -> None:
     print(f'Wrote {NFL_POSITION_MAP_FILE} ({size_kb:.0f} KB) — commit it so the deploy has it.')
 
 
+def _cmd_build_player_registry(args) -> None:
+    from .db import DATABASE_URL  # pylint: disable=import-outside-toplevel
+    from .player_store import rebuild_registry  # pylint: disable=import-outside-toplevel
+
+    redacted = DATABASE_URL if DATABASE_URL.startswith('sqlite') else DATABASE_URL.split('@')[-1]
+    print(f'Building the player registry into: {redacted}')
+    stats = rebuild_registry()
+    if not stats.get('written'):
+        print('No source data found. Run `python3 -m app sleeper-refresh-players` first.', file=sys.stderr)
+        sys.exit(1)
+    print(f"  sleeper spine:  {stats['sleeper']} players")
+    print(f"  nflverse rows:  {stats['nflverse_rows']} ({stats['nflverse_only']} players Sleeper doesn't have)")
+    print(f"  id conflicts:   {stats['id_conflicts']} (logged at DEBUG, spine wins)")
+    print(f"  written:        {stats['written']}")
+    if args.check:
+        print('Verify with: python3 scripts/check_player_resolution.py')
+
+
 def _cmd_migrate_yahoo_data(args) -> None:
     from .db import DATABASE_URL  # pylint: disable=import-outside-toplevel
     from .yahoo_migrate import migrate_all  # pylint: disable=import-outside-toplevel
@@ -1864,6 +1889,7 @@ _COMMAND_HANDLERS = {
     'grant-league': _cmd_grant_league,
     'leagues-init': _cmd_leagues_init,
     'migrate-yahoo-data': _cmd_migrate_yahoo_data,
+    'build-player-registry': _cmd_build_player_registry,
     'snapshot-position-map': _cmd_snapshot_position_map,
     'sleeper-discover': _cmd_sleeper_discover,
     'sleeper-sync': _cmd_sleeper_sync,
