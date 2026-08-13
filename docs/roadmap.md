@@ -235,8 +235,12 @@ so it can't gate the second platform.
   rosters, draft results, and league settings come from the API. Until then
   the Frank Gore league keeps its current paste/manual flows.
 - **Player identity crosswalk:** sleeper_id ↔ yahoo_id ↔ espn_id ↔
-  name+team fuzzy match, as a first-class table. This is sneaky-hard;
-  budget real time for it.
+  name+team fuzzy match, as a first-class table. ~~This is sneaky-hard;
+  budget real time for it.~~ **Re-scoped 2026-08-13 — see Phase 5 step 1.**
+  The id↔id mapping is nearly free: the Sleeper players cache and the
+  nflverse roster CSVs each already carry the full crosswalk and are both
+  already on disk. The hard part is only the Yahoo side, which has no
+  platform player id at all.
 - All three importers emit the Phase 0 normalized model.
 
 ## Phase 3 — Port the analysis tools
@@ -390,6 +394,84 @@ core port:
 - Basic error monitoring (Sentry free tier) — a demoable product can't 500
   silently.
 
+## Phase 5 — Domain model (planned 2026-08-13)
+
+Finishing Phase 0's platform-abstraction promise properly, now that Phases
+0–3 have shown where it leaks. Full plan and rationale:
+`WS-1-data-platform/Domain_Model_Refactor_2026-08-13.md` in the Obsidian
+vault.
+
+**The problem.** `app/repository.py` is a real seam with four backends, but
+it serves **untyped dicts** — the normalized shape lives in a docstring and
+is enforced by nothing, so Yahoo and Sleeper can disagree and no test, type
+checker or runtime error will say so. Every silent-wrong-output bug logged
+in this file is that shape. Only one domain dataclass exists in the whole
+codebase (`RosterPlayer`); `LeagueFormat` is config, not a model.
+
+**Two keys rot everything.** Player is a name string (ten independent
+`normalize_name` implementations across strategy, board_service,
+adp_manager, ranking_history, outcome_log, keeper_history,
+rankings_aggregator, draft_history, rankings_manager). Franchise is a
+display-name string (`KeeperMark.team_name`, standings `'team'`, draft-pick
+`'team'`) — a rename orphans that data, which is exactly why
+`manager_report.py` yields 24 managers for a 12-team league.
+
+**The crosswalk is cheaper than this file previously claimed.** Phase 2 calls
+player identity "sneaky-hard, budget real time for it." Checked against the
+payloads wuff already downloads: `players_cache.json` carries `espn_id`,
+`yahoo_id`, `gsis_id`, `sportradar_id` (plus `injury_status`/`status`) for
+12,218 players, and `data/raw/nfl_stats/rosters/{year}.csv` carries
+`gsis_id, espn_id, yahoo_id, sleeper_id, pfr_id, …`. Two independent
+crosswalks, both already on disk, both free. The genuinely hard part is
+narrower: **the Yahoo league has no platform player id at all** — its roster
+rows set `playerId` to the player's name — so name matching is needed on the
+Yahoo side only (12 teams × ~16 players + ~1,128 historical picks). Team
+defenses never resolve (not in nflverse rosters); that gap is permanent and
+must stay visible.
+
+Steps 1–4 are refactor (no new data, net code removal); steps 5–8 are new
+per-platform ingest, three times over — a different cost class, don't bundle.
+Each step is its own commit with a full-output diff as the gate.
+
+1. **Player identity registry** — `app/player_registry.py` + `players` table,
+   built from the Sleeper cache + nflverse CSVs, one `resolve()` API. Gate:
+   `scripts/check_player_resolution.py` prints resolved/unresolved per source;
+   ship with the unresolved list visible, not forced to zero.
+2. **1b. Collapse name normalization** onto `resolve()` — separate commit
+   (step 1 adds, 1b removes). Gate: full-output diff of keeper board, mock
+   draft, draft analysis, draft patterns, manager report.
+3. **Franchise identity** — `franchises` table, stable id + name history.
+   Sleeper's `roster_id`/`owner_id` are already synced and dropped at the
+   repository boundary; Yahoo needs the hand-authored alias file
+   `manager_report.py` already identified as the fix. Add `franchise_id`
+   *alongside* `KeeperMark.team_name`, backfill, then switch reads — this is
+   live user data, never a rename-and-pray.
+4. **Typed domain layer** — `app/domain.py` frozen dataclasses (`Player`,
+   `Franchise`, `Manager`, `RosterSlot`, `Roster`, `DraftPick`, `Draft`,
+   `StandingRow`, `Transaction`, `PlayerStatus`, `Matchup`, `ScoringRules`).
+   Repository grows typed methods *next to* the dict ones; consumers migrate
+   one per commit; dict methods die when nothing calls them.
+5. **Backend contract suite** — generalize `scripts/compare_yahoo_backends.py`
+   into one parametrized suite over every backend × every league.
+6. **Player statuses + bye weeks** — statuses are nearly free
+   (`injury_status`/`status` are in the Sleeper cache and currently dropped by
+   `_resolve_player()`; `RosterPlayer.status` is always `None`). Byes need a
+   schedule source (nflverse schedules). First step that unlocks start/sit.
+7. **Transactions** — real ingest work per platform. Sleeper
+   `/league/{id}/transactions/{week}`; ESPN unofficial; Yahoo still blocked.
+   Unlocks add/drop and the trade analyzer already in the backlog.
+8. **Matchups + scoring engine** — something that finally reads
+   `LeagueFormat.scoring`. Then **playoffs** (bracket, seeding, odds) last.
+
+**Out of scope, deliberately:** modeling all 16 entities up front (model to
+the decisions the product serves — keep, draft, start/sit, add/drop, then
+stop); rewriting the CLI or templates (Phase 0's wrap-don't-rebuild rule
+stands); re-deriving manager identity algorithmically (already tried, already
+failed against real data).
+
+**If only one step happens, it's step 1** — statuses, byes, stats joins and
+transactions all need a player key before they can exist.
+
 ---
 
 ## Risks, in order
@@ -400,7 +482,10 @@ core port:
    own destiny on — which is why it's the MVP and the deepest integration.
 2. **Rules diversity.** Every league has weird keeper rules. The rules engine
    either handles "config, not code" or the project drowns in special cases.
-3. **Player identity matching** across three platforms' ID spaces.
+3. **Player identity matching** across three platforms' ID spaces —
+   downgraded 2026-08-13 (Phase 5 step 1): two free crosswalks already on
+   disk cover Sleeper/ESPN/nflverse. The residual risk is Yahoo-only name
+   matching, plus team defenses, which never resolve.
 4. **Rankings licensing** — solved at launch by user-upload + free sources,
    but caps how "turnkey" onboarding feels.
 
