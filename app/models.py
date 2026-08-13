@@ -17,6 +17,10 @@ from .league_context import LeagueFormat
 from .league_registry import League
 # Imported for their side effect of registering these tables on Base.metadata,
 # so init_db()'s create_all() creates them too.
+from .franchise_models import (  # noqa: F401  pylint: disable=unused-import
+    FranchiseName,
+    FranchiseRecord,
+)
 from .player_models import (  # noqa: F401  pylint: disable=unused-import
     PlayerAlias,
     PlayerRecord,
@@ -137,6 +141,13 @@ class KeeperMark(Base):
     platform: Mapped[str] = mapped_column(String(16), nullable=False)
     platform_league_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     team_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Stable franchise key (app/franchise_registry.py), written alongside
+    # team_name rather than replacing it. team_name stays the primary match so
+    # existing rows keep working untouched; franchise_id is what makes a mark
+    # survive the manager renaming their team, which used to orphan it
+    # silently. NULL means "predates this column, or the franchise could not
+    # be resolved" -- both fall back to name matching.
+    franchise_id: Mapped[Optional[str]] = mapped_column(String(160), index=True)
     player_name: Mapped[str] = mapped_column(String(255), nullable=False)
     action: Mapped[str] = mapped_column(String(8), nullable=False, default='include')  # 'include' | 'exclude'
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

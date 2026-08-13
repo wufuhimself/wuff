@@ -7,10 +7,11 @@ the AJAX partial-update response and the full-page render can never drift
 out of sync; see that function's docstring for the shape it returns.
 """
 import re
-from typing import Optional
+from typing import List, Optional
 
 from .board_service import apply_adjustments, load_adjustments
 from .db import SessionLocal
+from .franchise_store import get_registry as franchise_registry_for
 from .league_context import load_league_format
 from .league_registry import get_league
 from .models import KeeperMark
@@ -30,13 +31,22 @@ def _default_league_platform_ids() -> tuple:
     return league.platform, league.platform_league_id
 
 
-def load_keeper_marks(platform: Optional[str] = None, platform_league_id: Optional[str] = None) -> tuple:
+def load_keeper_marks(platform: Optional[str] = None, platform_league_id: Optional[str] = None,
+                      franchises=None) -> tuple:
     """User-set keeper decisions for a league (default league when unspecified).
 
     Returns (include_marks, exclude_marks), each {team: [player_name, ...]}.
     'include' forces a player onto that team's keeper board; 'exclude' forbids
     the algorithm from auto-picking a player, freeing the slot for the next
-    best eligible one."""
+    best eligible one.
+
+    `franchises`: a FranchiseRegistry (app/franchise_store.py). When given, a
+    row's stored `franchise_id` decides which team it belongs to and the
+    franchise's CURRENT name is used as the key -- so a manager renaming their
+    team keeps their marks instead of silently orphaning them. Rows with no
+    franchise_id (made before the column existed, or a franchise that could
+    not be resolved) fall back to the stored team_name, which is exactly the
+    old behaviour."""
     if platform is None or platform_league_id is None:
         platform, platform_league_id = _default_league_platform_ids()
     include_marks: dict = {}
@@ -49,9 +59,64 @@ def load_keeper_marks(platform: Optional[str] = None, platform_league_id: Option
             .all()
         )
     for row in rows:
+        team = row.team_name
+        if franchises is not None and row.franchise_id:
+            franchise = franchises.franchises.get(row.franchise_id)
+            if franchise is not None:
+                team = franchise.name
         target = exclude_marks if row.action == 'exclude' else include_marks
-        target.setdefault(row.team_name, []).append(row.player_name)
+        target.setdefault(team, []).append(row.player_name)
     return include_marks, exclude_marks
+
+
+def set_keeper_mark(platform: str, platform_league_id: str, team: str, player: str,
+                    *, checked: bool, was_auto_chosen: bool, auto_chosen_names: List[str],
+                    already_has_marks: bool, franchise_id: Optional[str] = None) -> None:
+    """Apply one keeper-card toggle. Lifted out of web.py's route handler so
+    the franchise bookkeeping lives with the rest of the keeper logic.
+
+    Matching prefers `franchise_id` when the caller resolved one, so a toggle
+    still finds a mark made under the team's previous name; it falls back to
+    team_name for unresolved franchises and pre-existing rows."""
+    with SessionLocal() as session:
+        def find(player_name: str):
+            query = session.query(KeeperMark).filter_by(
+                platform=platform, platform_league_id=platform_league_id, player_name=player_name)
+            if franchise_id:
+                found = query.filter_by(franchise_id=franchise_id).one_or_none()
+                if found is not None:
+                    return found
+            return query.filter_by(team_name=team).one_or_none()
+
+        # First time this team is touched: the algorithm's current auto-picks
+        # (other than the one being toggled right now) need to become real
+        # `include` rows, not just implied by "nobody's excluded them yet" --
+        # otherwise the next computation runs with stop_auto_fill=True and
+        # silently drops them (they were never auto-fill-eligible OR
+        # explicitly included, so they'd vanish instead of staying kept).
+        if not already_has_marks:
+            for other in auto_chosen_names:
+                if normalize_name(other) == normalize_name(player):
+                    continue
+                session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
+                                       team_name=team, franchise_id=franchise_id,
+                                       player_name=other, action='include'))
+
+        existing = find(player)
+        if checked == was_auto_chosen:
+            # Toggling back to the algorithm's own answer -- clear any override.
+            if existing is not None:
+                session.delete(existing)
+        else:
+            action = 'include' if checked else 'exclude'
+            if existing is not None:
+                existing.action = action
+                existing.franchise_id = existing.franchise_id or franchise_id
+            else:
+                session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
+                                       team_name=team, franchise_id=franchise_id,
+                                       player_name=player, action=action))
+        session.commit()
 
 
 def team_pick_numbers(
@@ -298,10 +363,15 @@ def keeper_board_state(
     'keeper_impact', 'include_marks', 'exclude_marks', 'error': None}.
     """
     if league is None:
+        # The default-league path passes league=None to keep its file-based
+        # format; resolve the League object anyway, since franchise identity
+        # is keyed on (platform, platform_league_id) like everything else.
+        resolved_league = get_league()
         repo = get_repository()
         league_format = load_league_format()
         platform, platform_league_id = _default_league_platform_ids()
     else:
+        resolved_league = league
         repo = repository_for(league)
         league_format = league.format
         platform, platform_league_id = league.platform, league.platform_league_id
@@ -320,7 +390,11 @@ def keeper_board_state(
             '`import-rankings-csv` first.'
         ) if league is None else 'No synced rankings yet -- sync the league first.'}
 
-    include_marks, exclude_marks = load_keeper_marks(platform, platform_league_id)
+    # Franchise-aware: a mark made before the manager renamed their team is
+    # keyed by franchise, so it lands on the team's current name instead of
+    # orphaning under a name no roster carries any more.
+    franchises = franchise_registry_for(resolved_league, repo)
+    include_marks, exclude_marks = load_keeper_marks(platform, platform_league_id, franchises=franchises)
     resolved_keeper_count = keeper_count if keeper_count is not None else league_format.keeper_slots
     resolved_draft_years = draft_years if draft_years is not None else (repo.draft_years() if league is not None else None)
     per_team, remaining_board = league_keeper_board(

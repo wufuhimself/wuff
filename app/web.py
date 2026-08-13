@@ -32,10 +32,12 @@ from .draft_patterns import (
     resolved_picks,
 )
 from .free_rankings import refresh_free_rankings
+from .franchise_store import franchise_id_for_team
 from .keeper_service import (
     keeper_board_state,
     load_keeper_marks,
     log_team_keeper_forecast,
+    set_keeper_mark,
     team_pick_numbers,
 )
 from .league_context import load_league_format
@@ -50,7 +52,7 @@ from .membership import (
     user_follows,
     user_follows_platform_league,
 )
-from .models import DbLeague, EspnCredential, KeeperMark, SyncRun, UserLeague
+from .models import DbLeague, EspnCredential, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON
 from .repository import repository_for
 from .sleeper_manager import (
@@ -403,38 +405,14 @@ def keeper_mark():
         (state_before['include_marks'] or {}).get(team) or (state_before['exclude_marks'] or {}).get(team)
     )
 
-    with SessionLocal() as session:
-        # First time this team is touched: the algorithm's current auto-picks
-        # (other than the one being toggled right now) need to become real
-        # `include` rows, not just implied by "nobody's excluded them yet" --
-        # otherwise the next computation runs with stop_auto_fill=True and
-        # silently drops them (they were never auto-fill-eligible OR
-        # explicitly included, so they'd vanish instead of staying kept).
-        if not already_has_marks and team_entry:
-            for other in team_entry['chosen']:
-                if normalize_name(other.get('playerName', '')) == normalize_name(player):
-                    continue
-                session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
-                                       team_name=team, player_name=other['playerName'], action='include'))
-
-        existing = (
-            session.query(KeeperMark)
-            .filter_by(platform=platform, platform_league_id=platform_league_id,
-                       team_name=team, player_name=player)
-            .one_or_none()
-        )
-        if checked == was_auto_chosen:
-            # Toggling back to the algorithm's own answer -- clear any override.
-            if existing is not None:
-                session.delete(existing)
-        else:
-            action = 'include' if checked else 'exclude'
-            if existing is not None:
-                existing.action = action
-            else:
-                session.add(KeeperMark(platform=platform, platform_league_id=platform_league_id,
-                                       team_name=team, player_name=player, action=action))
-        session.commit()
+    set_keeper_mark(
+        platform, platform_league_id, team, player,
+        checked=checked,
+        was_auto_chosen=was_auto_chosen,
+        auto_chosen_names=[c['playerName'] for c in team_entry['chosen']] if team_entry else [],
+        already_has_marks=already_has_marks,
+        franchise_id=franchise_id_for_team(league, state_before['repo'], team),
+    )
 
     state_after = keeper_board_state(board_league, include_file_prefs=include_file_prefs)
     if state_after['error']:

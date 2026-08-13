@@ -34,6 +34,11 @@ NFL_POSITION_MAP_FILE = CONFIG_DIR / 'nfl_position_map.json'
 # nicknames ("Hollywood Brown" is Marquise Brown) and short forms ("Josh
 # Palmer" is Joshua Palmer). Committed, because it is curated data.
 PLAYER_ALIASES_FILE = CONFIG_DIR / 'player_aliases.json'
+# Hand-authored {platform: {league_id: {franchise_key: [team names]}}}. The
+# only way a Yahoo league gets cross-season manager identity -- its standings
+# carry no owner id and Yahoo's rename note almost never fires. Committed,
+# because it is knowledge no algorithm can recover. See app/franchise_registry.py.
+FRANCHISE_ALIASES_FILE = CONFIG_DIR / 'franchise_aliases.json'
 
 
 RAW_ESPN_DIR = RAW_DIR / 'espn'

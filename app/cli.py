@@ -366,6 +366,18 @@ def parse_args() -> argparse.Namespace:
     position_map_parser.add_argument('--seasons', type=int, nargs='+', default=None,
                                      help='Seasons to include (default: 2022 through the current season)')
 
+    franchises_parser = subparsers.add_parser(
+        'build-franchises',
+        help='Build franchise (team) identity for every league and stamp it onto existing keeper marks',
+    )
+    franchises_parser.add_argument('--league', default=None, help='Limit to one league id')
+
+    alias_template_parser = subparsers.add_parser(
+        'franchise-alias-template',
+        help='Print team names by season plus a starting franchise_aliases.json for a league',
+    )
+    alias_template_parser.add_argument('--league', default=None, help='League id (default: your default league)')
+
     player_registry_parser = subparsers.add_parser(
         'build-player-registry',
         help='Build the cross-platform player identity registry from the Sleeper cache + nflverse CSVs',
@@ -1793,6 +1805,77 @@ def _cmd_build_player_registry(args) -> None:
         print('Verify with: python3 scripts/check_player_resolution.py')
 
 
+def _cmd_build_franchises(args) -> None:
+    from .franchise_store import backfill_keeper_marks, rebuild_league  # pylint: disable=import-outside-toplevel
+    from .repository import repository_for  # pylint: disable=import-outside-toplevel
+
+    leagues = load_leagues()
+    if args.league:
+        if args.league not in leagues:
+            print(f"Unknown league '{args.league}'. Try `python3 -m app leagues`.", file=sys.stderr)
+            sys.exit(1)
+        leagues = {args.league: leagues[args.league]}
+
+    for league_id, league in leagues.items():
+        try:
+            repo = repository_for(league)
+            stats = rebuild_league(league, repo)
+            marks = backfill_keeper_marks(league, repo)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print(f'  {league_id}: failed ({type(exc).__name__}: {exc})', file=sys.stderr)
+            continue
+        sources = ', '.join(f'{k}={v}' for k, v in sorted(stats.items()) if k != 'written')
+        line = f"  {league_id}: {stats['written']} franchises ({sources})"
+        if marks['marks']:
+            line += f" — keeper marks {marks['stamped']}/{marks['marks']} stamped"
+            if marks['unresolved']:
+                line += f", {marks['unresolved']} unresolved (still matched by name)"
+        print(line)
+
+    print('\nYahoo leagues resolve identity only as far as data/config/franchise_aliases.json goes '
+          '— see `python3 -m app franchise-alias-template`.')
+
+
+def _cmd_franchise_alias_template(args) -> None:
+    """Print a fill-in-the-blanks alias file for a name-identified league."""
+    from .league_registry import get_league  # pylint: disable=import-outside-toplevel
+    from .repository import repository_for  # pylint: disable=import-outside-toplevel
+
+    league = get_league(args.league)
+    repo = repository_for(league)
+    by_year = {}
+    for year in sorted(repo.standings_years()):
+        by_year[year] = [row.get('team') for row in (repo.standings(year) or [])]
+    if not by_year:
+        print('No saved standings for this league, so there are no names to group.', file=sys.stderr)
+        sys.exit(1)
+
+    print('# Team names by season — group the ones belonging to the same manager.\n')
+    for year, names in by_year.items():
+        print(f'{year}:')
+        for name in names:
+            print(f'    {name}')
+        print()
+    # Built with an EMPTY alias map on purpose: the template has to reproduce
+    # what wuff already infers, so pasting it in changes nothing and every
+    # later edit is visibly the author's. Generating it from raw season names
+    # instead would silently un-merge groups the rename note had linked.
+    from .franchise_registry import build_franchises, slugify  # pylint: disable=import-outside-toplevel
+
+    inferred = build_franchises(repo, league, aliases={})
+    template = {
+        league.platform: {
+            str(league.platform_league_id): {
+                slugify(f.name): sorted(f.names or [f.name]) for f in inferred
+            }
+        }
+    }
+    print("# Starting point for data/config/franchise_aliases.json. It reproduces what wuff\n"
+          "# already infers, so pasting it in as-is changes nothing. To link a manager's\n"
+          "# seasons, merge their names into ONE list and delete the now-empty keys.\n")
+    print(json.dumps(template, indent=2))
+
+
 def _cmd_migrate_yahoo_data(args) -> None:
     from .db import DATABASE_URL  # pylint: disable=import-outside-toplevel
     from .yahoo_migrate import migrate_all  # pylint: disable=import-outside-toplevel
@@ -1890,6 +1973,8 @@ _COMMAND_HANDLERS = {
     'leagues-init': _cmd_leagues_init,
     'migrate-yahoo-data': _cmd_migrate_yahoo_data,
     'build-player-registry': _cmd_build_player_registry,
+    'build-franchises': _cmd_build_franchises,
+    'franchise-alias-template': _cmd_franchise_alias_template,
     'snapshot-position-map': _cmd_snapshot_position_map,
     'sleeper-discover': _cmd_sleeper_discover,
     'sleeper-sync': _cmd_sleeper_sync,

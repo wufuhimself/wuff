@@ -38,6 +38,7 @@ from typing import Any, Dict, List, Optional
 
 from .draft_analysis import draft_slot_vs_final_rank, summarize_draft_slot_correlation
 from .draft_history import keeper_rounds_for_year
+from .franchise_store import get_registry as franchise_registry_for
 from .repository import LeagueDataRepository, get_repository
 from .standings import current_team_names as get_current_team_names
 
@@ -104,6 +105,16 @@ def manager_report_card(repo: Optional[LeagueDataRepository] = None) -> List[Dic
     baseline = summarize_draft_slot_correlation(outcomes)['slot_to_avg']
     years = sorted({o.year for o in outcomes})
     aliases = _alias_map(repo, years)
+    # Franchise identity (app/franchise_registry.py) folds in what the rename
+    # note alone cannot: the hand-authored alias file, and the roster-name
+    # spellings the standings never used. Falls back to the rename-note map
+    # for anything it doesn't cover, so a league with no alias file entries
+    # reports exactly what it reported before.
+    franchises = franchise_registry_for(repo.league, repo)
+
+    def identity(team: str) -> str:
+        franchise = franchises.by_name(team)
+        return franchise.name if franchise else _canonical(team, aliases)
 
     draft_years = repo.draft_years()
     keeper_slots = repo.league.format.keeper_slots
@@ -114,14 +125,14 @@ def manager_report_card(repo: Optional[LeagueDataRepository] = None) -> List[Dic
             team = pick.get('team')
             if not team:
                 continue
-            manager = _canonical(team, aliases)
+            manager = identity(team)
             keeper_counts[manager] += 1
             keeper_seasons[manager].add(year)
 
     by_manager: Dict[str, list] = defaultdict(list)
     raw_names: Dict[str, set] = defaultdict(set)
     for outcome in outcomes:
-        canonical = _canonical(outcome.team, aliases)
+        canonical = identity(outcome.team)
         by_manager[canonical].append(outcome)
         raw_names[canonical].add(outcome.team)
 

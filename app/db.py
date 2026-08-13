@@ -60,6 +60,10 @@ _COLUMN_BACKFILLS = [
     # NULL for every pre-existing user: no stored preference, so membership.py
     # falls back to their first followed league.
     ('users', 'default_league_slug', 'VARCHAR(80)'),
+    # NULL for marks made before franchise identity existed; keeper_service
+    # falls back to matching on team_name, which is what those rows have
+    # always used. Backfilled by `python3 -m app build-franchises`.
+    ('keeper_marks', 'franchise_id', 'VARCHAR(160)'),
 ]
 
 
