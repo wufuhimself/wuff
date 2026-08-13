@@ -516,13 +516,36 @@ Each step is its own commit with a full-output diff as the gate.
    than 12 until the alias file is filled in by someone who knows the
    managers. Gate: `scripts/check_franchise_identity.py` renames a team on
    each platform's own terms and asserts the marks follow.
-4. **Typed domain layer** — `app/domain.py` frozen dataclasses (`Player`,
-   `Franchise`, `Manager`, `RosterSlot`, `Roster`, `DraftPick`, `Draft`,
-   `StandingRow`, `Transaction`, `PlayerStatus`, `Matchup`, `ScoringRules`).
-   Repository grows typed methods *next to* the dict ones; consumers migrate
-   one per commit; dict methods die when nothing calls them.
-5. **Backend contract suite** — generalize `scripts/compare_yahoo_backends.py`
-   into one parametrized suite over every backend × every league.
+4. ✅ **Typed domain layer** (2026-08-13): `app/domain.py` —
+   `RosterTeam`/`RosterEntry`/`DraftPick`/`StandingRow`/`RankingRow`, each
+   carrying `canonical_player_id` and `franchise_id` from steps 1–2. Scoped
+   to what the repository actually serves today; `Transaction`/`Matchup`/
+   `ScoringRules` wait for steps 6–7 rather than being modelled speculatively.
+   Typed methods are implemented **once on the base class** in terms of the
+   dict methods, so a backend cannot drift from the contract by forgetting a
+   field — which is precisely how the dict version failed. Sleeper's missing
+   `rank` is filled from sort position; `rosterId`/`teamId` unify as
+   `platform_team_id`. `raw` keeps the original dict as a migration aid.
+   Purely additive: full-output diff byte-identical.
+   **First consumer migrated** (`draft_patterns`, own commit): position now
+   resolves from the season's roster snapshot first (season-accurate) then the
+   player registry. frank-gore goes 541 → 980 resolved picks of 1128, 4 → 6
+   seasons, and **DST resolves for the first time** (64 picks — nflverse has
+   no team defenses, Sleeper has all 32). Zero picks fall through to OTHER.
+   ⚠️ Two follow-ups this surfaced: `mock_draft`'s earliest-draftable-round
+   floors are hand-set constants (DST 9, K 12) and league history now says
+   DST first goes round 7, K round 10 — so the K floor blocks picks that
+   really happen; and `qb_historical_adjustment` still resolves positions the
+   old way, deliberately left alone because it moves the daily rankings board.
+5. ✅ **Backend contract suite** (2026-08-13):
+   `scripts/check_repository_contract.py` — 12,941 assertions over every
+   backend × every league: one typed record per dict record, names preserved,
+   positions from a known set, every standing row with a unique rank. Found
+   two real things on first run: a Sleeper team literally named
+   `" Griddy - ators "` (whose franchise lookup the typed layer's trimming
+   then broke — `FranchiseRegistry` lookups are whitespace-insensitive now
+   while `Franchise.name` keeps the exact spelling the keeper board keys on),
+   and dataclasses rejecting a bare `{}` default.
 6. **Player statuses + bye weeks** — statuses are nearly free
    (`injury_status`/`status` are in the Sleeper cache and currently dropped by
    `_resolve_player()`; `RosterPlayer.status` is always `None`). Byes need a
