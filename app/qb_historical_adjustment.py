@@ -24,6 +24,34 @@ DEFAULT_TEAMS = 12
 DEFAULT_TOP_N = 7
 
 
+def _player_registry():
+    """None rather than an exception when no registry is built yet -- QB
+    resolution then falls back to the roster snapshot exactly as before this
+    existed. Same shape as draft_patterns._player_registry(); kept as its own
+    copy rather than a shared import so these two analysis modules stay
+    decoupled from each other, only from the registry itself."""
+    try:
+        from .player_store import get_registry  # pylint: disable=import-outside-toplevel
+        return get_registry()
+    except Exception:  # pylint: disable=broad-exception-caught
+        return None
+
+
+def _is_qb(player_name: str, position_map: Dict[str, str], players) -> bool:
+    """Whether a pick was a QB: the season's roster snapshot first
+    (season-accurate -- it knows what a player played THAT year), the player
+    registry as fallback (knows only their position today, which would
+    silently rewrite history for anyone who changed position since -- so it
+    only fills what the snapshot can't reach: a season with no saved CSV)."""
+    name_key = normalize_name(player_name)
+    if name_key in position_map:
+        return position_map[name_key] == 'QB'
+    if players is not None and player_name:
+        found = players.resolve(player_name)
+        return bool(found and found.position == 'QB')
+    return False
+
+
 def compute_historical_qb_pick_targets(
     years: Optional[List[int]] = None,
     teams: int = DEFAULT_TEAMS,
@@ -31,10 +59,12 @@ def compute_historical_qb_pick_targets(
 ) -> List[int]:
     """Average overall pick number for QB1, QB2, ... QBn across past drafts.
 
-    Only years with nflverse roster data available (for position lookup) are
-    usable; years without it are silently skipped. Keeper-slot rounds are
-    excluded via live_draft_picks so a QB's keeper round doesn't get counted
-    as fresh draft-day demand.
+    Position resolves from each season's own nflverse roster snapshot where
+    one is saved, falling back to app/player_registry.py where it isn't --
+    Phase 5 step 3 lifted the "only years with a saved roster CSV count"
+    limit this docstring used to describe; a year with no snapshot no longer
+    drops out entirely. Keeper-slot rounds are excluded via live_draft_picks
+    so a QB's keeper round doesn't get counted as fresh draft-day demand.
 
     Pass years_data (from a repository's draft_years()) rather than letting
     it read the JSON files: draft history lives in the database now, and the
@@ -43,6 +73,7 @@ def compute_historical_qb_pick_targets(
     """
     years_data = years_data if years_data is not None else load_draft_years()
     candidate_years = years if years is not None else sorted(years_data.keys())
+    players = _player_registry()
 
     picks_by_qb_rank: Dict[int, List[int]] = {}
 
@@ -51,14 +82,11 @@ def compute_historical_qb_pick_targets(
         # Josh Allen and Lamar Jackson each share a name with a defender, and a
         # naive map labeled them DB/LB -- silently excluding this league's
         # round-1 rushing QBs from its own QB draft-slot targets.
-        position_map = fantasy_position_map(year)
-        if not position_map:
-            continue
+        position_map = fantasy_position_map(year) or {}
 
         qb_picks = []
         for pick in live_draft_picks(year, years_data):
-            player_name = normalize_name(pick.get('playerName', ''))
-            if position_map.get(player_name) != 'QB':
+            if not _is_qb(pick.get('playerName', ''), position_map, players):
                 continue
             overall_pick = (pick.get('round', 0) - 1) * teams + pick.get('pick', 0)
             qb_picks.append(overall_pick)
