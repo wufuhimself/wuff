@@ -117,8 +117,27 @@ The first version strangers can touch.
   in favor of the daily free-source rankings refresh. Keeper marking UI:
   logged-in users toggle a team's keepers on /keepers-board
   (`keeper_marks` table) and marked players drop off the draft board.
+- ✅ **Real login transport** (2026-08-12): magic-link email replaces the
+  dev email-only form. `app/mailer.py` (Resend) + `app/auth.py`
+  (itsdangerous signed tokens, 15-min expiry, per-email 60s send cooldown).
+  `/login` sends a link instead of logging in directly; `/login/verify/<token>`
+  completes it. Without `RESEND_API_KEY` set, prints the link to the console
+  instead of emailing it — lets the flow be built/tested with zero email
+  infra, but means a missing/unshared env var fails *silently* (200 success
+  page either way) rather than erroring, so "email never arrived" always
+  means "check the server logs for the fallback line" first, not "debug
+  Resend." Verified live end-to-end on Railway the same day: send → Resend
+  delivers → click → session created → `/my/leagues`.
+- ✅ **Deployed to Railway** (2026-08-12): live at
+  wuff-production.up.railway.app. Gunicorn single-worker via `Procfile`
+  (matches the scheduler decision above). Postgres plugin attached —
+  Railway's filesystem is ephemeral, SQLite would lose all user data on
+  every redeploy. `app/db.py` normalizes `postgres://` → `postgresql://`
+  (Railway hands out the old scheme; SQLAlchemy 2.x's dialect lookup
+  rejects it outright). ⚠️ Railway env vars — even ones marked "shared" to
+  a service — do not hot-reload into an already-running container; changing
+  one requires an explicit redeploy before the process sees it.
 - **Remaining for Phase 1 launch:**
-  - Real login transport (magic link / Google) — the dev form is a stub.
   - Per-user league *views* still lean on the shared snapshot files; fine
     while snapshots are keyed by platform league id, revisit at hosting.
   - ✅ **Scheduler decision (2026-08-12):** in-process APScheduler assumes
