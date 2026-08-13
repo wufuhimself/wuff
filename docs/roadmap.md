@@ -556,10 +556,29 @@ Each step is its own commit with a full-output diff as the gate.
    then broke — `FranchiseRegistry` lookups are whitespace-insensitive now
    while `Franchise.name` keeps the exact spelling the keeper board keys on),
    and dataclasses rejecting a bare `{}` default.
-6. **Player statuses + bye weeks** — statuses are nearly free
-   (`injury_status`/`status` are in the Sleeper cache and currently dropped by
-   `_resolve_player()`; `RosterPlayer.status` is always `None`). Byes need a
-   schedule source (nflverse schedules). First step that unlocks start/sit.
+6. ✅ **Player statuses + bye weeks** (2026-08-13) — first step that unlocks
+   a new product decision (start/sit) rather than fixing an existing one.
+   Status/`injury_status` were already sitting unused on `PlayerIdentity`
+   since step 1; `RosterEntry` now reads them off the resolved identity
+   instead of the platform's own roster row, which no backend actually
+   populates. 100% coverage across every league's resolved non-DEF players.
+   New `app/bye_weeks.py`: byes are not a field anywhere upstream, they're
+   **derived** — a team's bye is the one regular-season week nflverse's
+   schedule has no game for. Checked against 2020–2026 before trusting it:
+   every team has exactly one such week every season except 2022, where
+   BUF/CIN each show two because their week-17 game was cancelled outright
+   after the Damar Hamlin incident rather than rescheduled — correctly
+   reported as no-bye-resolved rather than guessed. One real bug caught
+   before shipping: nflverse spells the Rams `LA`, `player_registry`
+   resolves rosters to `LAR` — a raw key would have silently given every Rams
+   player a `None` bye forever; fixed by running every team code through
+   `normalize_team()` on both sides. `data/config/nfl_bye_weeks.json` is the
+   same self-healing committed-snapshot pattern as the position map, with the
+   matching daily scheduler job (`nfl-schedule-daily`) — the exact "no copy
+   on a deployed container" bug class this file already documents once.
+   CLI: `fetch-schedules`, `snapshot-byes`. Gate: `check_repository_contract`
+   extended to 14,425 checks (recognized-value sets, valid week range,
+   per-league coverage reporting).
 7. **Transactions** — real ingest work per platform. Sleeper
    `/league/{id}/transactions/{week}`; ESPN unofficial; Yahoo still blocked.
    Unlocks add/drop and the trade analyzer already in the backlog.
