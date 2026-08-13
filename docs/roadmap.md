@@ -137,6 +137,26 @@ The first version strangers can touch.
   rejects it outright). ⚠️ Railway env vars — even ones marked "shared" to
   a service — do not hot-reload into an already-running container; changing
   one requires an explicit redeploy before the process sees it.
+- ✅ **Hand-curated Yahoo data into the database** (2026-08-12): the Frank
+  Gore league's draft history, pick ownership, standings and rosters lived
+  only as JSON under the gitignored `data/raw/`, so the deploy had none of
+  it — every page backed by them rendered empty, silently. Now
+  `app/yahoo_models.py` / `app/yahoo_store.py` / `YahooDbRepository`, loaded
+  by `python3 -m app migrate-yahoo-data`. `parse-rosters` writes the DB
+  (JSON kept as a local working copy). Two paths that bypassed the
+  repository were routed through it: `qb_historical_adjustment` (runs daily
+  under the scheduler — would have silently dropped the QB adjustment in
+  prod) and `outcome_log`'s legacy fallback.
+  Gate was `scripts/compare_yahoo_backends.py`, which asserts the JSON and
+  DB backends return **equal output for every method and every year** —
+  CLAUDE.md's diff-the-full-output rule, since both prior bugs of this shape
+  were silent. Mock draft, draft analysis, manager report and draft patterns
+  were each diffed across backends too; all identical.
+  **Not migrated, on purpose:** `rankings/yahoo_rankings.json` (rewritten
+  daily by `refresh_free_rankings()`, self-heals like the Sleeper/ESPN
+  snapshots), and `managers/` + `season_rosters/` (read only by
+  `keeper_history.py`'s CLI commands, never by the web app — still
+  local-only, migrate them if anything web-facing ever needs them).
 - **Remaining for Phase 1 launch:**
   - Per-user league *views* still lean on the shared snapshot files; fine
     while snapshots are keyed by platform league id, revisit at hosting.
