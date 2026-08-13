@@ -359,6 +359,13 @@ def parse_args() -> argparse.Namespace:
     outcome_accuracy_parser.add_argument('--league', default=None,
         help="League id from 'python3 -m app leagues' to scope to one league (default: every league in the log)")
 
+    position_map_parser = subparsers.add_parser(
+        'snapshot-position-map',
+        help='Write data/config/nfl_position_map.json from the local nflverse roster CSVs (commit the result)',
+    )
+    position_map_parser.add_argument('--seasons', type=int, nargs='+', default=None,
+                                     help='Seasons to include (default: 2022 through the current season)')
+
     migrate_yahoo_parser = subparsers.add_parser(
         'migrate-yahoo-data',
         help="Load the hand-curated Yahoo JSON under data/raw/ into the database (DATABASE_URL decides which)",
@@ -1725,6 +1732,21 @@ def _cmd_leagues_init(args) -> None:
         print(f'{path} already exists; re-run with --force to overwrite.')
 
 
+def _cmd_snapshot_position_map(args) -> None:
+    from .nfl_stats import current_nfl_season, save_position_map_snapshot  # pylint: disable=import-outside-toplevel
+    from .paths import NFL_POSITION_MAP_FILE  # pylint: disable=import-outside-toplevel
+
+    seasons = args.seasons or list(range(2022, current_nfl_season() + 1))
+    written = save_position_map_snapshot(seasons)
+    if not written:
+        print('No roster CSVs found. Run `python3 -m app fetch-nfl-stats` first.', file=sys.stderr)
+        sys.exit(1)
+    for season, count in sorted(written.items()):
+        print(f'  {season}: {count} players')
+    size_kb = NFL_POSITION_MAP_FILE.stat().st_size / 1024
+    print(f'Wrote {NFL_POSITION_MAP_FILE} ({size_kb:.0f} KB) — commit it so the deploy has it.')
+
+
 def _cmd_migrate_yahoo_data(args) -> None:
     from .db import DATABASE_URL  # pylint: disable=import-outside-toplevel
     from .yahoo_migrate import migrate_all  # pylint: disable=import-outside-toplevel
@@ -1820,6 +1842,7 @@ _COMMAND_HANDLERS = {
     'leagues': _cmd_leagues,
     'leagues-init': _cmd_leagues_init,
     'migrate-yahoo-data': _cmd_migrate_yahoo_data,
+    'snapshot-position-map': _cmd_snapshot_position_map,
     'sleeper-discover': _cmd_sleeper_discover,
     'sleeper-sync': _cmd_sleeper_sync,
     'sleeper-refresh-players': _cmd_sleeper_refresh_players,

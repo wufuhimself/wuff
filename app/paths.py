@@ -26,6 +26,10 @@ LEAGUE_SETTINGS_FILE = CONFIG_DIR / 'league_settings.json'
 LEAGUES_CONFIG_FILE = CONFIG_DIR / 'leagues.json'
 SLEEPER_LEAGUES_CONFIG_FILE = CONFIG_DIR / 'sleeper_leagues.json'
 SLEEPER_PLAYERS_CACHE_FILE = RAW_SLEEPER_DIR / 'players_cache.json'
+# Committed (data/config/ is versioned, data/raw/ is not) so a deployed
+# container can resolve player positions without the nflverse CSVs, which it
+# has no copy of. Regenerate with `python3 -m app snapshot-position-map`.
+NFL_POSITION_MAP_FILE = CONFIG_DIR / 'nfl_position_map.json'
 
 
 RAW_ESPN_DIR = RAW_DIR / 'espn'
