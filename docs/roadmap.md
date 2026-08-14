@@ -658,11 +658,31 @@ Each step is its own commit with a full-output diff as the gate.
    differ from the loser; completed-season sample now also asserts exactly
    one championship match with everything decided. Purely additive.
 
-**This closes every step Phase 5's plan named (1–9).** Not yet built:
-nothing outside `repository.py` reads `Matchup`/`PlayoffMatch`/`Transaction`
-yet — the web pages, CLI reports, and outcome-log integration that would
-actually surface this data to a user are deliberately out of this refactor's
-scope. That's the next phase of work, not a gap in this one.
+**This closes every step Phase 5's plan named (1–9).** At the time, nothing
+outside `repository.py` read `Matchup`/`PlayoffMatch`/`Transaction` — the web
+pages, CLI reports, and outcome-log integration that would surface this data
+to a user were deliberately out of the refactor's scope, not a gap in it.
+
+- ✅ **First consumer, same day** (2026-08-13): `/league/<slug>/matchups` —
+  weekly head-to-head scores + the winners/losers bracket, read-only. Follows
+  the established per-league route pattern exactly (`_member_league`,
+  `_league_page_ctx`, `repository_for(league)`); nothing new invented at the
+  web layer. Sleeper-only in practice (Yahoo/ESPN correctly render the
+  existing empty state). `PlayoffMatch`'s deliberate franchise-id-only shape
+  meant the view resolves team names **once**, against the league's own
+  `FranchiseRegistry`, rather than teaching the template a lookup. Smoke-
+  tested through the real Flask app against real synced data (not just a
+  template render): a completed season (every week renders, championship
+  labeled, zero unresolved bracket cells) and a pre-season league (round 1
+  seeded, later rounds correctly show "TBD" pending results) plus access
+  control (anonymous and non-follower both redirect). Two of the smoke
+  test's own assertions were briefly wrong while writing it — caught before
+  trusting the result, not shipped: one matched the literal string "TBD"
+  against the page's *explanatory caption* rather than real bracket cells;
+  the other looked for "Winners bracket" and found nothing because the
+  heading renders lowercase with a CSS `text-transform`, not literal
+  capitalized text in the HTML. Full-output diff across all 7 leagues'
+  existing pages: byte-identical.
 
 **Out of scope, deliberately:** modeling all 16 entities up front (model to
 the decisions the product serves — keep, draft, start/sit, add/drop, then
