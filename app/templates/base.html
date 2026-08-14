@@ -193,7 +193,7 @@
         </details>
         <a href="/standings" class="{{ 'active' if active == 'standings' }}">Standings</a>
         <a href="/league/{{ default_league_id }}/manager-report" class="{{ 'active' if active == 'manager-report' }}">Manager report card</a>
-        <a href="/league/{{ default_league_id }}/settings" class="{{ 'active' if active == 'settings' }}">Settings</a>
+        <a href="/league/{{ default_league_id }}/settings" class="{{ 'active' if active == 'settings' }}">League settings</a>
       </nav>
       {% elif league_display_name is defined %}
       <nav class="league-nav">
@@ -223,7 +223,7 @@
         <a href="/standings" class="{{ 'active' if active == 'standings' }}">Standings</a>
         {% endif %}
         <a href="/league/{{ league_slug }}/manager-report" class="{{ 'active' if league_tool == 'manager-report' }}">Manager report card</a>
-        <a href="/league/{{ league_slug }}/settings" class="{{ 'active' if league_tool == 'settings' }}">Settings</a>
+        <a href="/league/{{ league_slug }}/settings" class="{{ 'active' if league_tool == 'settings' }}">League settings</a>
         {% else %}
         <a href="#" class="active">Overview</a>
         {% endif %}
