@@ -8,17 +8,20 @@
       <section class="card">
         <h2>{{ league.name if league else 'Overview' }}</h2>
         <p class="status">
-          {% if league %}{{ league.season }}{% endif %}
-          {% if standings_year %}&nbsp;·&nbsp;<a href="/standings/{{ standings_year }}">{{ standings_year }} final standings</a>{% endif %}
-          &nbsp;·&nbsp;<a href="/keepers-board">Keeper selection</a>
+          {% if league and league.season %}{{ league.season }}&nbsp;·&nbsp;{% endif %}
+          {% if default_league_id and league and league.league_id == default_league_id %}
+          <a href="/draft-history">Draft history</a> · <a href="/keepers-board">Keeper selection</a>
+          {% endif %}
         </p>
       </section>
 
       {% if error %}
       <section class="card"><p class="status">{{ error }}</p></section>
-      {% elif not standings_rows %}
-      <section class="card"><p class="status">No saved standings yet. Run `python3 -m app fetch-standings` or `backfill-standings` first.</p></section>
-      {% else %}
+      {% endif %}
+
+      {% if not error and not standings_rows %}
+      <section class="card"><p class="status">No standings yet for this league.</p></section>
+      {% elif standings_rows %}
 
       <section class="card">
         <h2>Standings ({{ standings_year }})</h2>
@@ -29,17 +32,24 @@
             <tr>
               <td>{{ r.displayName }}</td>
               <td>{{ r.wins }}-{{ r.losses }}{% if r.ties %}-{{ r.ties }}{% endif %}</td>
-              <td class="number">{{ r.pointsFor }}</td>
-              <td class="number">{{ r.pointsAgainst }}</td>
+              <td class="number">{{ r.pointsFor if r.pointsFor is not none else '—' }}</td>
+              <td class="number">{{ r.pointsAgainst if r.pointsAgainst is not none else '—' }}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       </section>
 
+      {% set has_lineup = standings_rows | selectattr('starterSlots') | list | length > 0 %}
       <section class="card">
         <h2>Rosters</h2>
-        <p class="status">Starters in lineup order, bench grouped by position — shows the current keeper-eligible roster if the {{ standings_year + 1 }} draft hasn't happened yet.</p>
+        <p class="status">
+          {% if has_lineup %}
+          Starters in lineup order, bench grouped by position.
+          {% else %}
+          Grouped by position — this platform's roster snapshot doesn't carry a starting lineup.
+          {% endif %}
+        </p>
         <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); align-items: start; margin-top: 0.75rem;">
           {% for r in standings_rows %}
           <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: #fafbfc; min-width: 0;">
@@ -58,8 +68,8 @@
                 <tr>
                   <td style="color: var(--muted); font-size: 0.65rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis;" title="{{ slot }}">{{ slot }}</td>
                   <td><span class="pill pos-{{ (p.position or '').lower() }}" style="margin-right: 0;">{{ p.position or '?' }}</span></td>
-                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.playerName }}">{{ p.playerName }}</td>
-                  <td style="color: var(--muted); text-align: right;">{{ p.team or '' }}</td>
+                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.name }}">{{ p.name }}</td>
+                  <td style="color: var(--muted); text-align: right;">{{ p.nfl_team or '' }}</td>
                 </tr>
                 {% endfor %}
                 {% endif %}
@@ -69,8 +79,8 @@
                 <tr>
                   <td></td>
                   <td><span class="pill pos-{{ (p.position or '').lower() }}" style="margin-right: 0;">{{ p.position or '?' }}</span></td>
-                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.playerName }}">{{ p.playerName }}</td>
-                  <td style="color: var(--muted); text-align: right;">{{ p.team or '' }}</td>
+                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.name }}">{{ p.name }}</td>
+                  <td style="color: var(--muted); text-align: right;">{{ p.nfl_team or '' }}</td>
                 </tr>
                 {% endfor %}
                 {% endif %}
@@ -85,7 +95,11 @@
       {% if round1_order %}
       <section class="card">
         <h2>Draft order <span class="pill">round 1</span></h2>
-        <p class="status">Inverse of {{ standings_year }} standings, worst record picks first. <a href="/draft-order/{{ standings_year }}">See the full snake order (all rounds)</a>.</p>
+        <p class="status">Inverse of {{ standings_year }} standings, worst record picks first.
+          {% if default_league_id and league and league.league_id == default_league_id %}
+          <a href="/draft-order/{{ standings_year }}">See the full snake order (all rounds)</a>.
+          {% endif %}
+        </p>
         <ol style="margin-top: 0.75rem;">
           {% for team in round1_order %}
           <li>{{ team }}</li>
@@ -94,5 +108,28 @@
       </section>
       {% endif %}
 
+      {% endif %}
+
+      {% if completed_drafts %}
+      {% for draft in completed_drafts %}
+      {% set has_positions = draft.picks | selectattr('position') | list | length > 0 %}
+      <section class="card">
+        <h2>Draft ({{ draft.season }})</h2>
+        <table class="table compact">
+          <thead><tr><th>Round</th><th>Pick</th><th>Player</th>{% if has_positions %}<th>Pos</th>{% endif %}<th>Team</th></tr></thead>
+          <tbody>
+            {% for pick in draft.picks %}
+            <tr>
+              <td>{{ pick.round }}</td>
+              <td>{{ pick.pick or '—' }}</td>
+              <td class="playerName">{{ pick.player_name or '—' }}</td>
+              {% if has_positions %}<td>{{ pick.position or '' }}</td>{% endif %}
+              <td>{{ pick.team_name or '' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+      {% endfor %}
       {% endif %}
 {% endblock %}

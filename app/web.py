@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from datetime import datetime
+from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
@@ -56,12 +57,7 @@ from .membership import (
 from .models import DbLeague, EspnCredential, SyncRun, UserLeague
 from .paths import CONFIG_DIR, YAHOO_LEAGUE_ROSTERS_JSON
 from .repository import repository_for
-from .sleeper_manager import (
-    load_sleeper_leagues_config,
-    load_synced_drafts,
-    load_synced_league,
-    load_synced_rosters,
-)
+from .sleeper_manager import load_sleeper_leagues_config, load_synced_league
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .player_registry import normalize_name
 from .strategy import league_keeper_board
@@ -212,28 +208,85 @@ def _inject_league_context():
     }
 
 
-def _structure_yahoo_roster(raw_players: list) -> tuple:
-    """Split a Yahoo roster snapshot into (starterSlots, bench) the same way
-    _structure_rosters() does for Sleeper/ESPN: starters in lineup order if the
-    snapshot has live selectedPosition data (post-draft), otherwise every
-    player sorted by position into a single 'bench' list (pre-draft -- there's
-    no lineup yet, just a roster)."""
-    # Some saved roster snapshots have a "player Notes" suffix left over from
-    # parsing pasted Yahoo text (see strategy.py's league_keeper_board, which
-    # strips the same artifact) -- trim it here too so display names match.
-    players = [{**p, 'playerName': str(p.get('playerName', '')).replace('player Notes', '').strip()}
-               for p in raw_players]
+def _league_overview_ctx(league, sync_error: Optional[str] = None, roster_slot_labels: Optional[list] = None) -> dict:
+    """Shared context for the overview page, any platform.
+
+    Was two routes/templates (dashboard.html for Yahoo, league_snapshot.html
+    for Sleeper/ESPN) that had drifted into showing different information for
+    no platform-specific reason -- e.g. only Yahoo's page showed next
+    season's draft order, only Sleeper/ESPN's showed completed draft picks
+    inline, and each built its own ad-hoc standings/roster dict shape by
+    hand. Built on the typed repository methods (roster_teams(),
+    standing_rows(), drafts()) from Phase 5 instead, which already normalize
+    the platform differences that ARE real (see RosterTeam.starters'
+    docstring -- Yahoo's paste genuinely carries no lineup data, Sleeper/ESPN
+    genuinely do; the template splits starters/bench only when non-empty
+    rather than faking one for Yahoo).
+    """
     position_sort = {'QB': 0, 'RB': 1, 'WR': 2, 'TE': 3, 'K': 4, 'DEF': 5}
-    starters = [p for p in players if p.get('selectedPosition') and p.get('selectedPosition') != 'BN']
-    if not starters:
-        bench = sorted(players, key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9),
-                                                p.get('playerName') or ''))
-        return [], bench
-    starter_ids = {p.get('playerId') for p in starters}
-    bench = [p for p in players if p.get('playerId') not in starter_ids]
-    bench.sort(key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9), p.get('playerName') or ''))
-    starter_slots = [(p.get('selectedPosition') or p.get('position') or '', p) for p in starters]
-    return starter_slots, bench
+    # The platform's lineup slot order (e.g. QB/RB/RB/WR/WR/FLEX/SUPER_FLEX),
+    # if the caller has one -- Sleeper/ESPN's league snapshot carries this,
+    # Yahoo's parsed rosters never do. Distinct from a starter's own
+    # position: a FLEX slot holding a WR should still read "FLEX", not "WR".
+    slot_labels = [p for p in (roster_slot_labels or []) if p not in ('BN', 'IR', 'TAXI')]
+
+    def _roster_display(team) -> tuple:
+        """(starterSlots, bench) for one team, same shape the old
+        per-platform helpers built by hand: starters paired with their lineup
+        slot label when the platform reports a lineup (Sleeper/ESPN),
+        otherwise every rostered player position-sorted into one flat list
+        (Yahoo -- see RosterTeam.starters' docstring, it's genuinely empty
+        there)."""
+        if team is None:
+            return [], []
+        if team.starters:
+            starter_ids = {p.platform_player_id for p in team.starters}
+            bench = [p for p in team.players if p.platform_player_id not in starter_ids]
+            bench.sort(key=lambda p: (position_sort.get((p.position or '').upper(), 9), p.name))
+            starter_slots = [
+                (slot_labels[i] if i < len(slot_labels) else (p.position or ''), p)
+                for i, p in enumerate(team.starters)
+            ]
+            return starter_slots, bench
+        flat = sorted(team.players, key=lambda p: (position_sort.get((p.position or '').upper(), 9), p.name))
+        return [], flat
+
+    repo = repository_for(league)
+    available_years = repo.standings_years()
+    standings_year = available_years[0] if available_years else None
+
+    standings_rows: list = []
+    round1_order: list = []
+    if standings_year is not None:
+        typed_standings = repo.standing_rows(standings_year) or []
+        rosters_by_franchise = {t.franchise_id: t for t in repo.roster_teams() if t.franchise_id}
+        rosters_by_name = {t.team_name: t for t in repo.roster_teams()}
+        for row in sorted(typed_standings, key=lambda r: r.rank):
+            team = rosters_by_franchise.get(row.franchise_id) or rosters_by_name.get(row.team_name)
+            starter_slots, bench = _roster_display(team)
+            standings_rows.append({
+                'displayName': row.team_name,
+                'wins': row.wins, 'losses': row.losses, 'ties': row.ties,
+                'pointsFor': row.points_for, 'pointsAgainst': row.points_against,
+                'starterSlots': starter_slots, 'bench': bench,
+            })
+        # Next season's draft order (worst record picks first) -- computable
+        # for any league with standings, not just Yahoo's; draft_order_from_
+        # standings/current_team_names only need the raw 'rank'/'team'/'note'
+        # keys, which every backend's standings() dict already carries.
+        raw_standings = repo.standings(standings_year)
+        if raw_standings:
+            aliases = current_team_names(raw_standings)
+            round1_order = [aliases.get(name, name) for name in draft_order_from_standings(raw_standings)]
+
+    completed_drafts = []
+    for season, picks in sorted(repo.drafts().items(), reverse=True):
+        completed_drafts.append({'season': season, 'picks': sorted(picks, key=lambda p: (p.round, p.pick or 0))})
+
+    return {
+        'league': league, 'standings_year': standings_year, 'standings_rows': standings_rows,
+        'round1_order': round1_order, 'completed_drafts': completed_drafts, 'error': sync_error,
+    }
 
 
 @app.route('/')
@@ -242,39 +295,14 @@ def index():
     if league is None:
         return _no_league_redirect()
     if not _is_file_backed_yahoo(league):
-        # Sleeper/ESPN leagues have their own overview page; this dashboard is
-        # built on the Yahoo snapshot shape (standings + parsed rosters).
+        # Sleeper/ESPN leagues follow their own URL (/sleeper/<id>,
+        # /espn/<id>) so a user with several leagues keeps a stable link per
+        # league; only the un-scoped Yahoo dashboard lives at '/'.
         return redirect(_league_href(league.platform, league.platform_league_id))
-    repo = repository_for(league)
-
-    available_years = repo.standings_years()
-    if not available_years:
-        return render_template('dashboard.html', active='dashboard', league=league,
-                                message=request.args.get('message', ''), standings_year=None,
-                                standings_rows=[], round1_order=[], error=None)
-
-    standings_year = available_years[0]
-    standings = repo.standings(standings_year)
-    league_rosters = repo.rosters()
-    rosters_by_team = {
-        str(r.get('teamName', '')).rsplit(' - ', maxsplit=1)[-1]: r.get('players') or []
-        for r in league_rosters
-    }
-
-    aliases = current_team_names(standings) if standings else {}
-    standings_rows = []
-    for row in sorted(standings or [], key=lambda r: r.get('rank') or 999):
-        display_name = aliases.get(row['team'], row['team'])
-        starter_slots, bench = _structure_yahoo_roster(rosters_by_team.get(display_name, []))
-        standings_rows.append({**row, 'displayName': display_name,
-                                'starterSlots': starter_slots, 'bench': bench})
-
-    round1_order = [aliases.get(name, name) for name in draft_order_from_standings(standings)] if standings else []
-
     return render_template(
-        'dashboard.html', active='dashboard', league=league,
-        message=request.args.get('message', ''), standings_year=standings_year,
-        standings_rows=standings_rows, round1_order=round1_order, error=None,
+        'league_overview.html', active='dashboard',
+        message=request.args.get('message', ''),
+        **_league_overview_ctx(league),
     )
 
 
@@ -960,25 +988,6 @@ def leagues_view():
     )
 
 
-def _structure_rosters(rosters: list, league: dict) -> None:
-    """In-place display prep: starters in lineup-slot order (snapshot starters
-    arrays align with the league's non-bench roster positions), bench sorted
-    by position then name."""
-    position_sort = {'QB': 0, 'RB': 1, 'WR': 2, 'TE': 3, 'K': 4, 'DEF': 5}
-    slot_labels = [p for p in (league.get('rosterPositions') or []) if p not in ('BN', 'IR', 'TAXI')]
-    for roster in rosters:
-        starters = roster.get('starters') or []
-        starter_ids = {p.get('playerId') for p in starters}
-        bench = [p for p in roster.get('players') or [] if p.get('playerId') not in starter_ids]
-        bench.sort(key=lambda p: (position_sort.get((p.get('position') or '').upper(), 9),
-                                  p.get('playerName') or ''))
-        roster['bench'] = bench
-        roster['starterSlots'] = [
-            (slot_labels[i] if i < len(slot_labels) else (p.get('position') or ''), p)
-            for i, p in enumerate(starters)
-        ]
-
-
 @app.route('/sleeper')
 def sleeper_leagues_view():
     config = load_sleeper_leagues_config()
@@ -1003,60 +1012,34 @@ def sleeper_leagues_view():
 def sleeper_league_view(league_id: str):
     if not user_follows_platform_league(current_user.id, 'sleeper', league_id):
         return redirect(url_for('leagues_view'))
-    config = load_sleeper_leagues_config()
-    entry = next((l for l in config.get('leagues', []) if l['leagueId'] == league_id), None)
-    league = load_synced_league(league_id)
+    league = resolve_league(f'sleeper-{league_id}')
     if league is None:
-        # sleeper_league.html was renamed to league_snapshot.html when ESPN
-        # landed (commit e49664a) and this branch kept the old name -- a 500 on
-        # any un-synced Sleeper league, which is now where a Sleeper user's
-        # `/` sends them.
-        return render_template('league_snapshot.html', active='sleeper', league_id=league_id,
-                                entry=entry, league=None, rosters=[], drafts=[],
-                                league_display_name=(entry or {}).get('name') or league_id,
-                                league_platform='sleeper', league_slug=f'sleeper-{league_id}',
-                                league_tool='overview', league_overview_href=f'/sleeper/{league_id}',
-                                error='Not synced yet — sync it from /my/leagues.')
-
-    rosters = load_synced_rosters(league_id)
-    rosters_sorted = sorted(rosters, key=lambda r: (-(r.get('wins') or 0), r.get('losses') or 0))
-    drafts = load_synced_drafts(league_id)
-    for draft in drafts:
-        draft['picks'] = sorted(draft.get('picks') or [], key=lambda p: (p.get('round') or 0, p.get('pick') or 0))
-    _structure_rosters(rosters_sorted, league)
-
-    display_name = (entry or {}).get('name') or league.get('name') or league_id
-    return render_template('league_snapshot.html', active='sleeper', league_id=league_id,
-                            entry=entry, league=league, rosters=rosters_sorted, drafts=drafts,
-                            league_display_name=display_name, league_platform='sleeper',
-                            league_slug=f'sleeper-{league_id}', league_tool='overview',
-                            league_overview_href=f'/sleeper/{league_id}', error=None)
+        return redirect(url_for('leagues_view'))
+    snapshot = load_synced_league(league_id)
+    sync_error = None if snapshot is not None else 'Not synced yet — sync it from /leagues.'
+    slot_labels = (snapshot or {}).get('rosterPositions') or []
+    return render_template(
+        'league_overview.html', active='sleeper',
+        **_league_overview_ctx(league, sync_error=sync_error, roster_slot_labels=slot_labels),
+        **_league_page_ctx(league, 'overview'),
+    )
 
 
 @app.route('/espn/<league_id>')
 def espn_league_view(league_id: str):
     if not user_follows_platform_league(current_user.id, 'espn', league_id):
         return redirect(url_for('leagues_view'))
-    league = espn_manager.load_synced_league(league_id)
+    league = resolve_league(f'espn-{league_id}')
     if league is None:
-        return render_template('league_snapshot.html', active='espn', league_id=league_id,
-                                entry=None, league=None, rosters=[], drafts=[],
-                                league_display_name=league_id, league_platform='espn',
-                                error='Not synced yet — import this league from /my/onboard first.')
-
-    rosters = espn_manager.load_synced_rosters(league_id)
-    rosters_sorted = sorted(rosters, key=lambda r: (-(r.get('wins') or 0), r.get('losses') or 0))
-    drafts = espn_manager.load_synced_drafts(league_id)
-    for draft in drafts:
-        draft['picks'] = sorted(draft.get('picks') or [], key=lambda p: (p.get('round') or 0, p.get('pick') or 0))
-    _structure_rosters(rosters_sorted, league)
-
-    return render_template('league_snapshot.html', active='espn', league_id=league_id,
-                            entry=None, league=league, rosters=rosters_sorted, drafts=drafts,
-                            league_display_name=league.get('name') or league_id,
-                            league_platform='espn', league_slug=f'espn-{league_id}',
-                            league_tool='overview', league_overview_href=f'/espn/{league_id}',
-                            error=None)
+        return redirect(url_for('leagues_view'))
+    snapshot = espn_manager.load_synced_league(league_id)
+    sync_error = None if snapshot is not None else 'Not synced yet — import this league from /my/onboard first.'
+    slot_labels = (snapshot or {}).get('rosterPositions') or []
+    return render_template(
+        'league_overview.html', active='espn',
+        **_league_overview_ctx(league, sync_error=sync_error, roster_slot_labels=slot_labels),
+        **_league_page_ctx(league, 'overview'),
+    )
 
 
 @app.route('/draft-history')
