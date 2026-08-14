@@ -207,6 +207,11 @@ def _inject_league_context():
         # (matchups, draft patterns, draft analysis, manager report, settings)
         # without hardcoding the Yahoo league's slug.
         'default_league_id': league.league_id if league is not None else '',
+        # Hides the Keepers nav link when this league has no keeper slots
+        # configured (e.g. redraft leagues, or a new league before settings
+        # are filled in) -- same threshold /league/<slug>/keepers itself
+        # already uses to show a "not configured" state instead of a 500.
+        'default_league_keeper_slots': league.format.keeper_slots if league is not None else 0,
         'nav_leagues': nav_leagues,
     }
 
@@ -758,6 +763,9 @@ def _league_page_ctx(league, tool: str) -> dict:
         'league_platform': league.platform,
         'league_tool': tool,
         'league_overview_href': _league_href(league.platform, league.platform_league_id),
+        # Same keeper_slots gate as default_league_keeper_slots in
+        # _inject_league_context, for the generic per-league nav branch.
+        'league_keeper_slots': league.format.keeper_slots,
     }
 
 

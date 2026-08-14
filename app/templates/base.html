@@ -183,7 +183,9 @@
         <span class="league-name">{{ default_league_name }}</span>
         <a href="/" class="{{ 'active' if active == 'dashboard' }}">Overview</a>
         <a href="/league/{{ default_league_id }}/matchups" class="{{ 'active' if active == 'matchups' }}">Matchups</a>
+        {% if default_league_keeper_slots %}
         <a href="/keepers-board" class="{{ 'active' if active == 'keepers-board' }}">Keepers</a>
+        {% endif %}
         <details class="nav-group">
           <summary class="{{ 'active' if active in draft_tool_ids }}">Draft</summary>
           <div class="nav-group-panel">
@@ -203,7 +205,9 @@
         {% if league_slug is defined and league_slug %}
         <a href="{{ league_overview_href }}" class="{{ 'active' if league_tool == 'overview' }}">Overview</a>
         <a href="/league/{{ league_slug }}/matchups" class="{{ 'active' if league_tool == 'matchups' }}">Matchups</a>
+        {% if league_keeper_slots %}
         <a href="/league/{{ league_slug }}/keepers" class="{{ 'active' if league_tool == 'keepers' }}">Keepers</a>
+        {% endif %}
         <details class="nav-group">
           <summary class="{{ 'active' if league_tool in draft_tool_ids or (league_slug == default_league_id and active in draft_tool_ids) }}">Draft</summary>
           <div class="nav-group-panel">
