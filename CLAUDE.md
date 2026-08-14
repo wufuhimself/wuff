@@ -56,6 +56,7 @@ Key files:
 - `data/raw/draft_history/{year}.json` — past draft results, one file per season
 - `data/raw/draft_picks/{year}.json` — pick ownership by round for a draft year
 - `app/strategy.py` — keeper eligibility/selection logic
+- `app/templates/base.html` (2026-08-14) — all page CSS lives inline here, no separate stylesheet/framework; every template extends this one, so styling changes here cascade app-wide. `.button` upgraded from flat fill to gradient + shadow + hover lift; two opt-in variants added (`.button-secondary` outlined, `.button-ghost` text-only), unused so far. No CSS framework adopted — Flask doesn't require one, but the app wasn't asking for a framework swap, just nicer buttons, so this stayed a targeted CSS edit
 
 ## Keeper-picking agent (autonomous recommendations, CLI-only now)
 
