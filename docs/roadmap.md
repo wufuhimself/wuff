@@ -625,8 +625,44 @@ Each step is its own commit with a full-output diff as the gate.
    `check_repository_contract` extended to 14,528 checks, including a
    dedicated completed-season check since every *registered* league's own
    matchup assertions currently pass vacuously on zero rows (none have
-   played a game yet). **Playoffs** (bracket, seeding, odds) is the last
-   piece of this phase, still open.
+   played a game yet).
+9. ✅ **Playoffs** (2026-08-13) — bracket structure, Sleeper only (same
+   scoping as steps 6–7). `app/sleeper_client`'s bracket wrappers had already
+   existed, unused; `sync_playoffs()` writes both winners/losers brackets,
+   wired into `sync_league()`. Sleeper generates bracket **structure** the
+   moment `playoff_teams` is configured — long before `playoff_week_start` —
+   with `w`/`l`/`t1`/`t2` null until each match is actually played, so a
+   not-yet-decided bracket is a real, useful state, not an error to wait out.
+   New `PlayoffMatch`/`BracketSource` in `app/domain.py` deliberately do
+   *not* duplicate points or team names — only `franchise_id` — since a
+   playoff week's games are also ordinary weekly `Matchup`s already captured
+   by step 7; `PlayoffMatch` carries only the structure a `Matchup` can't
+   express. No week number either: Sleeper's payload has none, and inferring
+   one from `playoff_week_start + round` would silently break for a bye
+   round or a non-default bracket length. **One real bug caught before
+   shipping, from testing against actual data rather than trusting the
+   shape**: Sleeper's `t1_from`/`t2_from` resolve *independently* per side —
+   this league's own real championship match has home coming from "winner of
+   match 3" and away from "winner of match 4" simultaneously. A first cut
+   with one match-level `advances_from_winner_of`/`advances_from_loser_of`
+   pair and an `or` chain silently dropped the second reference; fixed with
+   a proper per-side `home_from`/`away_from`, each an independent
+   `BracketSource`. Verified both directions: an in-progress league's
+   pre-generated bracket (round 1 seeded, later rounds correctly `None`
+   pending results) and a real completed season (11/11 matches decided,
+   championship winner cross-checked by hand against raw roster/owner ids
+   before trusting the typed output). Gate: `check_repository_contract`
+   extended to 14,572 checks — recognized bracket type, a bracket-source
+   reference must point at a match that actually exists in the same
+   bracket, a decided match's winner must be one of its own two sides and
+   differ from the loser; completed-season sample now also asserts exactly
+   one championship match with everything decided. Purely additive.
+
+**This closes every step Phase 5's plan named (1–9).** Not yet built:
+nothing outside `repository.py` reads `Matchup`/`PlayoffMatch`/`Transaction`
+yet — the web pages, CLI reports, and outcome-log integration that would
+actually surface this data to a user are deliberately out of this refactor's
+scope. That's the next phase of work, not a gap in this one.
 
 **Out of scope, deliberately:** modeling all 16 entities up front (model to
 the decisions the product serves — keep, draft, start/sit, add/drop, then
