@@ -22,10 +22,27 @@
       .brand-row h1 { margin: 0; font-size: clamp(1.3rem, 5vw, 1.7rem); font-weight: 800; letter-spacing: -0.02em; }
       .brand-row h1 a { color: white; text-decoration: none; }
       .tagline { margin: 0; color: #9db8e8; font-size: clamp(0.75rem, 2vw, 0.9rem); flex: 1 1 auto; }
-      nav { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+      nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
       nav a { color: #cfe0ff; text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
       nav a:hover { background: rgba(255,255,255,.1); color: white; }
       nav a.active { background: rgba(255,255,255,.2); color: white; }
+      nav a.nav-import { border: 1.5px solid rgba(255,255,255,.35); }
+      nav a.nav-import:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.55); }
+      .profile-menu { position: relative; }
+      .profile-menu summary { list-style: none; cursor: pointer; color: #cfe0ff; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .profile-menu summary::-webkit-details-marker { display: none; }
+      .profile-menu summary:hover, .profile-menu summary.active { background: rgba(255,255,255,.14); color: white; }
+      .profile-menu[open] summary { background: rgba(255,255,255,.2); color: white; }
+      .profile-menu-panel { position: absolute; right: 0; top: calc(100% + 0.4rem); background: white; color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,.18); padding: 0.6rem; min-width: 220px; z-index: 20; }
+      .profile-menu-panel ul { list-style: none; margin: 0 0 0.5rem; padding: 0; }
+      .profile-menu-panel li { padding: 0.35rem 0.2rem; border-bottom: 1px solid #f0f1f5; font-size: 0.85rem; }
+      .profile-menu-panel li:last-child { border-bottom: none; }
+      .profile-menu-panel li a { color: var(--text); font-weight: 600; text-decoration: none; }
+      .profile-menu-panel li a:hover { color: var(--blue); }
+      .profile-menu-all { display: block; font-size: 0.85rem; font-weight: 600; color: var(--blue); text-decoration: none; padding: 0.3rem 0.2rem; }
+      .profile-menu-all:hover { text-decoration: underline; }
+      .profile-menu-panel form { margin-top: 0.4rem; }
+      .profile-menu-panel form .button-ghost { width: 100%; justify-content: flex-start; padding: 0.4rem 0.2rem; min-height: auto; }
       .league-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; max-width: 1200px; margin: 0.6rem auto 0; padding: 0.35rem 0 0.45rem; border-top: 1px solid rgba(255,255,255,.12); }
       .league-nav .league-name { color: white; font-weight: 700; font-size: clamp(0.8rem, 2.5vw, 0.95rem); padding: 0.35rem 0.7rem 0.35rem 0; margin-right: 0.35rem; max-width: 45vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .league-nav .platform-tag { background: rgba(255,255,255,.14); color: #cfe0ff; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.5rem; }
@@ -120,9 +137,24 @@
         <h1><a href="/leagues">WuFF</a></h1>
         <p class="tagline">Keepers, draft boards, and league numbers in one place</p>
         <nav>
-          <a href="/leagues" class="{{ 'active' if active == 'leagues' }}">Leagues</a>
           {% if current_user.is_authenticated %}
-          <a href="/my/leagues" class="{{ 'active' if active == 'my-leagues' }}">My leagues</a>
+          <a href="/my/onboard" class="nav-import">Import league</a>
+          <details class="profile-menu">
+            <summary class="{{ 'active' if active == 'leagues' }}">{{ current_user.email }}</summary>
+            <div class="profile-menu-panel">
+              {% if nav_leagues %}
+              <ul>
+                {% for l in nav_leagues %}
+                <li><a href="{{ l.href }}">{{ l.name }}</a> <span class="pill">{{ l.platform }}</span></li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p class="status">No leagues yet.</p>
+              {% endif %}
+              <a href="/leagues" class="profile-menu-all">All leagues →</a>
+              <form method="post" action="/logout"><button type="submit" class="button button-ghost">Log out</button></form>
+            </div>
+          </details>
           {% else %}
           <a href="/login" class="{{ 'active' if active == 'login' }}">Log in</a>
           {% endif %}

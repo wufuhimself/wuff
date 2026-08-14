@@ -49,7 +49,6 @@ from .manager_report import manager_report_card
 from .membership import (
     default_league_for_user,
     followed_league_rows,
-    followed_leagues,
     set_default_league,
     user_follows,
     user_follows_platform_league,
@@ -192,11 +191,20 @@ def _board_state_args(league):
 @app.context_processor
 def _inject_league_context():
     league = _current_default_league()
+    nav_leagues = []
+    if current_user.is_authenticated:
+        # Cheap on purpose -- runs on every page via context processor, so no
+        # per-league sync status here (that's what /leagues itself is for).
+        nav_leagues = [
+            {'name': row.name, 'platform': row.platform, 'href': _league_href(row.platform, row.platform_league_id)}
+            for row in followed_league_rows(current_user.id)
+        ]
     return {
         'default_league_name': league.name if league is not None else 'My leagues',
         # The shared pages (/standings, /draft-history, ...) now serve whichever
         # league is the caller's, so the platform tag can't be a literal 'yahoo'.
         'default_league_platform': league.platform if league is not None else '',
+        'nav_leagues': nav_leagues,
     }
 
 
@@ -537,34 +545,13 @@ def logout():
 @app.route('/my/leagues')
 @login_required
 def my_leagues():
-    rows = followed_league_rows(current_user.id)
-    default_league = _current_default_league()
-    default_slug = default_league.league_id if default_league is not None else None
-    with SessionLocal() as session:
-        entries = []
-        for row in rows:
-            last_run = (
-                session.query(SyncRun)
-                .filter_by(platform=row.platform, platform_league_id=row.platform_league_id)
-                .order_by(SyncRun.started_at.desc())
-                .first()
-            )
-            entries.append({
-                'name': row.name,
-                'slug': row.slug,
-                'platform': row.platform,
-                'platformLeagueId': row.platform_league_id,
-                'season': row.season,
-                'teams': row.total_teams,
-                'href': _league_href(row.platform, row.platform_league_id),
-                'isDefault': row.slug == default_slug,
-                'lastSyncAt': last_run.started_at.strftime('%Y-%m-%d %H:%M UTC') if last_run else None,
-                'lastSyncStatus': last_run.status if last_run else None,
-            })
-    return render_template(
-        'my_leagues.html', active='my-leagues', leagues=entries,
-        message=request.args.get('message', ''),
-    )
+    """Old URL, kept working for bookmarks and the url_for('my_leagues')
+    call sites below -- the actual page is /leagues now (see leagues_view),
+    which merged this page and the old /leagues into one: they'd drifted
+    into showing the same "your leagues" list twice under different nav
+    labels, once grouped-by-platform with no actions, once flat with
+    sync/default actions."""
+    return redirect(url_for('leagues_view', message=request.args.get('message', '')))
 
 
 @app.route('/my/leagues/default', methods=['POST'])
@@ -575,8 +562,8 @@ def my_league_set_default():
     double as a way to claim access to someone else's league."""
     slug = request.form.get('slug', '').strip()
     if set_default_league(current_user.id, slug):
-        return redirect(url_for('my_leagues', message='Default league updated.'))
-    return redirect(url_for('my_leagues', message='Not one of your leagues.'))
+        return redirect(url_for('leagues_view', message='Default league updated.'))
+    return redirect(url_for('leagues_view', message='Not one of your leagues.'))
 
 
 @app.route('/my/leagues/sync/<platform_league_id>', methods=['POST'])
@@ -591,10 +578,10 @@ def my_league_sync(platform_league_id: str):
             .one_or_none()
         )
     if followed is None:
-        return redirect(url_for('my_leagues', message='Not one of your leagues.'))
+        return redirect(url_for('leagues_view', message='Not one of your leagues.'))
     queued = queue_league_sync(platform_league_id, followed.platform)
     note = 'Sync started in background.' if queued else 'Synced.'
-    return redirect(url_for('my_leagues', message=note))
+    return redirect(url_for('leagues_view', message=note))
 
 
 @app.route('/my/onboard', methods=['GET', 'POST'])
@@ -930,24 +917,43 @@ def league_settings(league_id: str):
 
 
 @app.route('/leagues')
+@login_required
 def leagues_view():
-    """Only the current user's leagues. This used to list every league in
-    leagues.json regardless of who was looking."""
+    """The current user's leagues, grouped by platform, with per-league sync
+    and default-league actions. Used to be two separate pages (/leagues
+    grouped-by-platform read-only, /my/leagues flat with actions) reachable
+    from two adjacent nav labels -- once membership scoped both to "your
+    leagues only", they'd become the same page shown two ways. Merged into
+    one; /my/leagues now redirects here."""
+    rows = followed_league_rows(current_user.id)
     default_league = _current_default_league()
-    default_id = default_league.league_id if default_league is not None else None
+    default_slug = default_league.league_id if default_league is not None else None
     providers: dict = {}
-    for league in followed_leagues(current_user.id):
-        providers.setdefault(league.platform, []).append({
-            'leagueId': league.league_id,
-            'name': league.name,
-            'season': league.season,
-            'teams': league.format.teams,
-            'isDefault': league.league_id == default_id,
-            'href': _league_href(league.platform, league.platform_league_id),
-        })
+    with SessionLocal() as session:
+        for row in rows:
+            last_run = (
+                session.query(SyncRun)
+                .filter_by(platform=row.platform, platform_league_id=row.platform_league_id)
+                .order_by(SyncRun.started_at.desc())
+                .first()
+            )
+            providers.setdefault(row.platform, []).append({
+                'name': row.name,
+                'slug': row.slug,
+                'platform': row.platform,
+                'platformLeagueId': row.platform_league_id,
+                'season': row.season,
+                'teams': row.total_teams,
+                'href': _league_href(row.platform, row.platform_league_id),
+                'isDefault': row.slug == default_slug,
+                'lastSyncAt': last_run.started_at.strftime('%Y-%m-%d %H:%M UTC') if last_run else None,
+                'lastSyncStatus': last_run.status if last_run else None,
+            })
     provider_order = [p for p in ('yahoo', 'sleeper', 'espn') if p in providers]
-    return render_template('leagues.html', active='leagues', providers=providers,
-                           provider_order=provider_order)
+    return render_template(
+        'leagues.html', active='leagues', providers=providers, provider_order=provider_order,
+        message=request.args.get('message', ''),
+    )
 
 
 def _structure_rosters(rosters: list, league: dict) -> None:

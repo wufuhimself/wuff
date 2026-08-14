@@ -5,7 +5,7 @@
       {% if not provider_order %}
       <section class="card">
         <h2>No leagues yet</h2>
-        <p class="status"><a href="/my/onboard">Import your Sleeper leagues →</a></p>
+        <p class="status"><a href="/my/onboard">Import your Sleeper or ESPN leagues →</a></p>
       </section>
       {% endif %}
       {% for platform in provider_order %}
@@ -15,21 +15,25 @@
           {% for l in providers[platform] %}
           <li>
             <a href="{{ l.href }}">{{ l.name }}</a>
-            {% if l.isDefault %}<span class="pill">home league</span>{% endif %}
-            <span class="status">{{ l.teams }} teams{% if l.season %} · {{ l.season }}{% endif %}</span>
+            {% if l.isDefault %}<span class="pill">default</span>{% endif %}
+            <span class="status">{% if l.teams %}{{ l.teams }} teams{% endif %}{% if l.season %} · {{ l.season }}{% endif %}
+              {% if l.lastSyncAt %} · synced {{ l.lastSyncAt }} ({{ l.lastSyncStatus }}){% else %} · never synced{% endif %}</span>
+            <form method="post" action="/my/leagues/sync/{{ l.platformLeagueId }}" style="display:inline">
+              <button type="submit" class="button button-ghost">Sync now</button>
+            </form>
+            {% if not l.isDefault %}
+            <form method="post" action="/my/leagues/default" style="display:inline">
+              <input type="hidden" name="slug" value="{{ l.slug }}">
+              <button type="submit" class="button button-ghost">Make default</button>
+            </form>
+            {% endif %}
           </li>
           {% endfor %}
         </ul>
       </section>
       {% endfor %}
       <section class="card">
-        <h2>Add your leagues</h2>
-        <p class="status">
-          {% if current_user.is_authenticated %}
-          <a href="/my/onboard">Import Sleeper leagues →</a>
-          {% else %}
-          <a href="/login">Log in</a> to import your own Sleeper leagues. Yahoo and ESPN import are on the roadmap.
-          {% endif %}
-        </p>
+        <h2>Add a league</h2>
+        <p class="status"><a href="/my/onboard">Import Sleeper or ESPN leagues →</a> Yahoo import is on the roadmap.</p>
       </section>
 {% endblock %}
