@@ -89,7 +89,10 @@ def _start_background_sync():
 
 # Endpoints reachable without an account. Everything else -- including the
 # default league's dashboard, keeper board and mock draft -- requires login.
-PUBLIC_ENDPOINTS = frozenset({'login', 'login_verify', 'logout', 'static'})
+# 'index' is here because / is the public landing page for a signed-out
+# visitor (index() itself branches on current_user.is_authenticated) --
+# every other route stays gated.
+PUBLIC_ENDPOINTS = frozenset({'index', 'login', 'login_verify', 'logout', 'static'})
 
 
 @app.before_request
@@ -291,6 +294,12 @@ def _league_overview_ctx(league, sync_error: Optional[str] = None, roster_slot_l
 
 @app.route('/')
 def index():
+    if not current_user.is_authenticated:
+        # The public landing page -- greets a stranger, explains what wuff
+        # does, and embeds the same magic-link form /login uses (submits to
+        # /login directly, so there is exactly one send-a-link code path).
+        return render_template('welcome.html', active='welcome')
+
     league = _current_default_league()
     if league is None:
         return _no_league_redirect()

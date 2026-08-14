@@ -112,8 +112,18 @@ def main() -> int:  # pylint: disable=too-many-statements
     stranger_client = client_for(stranger)
     sleeper_client = client_for(sleeper_user)
 
-    print('\nanonymous is still shut out')
-    check('GET / redirects to login', '/login', location(anon.get('/')))
+    print('\nanonymous is still shut out, except the public landing page')
+    # / is the public landing page (2026-08-14): a signed-out visitor gets a
+    # real 200 with a signup form, not a bounce to /login -- that's the
+    # feature, not a leak, since index() shows no league data when
+    # current_user isn't authenticated. Every OTHER route stays gated.
+    anon_root = anon.get('/')
+    check('GET / renders (public landing page)', 200, anon_root.status_code)
+    # Checked against the actual rendered ELEMENT, not the CSS class
+    # definition every page's <style> block carries regardless -- an early
+    # version of this check matched 'league-nav' against base.html's own
+    # stylesheet and failed on a page that was never leaking anything.
+    check('GET / does not leak league data', False, b'<nav class="league-nav"' in anon_root.data)
     check('GET /keepers-board redirects to login', '/login', location(anon.get('/keepers-board')))
 
     print('\nowner (follows the Yahoo league, default) keeps the file-backed pages')

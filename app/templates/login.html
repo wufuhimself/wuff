@@ -1,17 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Log in{% endblock %}
+{% block title %}{% if sent %}Check your email{% else %}Log in{% endif %} — WuFF{% endblock %}
 {% block content %}
-      <section class="card">
-        <h2>Log in</h2>
+      <section class="card" style="text-align: center; padding: 2.5rem 1.5rem; max-width: 480px; margin: 0 auto;">
         {% if sent %}
-        <p class="status">Check your email for a login link. It expires in 15 minutes.</p>
+        <h2>Check your email</h2>
+        <p class="status">We sent a login link — click it to get in. It expires in 15 minutes, and
+          you can close this tab.</p>
+        <p class="status" style="margin-top: 1rem; font-size: 0.85rem;">Didn't get it? Check spam, or
+          <a href="/login">try again</a> in a minute.</p>
         {% else %}
+        <h2>{{ 'Log in' if error and 'expired' in error else 'Log in to WuFF' }}</h2>
         <p class="status">Enter your email and we'll send you a login link. No password.</p>
         {% if error %}<div class="message">{{ error }}</div>{% endif %}
-        <form method="post">
-          <input type="email" name="email" placeholder="you@example.com" required>
-          <button type="submit">Send login link</button>
+        <form method="post" style="margin-top: 1rem;">
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+            <input type="email" name="email" placeholder="you@example.com" required style="flex: 1 1 220px;">
+            <button type="submit" class="button">Send login link</button>
+          </div>
         </form>
+        <p class="status" style="margin-top: 1rem; font-size: 0.85rem;">New here? <a href="/">See what WuFF does</a>.</p>
         {% endif %}
       </section>
 {% endblock %}

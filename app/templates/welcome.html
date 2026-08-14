@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}WuFF — keeper decisions, draft boards, and league numbers{% endblock %}
+{% block content %}
+      <section class="card" style="text-align: center; padding: 2.5rem 1.5rem;">
+        <h2 style="font-size: clamp(1.5rem, 5vw, 2.1rem); margin-bottom: 0.5rem;">Your league's own history knows more than a national ranking site.</h2>
+        <p class="status" style="font-size: clamp(0.95rem, 2.5vw, 1.05rem); max-width: 640px; margin: 0 auto 1.5rem;">
+          WuFF reads your Sleeper or ESPN league — rosters, drafts, standings, matchups —
+          and builds keeper boards, mock drafts, and draft analysis from what <em>your</em>
+          managers actually do, not a generic consensus.
+        </p>
+
+        <form method="post" action="/login" style="max-width: 380px; margin: 0 auto;">
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+            <input type="email" name="email" placeholder="you@example.com" required style="flex: 1 1 220px;">
+            <button type="submit" class="button">Get started — send login link</button>
+          </div>
+        </form>
+        <p class="status" style="margin-top: 0.6rem; font-size: 0.85rem;">No password. Free to use. Link expires in 15 minutes.</p>
+      </section>
+
+      <section class="card">
+        <h2>What's live today</h2>
+        <p class="status">Connect a Sleeper league by username, or an ESPN league by ID — both self-serve,
+          no waiting on approval. (Yahoo leagues are supported but currently added by request while
+          Yahoo's API access is pending.)</p>
+        <div class="grid" style="margin-top: 1rem;">
+          <div class="team-card">
+            <h3 style="margin-top: 0;">Keeper board</h3>
+            <p class="status">Every keeper-eligible player, scored and ranked by this league's own rules —
+              round restrictions, consecutive-season caps. Click a card to mark a keeper; the draft board
+              updates live.</p>
+          </div>
+          <div class="team-card">
+            <h3 style="margin-top: 0;">Mock draft</h3>
+            <p class="status">Simulates your league's draft from current keepers and market rankings, with
+              position needs and team tendencies factored in — not just best-player-available.</p>
+          </div>
+          <div class="team-card">
+            <h3 style="margin-top: 0;">Draft patterns &amp; analysis</h3>
+            <p class="status">What this league actually drafts and when, straight from its own draft
+              history — and whether draft position has predicted final standings.</p>
+          </div>
+          <div class="team-card">
+            <h3 style="margin-top: 0;">Manager report card</h3>
+            <p class="status">Grades each manager's draft performance against this league's own baseline —
+              did they finish better or worse than their draft slot predicted.</p>
+          </div>
+          <div class="team-card">
+            <h3 style="margin-top: 0;">Matchups &amp; playoffs</h3>
+            <p class="status">Weekly head-to-head scores and the live playoff bracket, updated as games
+              are played.</p>
+          </div>
+          <div class="team-card">
+            <h3 style="margin-top: 0;">Standings &amp; draft history</h3>
+            <p class="status">Full season standings and every past draft, in one place per league.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>What's next</h2>
+        <p class="status">Being built now:</p>
+        <ul style="margin: 0.5rem 0 0; padding-left: 1.25rem; color: var(--muted);">
+          <li>Forecast tracking — measuring whether keeper and draft recommendations were actually right,
+            season over season.</li>
+          <li>A lineup optimizer for weekly start/sit calls.</li>
+          <li>A trade evaluator.</li>
+        </ul>
+      </section>
+{% endblock %}
