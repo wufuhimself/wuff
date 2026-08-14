@@ -26,8 +26,6 @@
       nav a { color: #cfe0ff; text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
       nav a:hover { background: rgba(255,255,255,.1); color: white; }
       nav a.active { background: rgba(255,255,255,.2); color: white; }
-      nav a.nav-import { border: 1.5px solid rgba(255,255,255,.35); }
-      nav a.nav-import:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.55); }
       .profile-menu { position: relative; }
       .profile-menu summary { list-style: none; cursor: pointer; color: #cfe0ff; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .profile-menu summary::-webkit-details-marker { display: none; }
@@ -148,7 +146,6 @@
         <p class="tagline">Keepers, draft boards, and league numbers in one place</p>
         <nav>
           {% if current_user.is_authenticated %}
-          <a href="/my/onboard" class="nav-import">Import league</a>
           <details class="profile-menu">
             <summary class="{{ 'active' if active == 'leagues' }}">{{ current_user.email }}</summary>
             <div class="profile-menu-panel">
