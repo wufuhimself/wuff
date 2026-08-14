@@ -191,7 +191,12 @@
             {% endfor %}
           </div>
         </details>
-        <a href="/standings" class="{{ 'active' if active == 'standings' }}">Standings</a>
+        <details class="nav-group">
+          <summary class="{{ 'active' if active == 'standings' }}">History</summary>
+          <div class="nav-group-panel">
+            <a href="/standings" class="{{ 'active' if active == 'standings' }}">Past standings</a>
+          </div>
+        </details>
         <a href="/league/{{ default_league_id }}/manager-report" class="{{ 'active' if active == 'manager-report' }}">Manager report card</a>
         <a href="/league/{{ default_league_id }}/settings" class="{{ 'active' if active == 'settings' }}">League settings</a>
       </nav>
@@ -220,7 +225,12 @@
           </div>
         </details>
         {% if league_slug == default_league_id %}
-        <a href="/standings" class="{{ 'active' if active == 'standings' }}">Standings</a>
+        <details class="nav-group">
+          <summary class="{{ 'active' if active == 'standings' }}">History</summary>
+          <div class="nav-group-panel">
+            <a href="/standings" class="{{ 'active' if active == 'standings' }}">Past standings</a>
+          </div>
+        </details>
         {% endif %}
         <a href="/league/{{ league_slug }}/manager-report" class="{{ 'active' if league_tool == 'manager-report' }}">Manager report card</a>
         <a href="/league/{{ league_slug }}/settings" class="{{ 'active' if league_tool == 'settings' }}">League settings</a>
