@@ -44,6 +44,16 @@
       .profile-menu-panel form { margin-top: 0.4rem; }
       .profile-menu-panel form .button-ghost { width: 100%; justify-content: flex-start; padding: 0.4rem 0.2rem; min-height: auto; }
       .league-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; max-width: 1200px; margin: 0.6rem auto 0; padding: 0.35rem 0 0.45rem; border-top: 1px solid rgba(255,255,255,.12); }
+      .league-nav .nav-group { position: relative; }
+      .league-nav .nav-group summary { list-style: none; cursor: pointer; color: #cfe0ff; text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
+      .league-nav .nav-group summary::-webkit-details-marker { display: none; }
+      .league-nav .nav-group summary::after { content: " \25BE"; }
+      .league-nav .nav-group summary:hover, .league-nav .nav-group summary.active { background: rgba(255,255,255,.1); color: white; }
+      .league-nav .nav-group[open] summary { background: rgba(255,255,255,.2); color: white; }
+      .league-nav .nav-group-panel { position: absolute; left: 0; top: calc(100% + 0.4rem); background: white; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,.18); padding: 0.4rem; width: max-content; min-width: 180px; z-index: 20; }
+      .league-nav .nav-group-panel a { display: block; color: var(--text); text-decoration: none; font-weight: 600; font-size: 0.85rem; padding: 0.5rem 0.6rem; border-radius: 6px; }
+      .league-nav .nav-group-panel a:hover { background: #f7faff; color: var(--blue); }
+      .league-nav .nav-group-panel a.active { background: #eef4ff; color: var(--navy); }
       .league-nav .league-name { color: white; font-weight: 700; font-size: clamp(0.8rem, 2.5vw, 0.95rem); padding: 0.35rem 0.7rem 0.35rem 0; margin-right: 0.35rem; max-width: 45vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .league-nav .platform-tag { background: rgba(255,255,255,.14); color: #cfe0ff; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.5rem; }
       header:not(:has(.league-nav)) { padding-bottom: 0.9rem; }
@@ -160,25 +170,31 @@
           {% endif %}
         </nav>
       </div>
-      {% set league_tools = [
-        ('dashboard', '/', 'Overview'),
-        ('matchups', '/league/' + default_league_id + '/matchups', 'Matchups'),
-        ('keepers-board', '/keepers-board', 'Keepers'),
+      {% set draft_tool_ids = ['mock-draft', 'draft-history', 'draft-patterns', 'draft-analysis'] %}
+      {% if active in ['dashboard', 'keepers-board', 'mock-draft', 'draft-history', 'standings'] %}
+      {% set draft_tools = [
         ('mock-draft', '/mock-draft', 'Mock draft'),
         ('draft-history', '/draft-history', 'Draft history'),
-        ('standings', '/standings', 'Standings'),
         ('draft-patterns', '/league/' + default_league_id + '/draft-patterns', 'Draft patterns'),
         ('draft-analysis', '/league/' + default_league_id + '/draft-analysis', 'Draft analysis'),
-        ('manager-report', '/league/' + default_league_id + '/manager-report', 'Manager report card'),
-        ('settings', '/league/' + default_league_id + '/settings', 'Settings'),
       ] %}
-      {% if active in ['dashboard', 'keepers-board', 'mock-draft', 'draft-history', 'standings'] %}
       <nav class="league-nav">
         <span class="platform-tag">{{ default_league_platform }}</span>
         <span class="league-name">{{ default_league_name }}</span>
-        {% for tool_id, href, label in league_tools %}
-        <a href="{{ href }}" class="{{ 'active' if active == tool_id }}">{{ label }}</a>
-        {% endfor %}
+        <a href="/" class="{{ 'active' if active == 'dashboard' }}">Overview</a>
+        <a href="/league/{{ default_league_id }}/matchups" class="{{ 'active' if active == 'matchups' }}">Matchups</a>
+        <a href="/keepers-board" class="{{ 'active' if active == 'keepers-board' }}">Keepers</a>
+        <details class="nav-group">
+          <summary class="{{ 'active' if active in draft_tool_ids }}">Draft</summary>
+          <div class="nav-group-panel">
+            {% for tool_id, href, label in draft_tools %}
+            <a href="{{ href }}" class="{{ 'active' if active == tool_id }}">{{ label }}</a>
+            {% endfor %}
+          </div>
+        </details>
+        <a href="/standings" class="{{ 'active' if active == 'standings' }}">Standings</a>
+        <a href="/league/{{ default_league_id }}/manager-report" class="{{ 'active' if active == 'manager-report' }}">Manager report card</a>
+        <a href="/league/{{ default_league_id }}/settings" class="{{ 'active' if active == 'settings' }}">Settings</a>
       </nav>
       {% elif league_display_name is defined %}
       <nav class="league-nav">
@@ -188,16 +204,23 @@
         <a href="{{ league_overview_href }}" class="{{ 'active' if league_tool == 'overview' }}">Overview</a>
         <a href="/league/{{ league_slug }}/matchups" class="{{ 'active' if league_tool == 'matchups' }}">Matchups</a>
         <a href="/league/{{ league_slug }}/keepers" class="{{ 'active' if league_tool == 'keepers' }}">Keepers</a>
-        <a href="/league/{{ league_slug }}/mock-draft" class="{{ 'active' if league_tool == 'mock-draft' }}">Mock draft</a>
+        <details class="nav-group">
+          <summary class="{{ 'active' if league_tool in draft_tool_ids or (league_slug == default_league_id and active in draft_tool_ids) }}">Draft</summary>
+          <div class="nav-group-panel">
+            <a href="/league/{{ league_slug }}/mock-draft" class="{{ 'active' if league_tool == 'mock-draft' }}">Mock draft</a>
+            {% if league_slug == default_league_id %}
+            {# /draft-history always resolves to your default league --
+               only safe to show here when this league IS the default, or the link
+               would silently jump to a different league's data. #}
+            <a href="/draft-history" class="{{ 'active' if active == 'draft-history' }}">Draft history</a>
+            {% endif %}
+            <a href="/league/{{ league_slug }}/draft-patterns" class="{{ 'active' if league_tool == 'draft-patterns' }}">Draft patterns</a>
+            <a href="/league/{{ league_slug }}/draft-analysis" class="{{ 'active' if league_tool == 'draft-analysis' }}">Draft analysis</a>
+          </div>
+        </details>
         {% if league_slug == default_league_id %}
-        {# /draft-history and /standings always resolve to your default league --
-           only safe to show here when this league IS the default, or the link
-           would silently jump to a different league's data. #}
-        <a href="/draft-history" class="{{ 'active' if active == 'draft-history' }}">Draft history</a>
         <a href="/standings" class="{{ 'active' if active == 'standings' }}">Standings</a>
         {% endif %}
-        <a href="/league/{{ league_slug }}/draft-patterns" class="{{ 'active' if league_tool == 'draft-patterns' }}">Draft patterns</a>
-        <a href="/league/{{ league_slug }}/draft-analysis" class="{{ 'active' if league_tool == 'draft-analysis' }}">Draft analysis</a>
         <a href="/league/{{ league_slug }}/manager-report" class="{{ 'active' if league_tool == 'manager-report' }}">Manager report card</a>
         <a href="/league/{{ league_slug }}/settings" class="{{ 'active' if league_tool == 'settings' }}">Settings</a>
         {% else %}
