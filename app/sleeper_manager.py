@@ -193,6 +193,7 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
 
     transaction_count = sync_transactions(league_id, players_cache)
     matchup_week_count = sync_matchups(league_id, league)
+    playoff_counts = sync_playoffs(league_id)
 
     return {
         'leagueId': league_id,
@@ -201,6 +202,7 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
         'drafts': draft_summaries,
         'transactions': transaction_count,
         'matchupWeeks': matchup_week_count,
+        'playoffMatches': playoff_counts['winners'] + playoff_counts['losers'],
     }
 
 
@@ -317,6 +319,40 @@ def load_synced_matchups(league_id: str) -> Dict[str, List[Dict[str, Any]]]:
     """{week_str: [roster rows]} as last synced."""
     payload = _read_json(sleeper_league_dir(league_id) / 'matchups.json')
     return (payload or {}).get('weeks', {})
+
+
+def sync_playoffs(league_id: str) -> Dict[str, int]:
+    """Fetch both playoff brackets and write one file per league.
+
+    Sleeper returns bracket STRUCTURE the moment a league's playoff bracket
+    is generated, well before playoffs start -- match slots and provisional
+    seeding are there from week 1, with w/l/t1/t2 as null until each game is
+    actually played. That is a real, useful state (a caller can render "who's
+    in playoff position" before the games happen), not something to wait out,
+    so this is always safe to call and never returns an error for "playoffs
+    haven't happened yet."
+    """
+    winners = sleeper_client.get_league_winners_bracket(league_id)
+    losers = sleeper_client.get_league_losers_bracket(league_id)
+    league_dir = sleeper_league_dir(league_id)
+    _write_json(league_dir / 'playoffs.json', {
+        'leagueId': league_id,
+        'syncedAt': datetime.now(timezone.utc).isoformat(),
+        'winnersBracket': winners,
+        'losersBracket': losers,
+    })
+    return {'winners': len(winners), 'losers': len(losers)}
+
+
+def load_synced_playoffs(league_id: str) -> Dict[str, List[Dict[str, Any]]]:
+    """{'winnersBracket': [...], 'losersBracket': [...]} as last synced."""
+    payload = _read_json(sleeper_league_dir(league_id) / 'playoffs.json')
+    if not payload:
+        return {'winnersBracket': [], 'losersBracket': []}
+    return {
+        'winnersBracket': payload.get('winnersBracket', []),
+        'losersBracket': payload.get('losersBracket', []),
+    }
 
 
 def sync_all_leagues() -> List[Dict[str, Any]]:

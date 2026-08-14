@@ -1979,7 +1979,8 @@ def _cmd_sleeper_sync(args) -> None:
         draft_note = f", {len(r['drafts'])} draft(s)" if r['drafts'] else ''
         txn_note = f", {r['transactions']} transaction(s)" if r.get('transactions') else ''
         week_note = f", {r['matchupWeeks']} scored week(s)" if r.get('matchupWeeks') else ''
-        print(f"  {r['leagueId']}  {r['name']}: {r['rosterCount']} rosters{draft_note}{txn_note}{week_note}")
+        playoff_note = f", {r['playoffMatches']} playoff match(es)" if r.get('playoffMatches') else ''
+        print(f"  {r['leagueId']}  {r['name']}: {r['rosterCount']} rosters{draft_note}{txn_note}{week_note}{playoff_note}")
     print(f'\nSynced {len(results)} league(s) to data/raw/sleeper/.')
 
 

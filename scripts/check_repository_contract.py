@@ -23,9 +23,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # pylint: disable=wrong-import-position
 from app.domain import (  # noqa: E402
+    BRACKET_TYPES,
     TRANSACTION_TYPES,
     DraftPick,
     Matchup,
+    PlayoffMatch,
     RankingRow,
     RosterTeam,
     StandingRow,
@@ -185,6 +187,37 @@ def check_league(league_id, league) -> None:
         print(f'      matchups: {len(matchups)} across {len(weeks_seen)} scored week(s), '
               f'{starter_resolved}/{starter_total} starters carry a canonical id')
 
+    playoffs = repo.playoffs()
+    decided = 0
+    match_ids_by_bracket = {}
+    for match in playoffs:
+        check('playoff match is PlayoffMatch', isinstance(match, PlayoffMatch), type(match).__name__)
+        check('bracket is recognized', match.bracket in BRACKET_TYPES, match.bracket)
+        check('round is positive', match.round >= 1, match.round)
+        match_ids_by_bracket.setdefault(match.bracket, set()).add(match.match_id)
+        # A source reference has to point at SOME match that actually exists
+        # in this bracket -- pointing nowhere would mean the m/r extraction
+        # above silently dropped a match this one depends on.
+        for source in (match.home_from, match.away_from):
+            if source is not None:
+                check('bracket source references a real match',
+                      source.match_id in match_ids_by_bracket[match.bracket]
+                      or any(m.match_id == source.match_id and m.bracket == match.bracket for m in playoffs),
+                      f'{match.bracket} m{match.match_id} -> m{source.match_id}')
+        if match.winner_franchise_id:
+            decided += 1
+            # A decided match's winner and loser must be two DIFFERENT teams,
+            # and the winner must be one of the two sides that played --
+            # anything else means the w/l vs t1/t2 roster_ids got crossed up.
+            check('winner is a real side of this match',
+                  match.winner_franchise_id in (match.home_franchise_id, match.away_franchise_id),
+                  f'm{match.match_id}: winner {match.winner_franchise_id} not in '
+                  f'({match.home_franchise_id}, {match.away_franchise_id})')
+            check('winner and loser differ', match.winner_franchise_id != match.loser_franchise_id,
+                  f'm{match.match_id}: both {match.winner_franchise_id}')
+    if playoffs:
+        print(f'      playoffs: {len(playoffs)} bracket slots, {decided} decided')
+
     all_players = [p for t in teams for p in t.players]
     resolved = sum(1 for p in all_players if p.canonical_player_id)
     total = len(all_players)
@@ -205,12 +238,13 @@ def check_league(league_id, league) -> None:
 def check_completed_season_matchups() -> None:
     """None of the 6 registered Sleeper leagues have played a game yet (2026
     season, pre-kickoff) -- the per-league loop above exercises matchups()
-    honestly, but every one of its assertions passes vacuously on zero rows.
-    This targets a real completed prior season (reachable only via Sleeper's
-    previous_league_id chain, deliberately NOT walked by sync -- see the
-    Phase 5 roadmap note) so the pairing/resolution logic gets checked against
-    real scored weeks at least once. Synced on demand here rather than kept
-    registered, since it belongs to no wuff league.
+    and playoffs() honestly, but every one of their assertions passes
+    vacuously on zero rows. This targets a real completed prior season
+    (reachable only via Sleeper's previous_league_id chain, deliberately NOT
+    walked by sync -- see the Phase 5 roadmap note) so the pairing/resolution
+    logic gets checked against real scored weeks and a real finished bracket
+    at least once. Synced on demand here rather than kept registered, since
+    it belongs to no wuff league.
     """
     import os  # pylint: disable=import-outside-toplevel
 
@@ -240,6 +274,18 @@ def check_completed_season_matchups() -> None:
     check('completed season has no zero-point sides', not any(
         (s.points or 0) <= 0 for m in matchups for s in (m.home, m.away)),
         'a real week leaked a zero score')
+
+    playoffs = repo.playoffs()
+    championship = [m for m in playoffs if m.bracket == 'winners' and m.determines_placement == 1]
+    check('completed season has exactly one championship match', len(championship) == 1,
+          len(championship))
+    check('completed season decides every playoff match', playoffs and all(
+        m.winner_franchise_id for m in playoffs), 'a finished season left an undecided match')
+    if championship:
+        champ = championship[0]
+        check('the champion is a resolved franchise', bool(champ.winner_franchise_id),
+              champ.winner_franchise_id)
+        print(f'    champion: {champ.winner_franchise_id}')
 
 
 def main() -> int:

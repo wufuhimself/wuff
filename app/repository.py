@@ -31,9 +31,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from . import espn_manager, sleeper_manager, yahoo_store
 from .domain import (
+    BracketSource,
     DraftPick,
     Matchup,
     MatchupSide,
+    PlayoffMatch,
     RankingRow,
     RosterEntry,
     RosterTeam,
@@ -99,6 +101,12 @@ class LeagueDataRepository:
         Default `{}` for the same reason raw_transactions() defaults to `[]`
         -- a platform/season with no scored weeks yet is real, not missing."""
         return {}
+
+    def raw_playoffs(self) -> Dict[str, List[Dict[str, Any]]]:
+        """{'winnersBracket': [...], 'losersBracket': [...]} (Phase 5 step 8).
+        Default both empty -- a platform not tracking playoffs, or a league
+        with no bracket generated yet, is a real state, not a resolution gap."""
+        return {'winnersBracket': [], 'losersBracket': []}
 
     # ---- Typed API (Phase 5 step 3) -------------------------------------
     # Implemented ONCE here, in terms of the dict methods above, rather than
@@ -398,6 +406,71 @@ class LeagueDataRepository:
                 ))
         return typed
 
+    def playoffs(self) -> List[PlayoffMatch]:
+        """Bracket structure for both the winners and losers brackets.
+
+        Deliberately does not carry points or a resolved team NAME -- only
+        franchise_id -- because it is meant to be joined against matchups()
+        by (season, week, franchise_id) for those, not to duplicate them. It
+        also does not carry a week number: Sleeper's bracket payload has none
+        (only a round), and inferring one from playoff_week_start + round
+        would silently break for any league with a bye round or a bracket
+        shorter/longer than the format's default.
+
+        A match not yet played (or a later round whose participants are
+        still undecided) has franchise_id fields of None -- see
+        PlayoffMatch's docstring. That is the normal state for most of a
+        season, not an error, since Sleeper generates bracket STRUCTURE the
+        moment playoff_teams is known, long before playoff_week_start.
+        """
+        roster_lookup = self._roster_id_lookup()
+
+        def fid(roster_id):
+            return roster_lookup.get(roster_id, (None, None))[0] if roster_id is not None else None
+
+        def source_for(from_ref) -> Optional[BracketSource]:
+            # {'w': match_id} = winner of that match advances here;
+            # {'l': match_id} = loser of that match advances here (only
+            # meaningful in the losers bracket). Never both keys at once in
+            # observed payloads, but if they were, 'w' wins rather than
+            # silently picking one arbitrarily via a boolean-or chain.
+            if not from_ref:
+                return None
+            if from_ref.get('w') is not None:
+                return BracketSource(match_id=_int(from_ref['w']), from_winner=True)
+            if from_ref.get('l') is not None:
+                return BracketSource(match_id=_int(from_ref['l']), from_winner=False)
+            return None
+
+        def build(bracket: str, rows: List[Dict[str, Any]]) -> List[PlayoffMatch]:
+            typed = []
+            for row in rows:
+                match_id = _int(row.get('m'))
+                round_num = _int(row.get('r'))
+                if match_id is None or round_num is None:
+                    continue  # no way to place this in the bracket; skip rather than guess
+                typed.append(PlayoffMatch(
+                    bracket=bracket,
+                    match_id=match_id,
+                    round=round_num,
+                    home_franchise_id=fid(row.get('t1')),
+                    away_franchise_id=fid(row.get('t2')),
+                    winner_franchise_id=fid(row.get('w')),
+                    loser_franchise_id=fid(row.get('l')),
+                    # Home/away resolve independently: a championship match
+                    # can have home coming from "winner of match 3" and away
+                    # from "winner of match 4" at the same time.
+                    home_from=source_for(row.get('t1_from')),
+                    away_from=source_for(row.get('t2_from')),
+                    determines_placement=_int(row.get('p')),
+                    raw=row,
+                ))
+            return typed
+
+        raw = self.raw_playoffs()
+        return (build('winners', raw.get('winnersBracket') or [])
+                + build('losers', raw.get('losersBracket') or []))
+
 
 class YahooJsonRepository(LeagueDataRepository):
     """The original single-league data layout under data/raw/ — valid only for
@@ -558,6 +631,12 @@ class SnapshotJsonRepository(LeagueDataRepository):
         # load_synced_matchups yet.
         loader = getattr(self.snapshots, 'load_synced_matchups', None)
         return loader(self._platform_id) if loader is not None else {}
+
+    def raw_playoffs(self) -> Dict[str, List[Dict[str, Any]]]:
+        # Same ESPN guard -- espn_manager has no load_synced_playoffs yet.
+        loader = getattr(self.snapshots, 'load_synced_playoffs', None)
+        return loader(self._platform_id) if loader is not None else {
+            'winnersBracket': [], 'losersBracket': []}
 
 
 class SleeperJsonRepository(SnapshotJsonRepository):

@@ -230,6 +230,60 @@ class Matchup:
                 and self.home.points == self.away.points)
 
 
+# 'winners' (championship bracket) or 'losers' (consolation bracket -- still
+# meaningful in most leagues, since it decides who finishes last, not just
+# who finishes first). Sleeper's own two brackets, kept as the canonical pair
+# rather than inventing wuff's own vocabulary, same reasoning as
+# TRANSACTION_TYPES.
+BRACKET_TYPES = ('winners', 'losers')
+
+
+@dataclass(frozen=True)
+class BracketSource:
+    """Where one side of a not-yet-decided PlayoffMatch will come from: the
+    winner or loser of another match in the same bracket. Home and away sides
+    resolve independently and can point at different matches and different
+    outcomes -- a real championship slot in this codebase's own test data has
+    home coming from "winner of match 3" and away from "winner of match 4",
+    which a single match-level field can't represent without silently
+    dropping one of the two."""
+    match_id: int
+    from_winner: bool  # True = winner of match_id advances here; False = loser
+
+
+@dataclass(frozen=True)
+class PlayoffMatch:
+    """One bracket slot. Team identity and points are NOT duplicated here --
+    join against Matchup by (season, week, franchise_id) for those, since a
+    playoff week's games are also ordinary weekly matchups underneath; this
+    type carries only the bracket STRUCTURE a Matchup has no way to express
+    (round, seeding, who advances, what placement is on the line).
+
+    A franchise_id of None means that slot is not decided yet -- either the
+    match hasn't been played (season in progress) or, for a later round, the
+    team that will fill it depends on an earlier match's still-unknown result
+    (see `home_from`/`away_from`). Both are real, common states for an
+    in-progress bracket, not errors.
+    """
+    bracket: str  # one of BRACKET_TYPES
+    match_id: int
+    round: int
+    home_franchise_id: Optional[str] = None
+    away_franchise_id: Optional[str] = None
+    winner_franchise_id: Optional[str] = None
+    loser_franchise_id: Optional[str] = None
+    # Set only when that side is still TBD and depends on another match in
+    # the SAME bracket. See BracketSource -- home and away resolve
+    # independently.
+    home_from: Optional[BracketSource] = None
+    away_from: Optional[BracketSource] = None
+    # The final standing this match decides, when it decides one (1st, 3rd,
+    # 5th, ...). None for a match that only determines who ADVANCES, not a
+    # final placement -- most non-final rounds.
+    determines_placement: Optional[int] = None
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+
 def _int(value: Any) -> Optional[int]:
     try:
         return int(value)
