@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ league_display_name }} matchups — WuFF{% endblock %}
+{% block content %}
+
+      {% if not weeks and not brackets %}
+      <section class="card">
+        <h2>No scored weeks yet</h2>
+        <p class="status">Nothing has been played this season, or this league's platform doesn't
+          expose weekly scores to WuFF yet (Sleeper only, for now). Once games are played and this
+          league syncs, they'll show up here.</p>
+      </section>
+      {% else %}
+
+      {% if brackets %}
+      <section class="card">
+        <h2>Playoffs</h2>
+        <p class="status">Bracket structure appears as soon as the platform generates it — often
+          before playoffs start — with results filled in as each match is played. A team name
+          reading "TBD" means that slot depends on a match that hasn't been decided yet.</p>
+        {% for bracket_type, matches in brackets.items() %}
+        <h3 style="margin-top: 1rem; text-transform: capitalize;">{{ bracket_type }} bracket</h3>
+        <div style="overflow-x: auto;">
+          <table class="table compact">
+            <thead><tr><th>Round</th><th>Match</th><th>Home</th><th>Away</th><th>Winner</th><th>Decides</th></tr></thead>
+            <tbody>
+              {% for row in matches %}
+              <tr>
+                <td class="number">{{ row.match.round }}</td>
+                <td class="number">{{ row.match.match_id }}</td>
+                <td{% if row.match.winner_franchise_id and row.match.winner_franchise_id == row.match.home_franchise_id %} style="font-weight: 600;"{% endif %}>
+                  {{ row.home_name or 'TBD' }}
+                </td>
+                <td{% if row.match.winner_franchise_id and row.match.winner_franchise_id == row.match.away_franchise_id %} style="font-weight: 600;"{% endif %}>
+                  {{ row.away_name or 'TBD' }}
+                </td>
+                <td>{{ row.winner_name or '—' }}</td>
+                <td>
+                  {% if row.match.determines_placement == 1 %}<span class="pill">Championship</span>
+                  {% elif row.match.determines_placement %}<span class="pill">{{ row.match.determines_placement }}th place</span>
+                  {% else %}<span class="status">advancement</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {% if weeks %}
+      <section class="card">
+        <h2>Weekly matchups</h2>
+        <p class="status">Points are the platform's own computed total, not recalculated by WuFF.</p>
+        {% for week, matchups in weeks %}
+        <h3 style="margin-top: 1rem;">Week {{ week }}</h3>
+        <div style="overflow-x: auto;">
+          <table class="table compact">
+            <thead><tr><th>Home</th><th>Pts</th><th></th><th>Away</th><th>Pts</th></tr></thead>
+            <tbody>
+              {% for m in matchups %}
+              <tr>
+                <td{% if m.home.points is not none and m.away.points is not none and m.home.points > m.away.points %} style="font-weight: 600;"{% endif %}>
+                  {{ m.home.team_name or 'Unknown' }}
+                </td>
+                <td class="number">{{ '%.1f' | format(m.home.points) if m.home.points is not none else '—' }}</td>
+                <td class="status" style="text-align: center;">{% if m.is_tie %}tie{% else %}vs{% endif %}</td>
+                <td{% if m.away.points is not none and m.home.points is not none and m.away.points > m.home.points %} style="font-weight: 600;"{% endif %}>
+                  {{ m.away.team_name or 'Unknown' }}
+                </td>
+                <td class="number">{{ '%.1f' | format(m.away.points) if m.away.points is not none else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      {% endif %}
+{% endblock %}

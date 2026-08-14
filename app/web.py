@@ -32,7 +32,9 @@ from .draft_patterns import (
     resolved_picks,
 )
 from .free_rankings import refresh_free_rankings
+from .domain import BRACKET_TYPES
 from .franchise_store import franchise_id_for_team
+from .franchise_store import get_registry as franchise_registry_for
 from .keeper_service import (
     keeper_board_state,
     load_keeper_marks,
@@ -809,6 +811,60 @@ def league_manager_report(league_id: str):
     return render_template(
         'league_manager_report.html', active='league-manager-report',
         rows=rows, **_league_page_ctx(league, 'manager-report'),
+    )
+
+
+@app.route('/league/<league_id>/matchups')
+def league_matchups(league_id: str):
+    """Weekly head-to-head scores and the playoff bracket, from
+    app/repository.py's typed matchups()/playoffs() (Phase 5 steps 7-8).
+
+    First page to read either type -- both were built and gated in Phase 5
+    but nothing surfaced them to a user until now. Sleeper-only in practice
+    today: Yahoo/ESPN backends return [] from raw_matchups()/raw_playoffs()
+    (no scoring data synced for them yet), which renders as an honest empty
+    state below, not an error.
+
+    PlayoffMatch carries franchise_id only, deliberately not a team name (see
+    its docstring) -- resolved here, once, against the league's own
+    FranchiseRegistry, rather than teaching the template to do a lookup.
+    """
+    league = _member_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+
+    repo = repository_for(league)
+    matchups = sorted(repo.matchups(), key=lambda m: (m.week, m.home.team_name or ''))
+    weeks = {}
+    for matchup in matchups:
+        weeks.setdefault(matchup.week, []).append(matchup)
+
+    registry = franchise_registry_for(league, repo)
+
+    def team_name(franchise_id):
+        franchise = registry.franchises.get(franchise_id) if franchise_id else None
+        return franchise.name if franchise else None
+
+    playoffs = repo.playoffs()
+    brackets = {}
+    for bracket_type in BRACKET_TYPES:
+        matches = sorted((m for m in playoffs if m.bracket == bracket_type),
+                         key=lambda m: (m.round, m.match_id))
+        if matches:
+            brackets[bracket_type] = [
+                {
+                    'match': match,
+                    'home_name': team_name(match.home_franchise_id),
+                    'away_name': team_name(match.away_franchise_id),
+                    'winner_name': team_name(match.winner_franchise_id),
+                }
+                for match in matches
+            ]
+
+    return render_template(
+        'league_matchups.html', active='league-matchups',
+        weeks=sorted(weeks.items()), brackets=brackets,
+        **_league_page_ctx(league, 'matchups'),
     )
 
 
