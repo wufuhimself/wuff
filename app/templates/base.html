@@ -162,10 +162,15 @@
       </div>
       {% set league_tools = [
         ('dashboard', '/', 'Overview'),
+        ('matchups', '/league/' + default_league_id + '/matchups', 'Matchups'),
         ('keepers-board', '/keepers-board', 'Keepers'),
         ('mock-draft', '/mock-draft', 'Mock draft'),
         ('draft-history', '/draft-history', 'Draft history'),
         ('standings', '/standings', 'Standings'),
+        ('draft-patterns', '/league/' + default_league_id + '/draft-patterns', 'Draft patterns'),
+        ('draft-analysis', '/league/' + default_league_id + '/draft-analysis', 'Draft analysis'),
+        ('manager-report', '/league/' + default_league_id + '/manager-report', 'Manager report card'),
+        ('settings', '/league/' + default_league_id + '/settings', 'Settings'),
       ] %}
       {% if active in ['dashboard', 'keepers-board', 'mock-draft', 'draft-history', 'standings'] %}
       <nav class="league-nav">
@@ -184,6 +189,13 @@
         <a href="/league/{{ league_slug }}/matchups" class="{{ 'active' if league_tool == 'matchups' }}">Matchups</a>
         <a href="/league/{{ league_slug }}/keepers" class="{{ 'active' if league_tool == 'keepers' }}">Keepers</a>
         <a href="/league/{{ league_slug }}/mock-draft" class="{{ 'active' if league_tool == 'mock-draft' }}">Mock draft</a>
+        {% if league_slug == default_league_id %}
+        {# /draft-history and /standings always resolve to your default league --
+           only safe to show here when this league IS the default, or the link
+           would silently jump to a different league's data. #}
+        <a href="/draft-history" class="{{ 'active' if active == 'draft-history' }}">Draft history</a>
+        <a href="/standings" class="{{ 'active' if active == 'standings' }}">Standings</a>
+        {% endif %}
         <a href="/league/{{ league_slug }}/draft-patterns" class="{{ 'active' if league_tool == 'draft-patterns' }}">Draft patterns</a>
         <a href="/league/{{ league_slug }}/draft-analysis" class="{{ 'active' if league_tool == 'draft-analysis' }}">Draft analysis</a>
         <a href="/league/{{ league_slug }}/manager-report" class="{{ 'active' if league_tool == 'manager-report' }}">Manager report card</a>

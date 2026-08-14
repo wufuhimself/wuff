@@ -204,6 +204,10 @@ def _inject_league_context():
         # The shared pages (/standings, /draft-history, ...) now serve whichever
         # league is the caller's, so the platform tag can't be a literal 'yahoo'.
         'default_league_platform': league.platform if league is not None else '',
+        # Lets the dashboard nav link to this league's /league/<slug>/... tools
+        # (matchups, draft patterns, draft analysis, manager report, settings)
+        # without hardcoding the Yahoo league's slug.
+        'default_league_id': league.league_id if league is not None else '',
         'nav_leagues': nav_leagues,
     }
 
