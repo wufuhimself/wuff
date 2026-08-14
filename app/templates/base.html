@@ -33,7 +33,7 @@
       .profile-menu summary::-webkit-details-marker { display: none; }
       .profile-menu summary:hover, .profile-menu summary.active { background: rgba(255,255,255,.14); color: white; }
       .profile-menu[open] summary { background: rgba(255,255,255,.2); color: white; }
-      .profile-menu-panel { position: absolute; right: 0; top: calc(100% + 0.4rem); background: white; color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,.18); padding: 0.6rem; min-width: 220px; z-index: 20; }
+      .profile-menu-panel { position: absolute; right: 0; top: calc(100% + 0.4rem); background: white; color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,.18); padding: 0.6rem; width: max-content; min-width: 220px; max-width: min(360px, 90vw); z-index: 20; }
       .profile-menu-panel ul { list-style: none; margin: 0 0 0.5rem; padding: 0; }
       .profile-menu-panel li { padding: 0.35rem 0.2rem; border-bottom: 1px solid #f0f1f5; font-size: 0.85rem; }
       .profile-menu-panel li:last-child { border-bottom: none; }
