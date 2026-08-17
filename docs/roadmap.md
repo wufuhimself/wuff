@@ -212,6 +212,38 @@ The first version strangers can touch.
     `sync_runs`/snapshot writes. Fine at current traffic; revisit (pin to
     one worker, or move the sweep to a `python -m app sync-sweep` cron
     entrypoint) only if load ever justifies more than one worker.
+  - ✅ **Moved to `python3 -m app sync-sweep` (2026-08-17):** the alternative
+    named above, taken not because traffic justified it but because a
+    future Airflow-driven schedule (for rankings/ADP refresh in particular)
+    needs a callable entrypoint outside the web process anyway — an
+    external scheduler is the actual target shape, and `workers=1` staying
+    pinned no longer matters for the reason it used to. `sync_scheduler.py`
+    keeps every job function (`sync_one_league`, `sync_all_due`,
+    `refresh_rankings_job`, `refresh_nfl_rosters_job`,
+    `refresh_schedule_job`, `refresh_player_registry_job`) — only
+    `ensure_scheduler_started()` changed, and only by not registering
+    periodic jobs anymore. It still starts a `BackgroundScheduler` for
+    `queue_league_sync()`'s one-off jobs (onboarding import, the "Sync now"
+    button), which are unaffected and were verified still working after the
+    change. `sync-sweep` runs all 5 jobs in the same dependency order the
+    scheduler used to (rosters → registry → rankings → schedule → league
+    sync), prints per-league sync results, and exits non-zero if any
+    league's `SyncRun` recorded `error` — so an external scheduler can alert
+    on a real failure (verified against a live 404 from Sleeper on one
+    already-defunct league in the local config, not a bug this change
+    introduced).
+    ⚠️ **Deploy step still open:** nothing calls `sync-sweep` yet in
+    production. Railway runs cron as a **separate service** with its own
+    `cronSchedule` (config-as-code or dashboard) whose start command is
+    `python3 -m app sync-sweep` and which must exit on completion — it
+    cannot be the same always-running `web` service, and folding it in
+    would silently stop every job the old in-process scheduler ran. This
+    does **not** require a Dockerfile — Railway's cron scheduling works
+    the same under Nixpacks — so containerizing the app and adding the
+    cron service are independent decisions, only related in that both
+    happened to come up the same day. Until that second service exists,
+    rankings/ADP/nfl-rosters/player-registry/schedule/league-sync all stay
+    frozen at whatever `sync-sweep` was last run manually.
 
 ## Phase 2 — ESPN, then Yahoo importers
 

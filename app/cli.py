@@ -446,6 +446,14 @@ def parse_args() -> argparse.Namespace:
         help="Refresh the cached Sleeper player_id -> name/position/team dict (run occasionally, it's a ~5MB fetch)",
     )
 
+    subparsers.add_parser(
+        'sync-sweep',
+        help='Run every periodic job the in-process scheduler used to run on a timer '
+             '(nfl rosters, player registry, rankings/ADP, nfl schedule, then every known '
+             'league sync) -- meant to be invoked by an external scheduler (cron, Airflow), '
+             'not the running web process. See app/sync_scheduler.py.',
+    )
+
     return parser.parse_args()
 
 
@@ -1989,6 +1997,53 @@ def _cmd_sleeper_refresh_players(_args) -> None:
     print(f'Cached {count} players to data/raw/sleeper/players_cache.json.')
 
 
+def _cmd_sync_sweep(_args) -> None:
+    """Run every periodic job in the order sync_scheduler.ensure_scheduler_started()
+    used to schedule them on a timer inside the web process.
+
+    Meant to be invoked by an external scheduler (Railway cron, Airflow) instead --
+    workers=1 stays the reason the in-process scheduler exists at all (see
+    docs/roadmap.md), this just gives it a door out for whichever platform ends
+    up driving the cadence. Each job already swallows and logs its own errors
+    (see their docstrings in app/sync_scheduler.py) so one bad job doesn't stop
+    the rest; sync-sweep still exits non-zero if any league sync recorded an
+    'error' SyncRun, so an external scheduler can alert on it.
+    """
+    from .db import init_db  # pylint: disable=import-outside-toplevel
+    from .sync_scheduler import (  # pylint: disable=import-outside-toplevel
+        refresh_nfl_rosters_job,
+        refresh_player_registry_job,
+        refresh_rankings_job,
+        refresh_schedule_job,
+        sync_all_due,
+    )
+
+    init_db()
+
+    print('== nfl rosters ==')
+    refresh_nfl_rosters_job()
+
+    print('== player registry ==')
+    refresh_player_registry_job()
+
+    print('== rankings/ADP ==')
+    refresh_rankings_job()
+
+    print('== nfl schedule ==')
+    refresh_schedule_job()
+
+    print('== league sync ==')
+    results = sync_all_due()
+    failures = 0
+    for platform, platform_league_id, status in results:
+        if status != 'ok':
+            failures += 1
+        print(f'  {platform} {platform_league_id}: {status}')
+    print(f'\nSynced {len(results)} league(s), {failures} failure(s).')
+
+    if failures:
+        sys.exit(1)
+
 
 _COMMAND_HANDLERS = {
     'migrate-data-layout': _cmd_migrate_data_layout,
@@ -2051,6 +2106,7 @@ _COMMAND_HANDLERS = {
     'sleeper-discover': _cmd_sleeper_discover,
     'sleeper-sync': _cmd_sleeper_sync,
     'sleeper-refresh-players': _cmd_sleeper_refresh_players,
+    'sync-sweep': _cmd_sync_sweep,
 }
 
 

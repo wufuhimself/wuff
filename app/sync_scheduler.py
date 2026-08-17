@@ -1,21 +1,37 @@
-"""Background Sleeper sync (Phase 1): APScheduler in-process, no Redis/queue infra.
+"""Background sync (Phase 1): APScheduler in-process, no Redis/queue infra.
 
-Two entry points:
-- ensure_scheduler_started(): idempotent; adds a periodic sweep of every
-  known Sleeper league (DB-imported ones plus the local
-  sleeper_leagues.json set). The web app calls this lazily on first request.
-- queue_league_sync(id): one-off background sync (onboarding import, the
-  "Sync now" button). Falls back to a synchronous inline sync when the
-  scheduler is disabled (WUFF_DISABLE_SCHEDULER=1 — tests, one-shot CLI).
+As of the sync-sweep CLI command, this module no longer runs anything on a
+timer itself. The periodic jobs it defines (league sync, rankings/ADP, nfl
+rosters, player registry, nfl schedule) are invoked by
+`python3 -m app sync-sweep` (see app/cli.py's _cmd_sync_sweep), meant to be
+called by an external scheduler -- Railway's cron plugin today, Airflow
+later. That sidesteps the workers=1 constraint entirely rather than
+depending on it: gunicorn still runs one worker (see docs/roadmap.md), but
+now because nothing else needs more, not because a second worker would
+double-run an in-process timer.
 
-Every attempt is recorded as a SyncRun row (status running -> ok/error), so
-the UI can show "last synced X, status Y" without parsing snapshot files.
+What's left here:
+- The job functions themselves (sync_one_league, sync_all_due,
+  refresh_rankings_job, refresh_nfl_rosters_job, refresh_schedule_job,
+  refresh_player_registry_job) -- sync-sweep imports and calls these
+  directly. Kept in this module rather than moved to cli.py because
+  web.py's onboarding/"Sync now" path also calls sync_one_league directly,
+  and duplicating it would risk the two paths drifting.
+- ensure_scheduler_started() / queue_league_sync(id): a running
+  BackgroundScheduler for one-off, non-periodic jobs only -- onboarding
+  import and the "Sync now" button, which need to run in the background
+  without blocking the request but aren't on any timer. Falls back to a
+  synchronous inline sync when the scheduler is disabled
+  (WUFF_DISABLE_SCHEDULER=1 -- tests, one-shot CLI).
+
+Every sync attempt is recorded as a SyncRun row (status running -> ok/error),
+so the UI can show "last synced X, status Y" without parsing snapshot files.
 API pacing is enforced globally in sleeper_client, not here.
 """
 import logging
 import os
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -37,7 +53,6 @@ from .sleeper_manager import (
 
 logger = logging.getLogger(__name__)
 
-SYNC_INTERVAL_MINUTES = int(os.environ.get('SLEEPER_SYNC_INTERVAL_MINUTES', '360'))
 PLAYERS_CACHE_MAX_AGE_HOURS = int(os.environ.get('SLEEPER_PLAYERS_CACHE_MAX_AGE_HOURS', '168'))
 # Position resolution needs a roster snapshot per season, and the league
 # analyses that use it only go back this far (see CLAUDE.md) -- fetching
@@ -151,12 +166,15 @@ def leagues_to_sync() -> List[Tuple[str, str]]:
     return pairs
 
 
-def sync_all_due() -> int:
-    """The periodic sweep: sync every known league. Returns count attempted."""
-    pairs = leagues_to_sync()
-    for platform, platform_league_id in pairs:
-        sync_one_league(platform, platform_league_id)
-    return len(pairs)
+def sync_all_due() -> List[Tuple[str, str, str]]:
+    """The full league sweep: sync every known league. Returns
+    (platform, platform_league_id, status) for each, so a caller (the
+    sync-sweep CLI command) can report per-league results without
+    re-walking leagues_to_sync() itself."""
+    return [
+        (platform, platform_league_id, sync_one_league(platform, platform_league_id))
+        for platform, platform_league_id in leagues_to_sync()
+    ]
 
 
 def refresh_rankings_job() -> None:
@@ -254,7 +272,24 @@ def refresh_player_registry_job() -> None:
 
 
 def ensure_scheduler_started() -> bool:
-    """Start the background scheduler once per process. False when disabled."""
+    """Start the background scheduler once per process. False when disabled.
+
+    As of the sync-sweep CLI command, this no longer registers any periodic
+    jobs itself -- the sweep (league sync + rankings/ADP + nfl rosters +
+    player registry + nfl schedule) moved to `python3 -m app sync-sweep`,
+    meant to be invoked by an external scheduler (Railway cron today, Airflow
+    later) instead of a timer inside the web process. That was the whole
+    point: workers=1 exists so one process's in-memory timer doesn't race
+    itself (see docs/roadmap.md's Phase 1 note), and an external cron caller
+    sidesteps that question entirely rather than depending on it.
+
+    What's left here is only the machinery `queue_league_sync()` needs: a
+    running BackgroundScheduler to hand one-off jobs to (onboarding import,
+    the "Sync now" button) without blocking the request. If nothing ever
+    calls queue_league_sync in a given process, this starts a scheduler with
+    zero jobs on it -- harmless, not wasted, since APScheduler's own idle
+    loop is cheap.
+    """
     global _scheduler  # pylint: disable=global-statement
     if _scheduler_disabled():
         return False
@@ -263,57 +298,6 @@ def ensure_scheduler_started() -> bool:
     with _scheduler_lock:
         if _scheduler is None:
             scheduler = BackgroundScheduler(daemon=True)
-            scheduler.add_job(
-                sync_all_due,
-                'interval',
-                minutes=SYNC_INTERVAL_MINUTES,
-                id='sleeper-sync-sweep',
-                next_run_time=datetime.now() + timedelta(seconds=60),
-                max_instances=1,
-                coalesce=True,
-            )
-            scheduler.add_job(
-                refresh_rankings_job,
-                'interval',
-                hours=24,
-                id='free-rankings-daily',
-                next_run_time=datetime.now() + timedelta(seconds=120),
-                max_instances=1,
-                coalesce=True,
-            )
-            # Ahead of the rankings refresh: that job's QB adjustment needs
-            # the position map these CSVs back.
-            scheduler.add_job(
-                refresh_nfl_rosters_job,
-                'interval',
-                hours=24,
-                id='nfl-rosters-daily',
-                next_run_time=datetime.now() + timedelta(seconds=30),
-                max_instances=1,
-                coalesce=True,
-            )
-            # Last of the daily jobs: it reads what the two above write.
-            scheduler.add_job(
-                refresh_player_registry_job,
-                'interval',
-                hours=24,
-                id='player-registry-daily',
-                next_run_time=datetime.now() + timedelta(seconds=180),
-                max_instances=1,
-                coalesce=True,
-            )
-            # Independent of the others (no reader depends on it yet, and it
-            # reads nothing they write) -- schedule is small (~285 rows/season)
-            # so a fixed offset is enough, no need to chain it after anything.
-            scheduler.add_job(
-                refresh_schedule_job,
-                'interval',
-                hours=24,
-                id='nfl-schedule-daily',
-                next_run_time=datetime.now() + timedelta(seconds=90),
-                max_instances=1,
-                coalesce=True,
-            )
             scheduler.start()
             _scheduler = scheduler
     return True
