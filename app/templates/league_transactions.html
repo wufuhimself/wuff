@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ league_display_name }} transactions — WuFF{% endblock %}
+{% block content %}
+
+      {% if not transactions %}
+      <section class="card">
+        <h2>No transactions yet</h2>
+        <p class="status">Nothing has synced this season, or this league's platform doesn't
+          expose transactions to WuFF yet (Sleeper only, for now). Trades, waivers, and
+          free-agent moves show up here once they happen and this league syncs.</p>
+      </section>
+      {% else %}
+      <section class="card">
+        <h2>Transactions</h2>
+        <p class="status">Newest first. Failed waiver claims are shown too, marked as failed.</p>
+        <div style="overflow-x: auto;">
+          <table class="table compact">
+            <thead><tr><th>Type</th><th>Status</th><th>Week</th><th>Details</th></tr></thead>
+            <tbody>
+              {% for t in transactions %}
+              <tr>
+                <td><span class="pill">{{ t.type.replace('_', ' ') }}</span></td>
+                <td>
+                  {% if t.status == 'failed' %}<span class="status">failed</span>
+                  {% else %}{{ t.status or '—' }}{% endif %}
+                  {% if t.waiver_bid %}<span class="status"> (${{ t.waiver_bid }})</span>{% endif %}
+                </td>
+                <td class="number">{{ t.week if t.week is not none else '—' }}</td>
+                <td>
+                  {% for m in t.moves %}
+                  <div>
+                    {% if m.action == 'add' %}<span style="color: #15803d; font-weight: 600;">+</span>
+                    {% else %}<span style="color: #991b1b; font-weight: 600;">–</span>{% endif %}
+                    {{ m.player_name or 'Unknown player' }}
+                    <span class="status">({{ m.team_name or 'Unknown team' }})</span>
+                  </div>
+                  {% endfor %}
+                  {% for pm in t.pick_moves %}
+                  <div>
+                    <span class="status">pick</span>
+                    {{ pm.season }} round {{ pm.round }}:
+                    {{ pm.from_team_name or 'Unknown' }} → {{ pm.to_team_name or 'Unknown' }}
+                  </div>
+                  {% endfor %}
+                  {% if not t.moves and not t.pick_moves %}
+                  <span class="status">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+{% endblock %}

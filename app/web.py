@@ -904,6 +904,39 @@ def league_matchups(league_id: str):
     )
 
 
+@app.route('/league/<league_id>/transactions')
+def league_transactions(league_id: str):
+    """Trades, waivers, and free-agent moves, from app/repository.py's typed
+    transactions() (Phase 5 step 6).
+
+    Built and gated in Phase 5 but never surfaced to a user until now --
+    same gap league_matchups() closed for Matchup/PlayoffMatch. Sleeper-only
+    in practice: ESPN has no transaction endpoint wrapped and Yahoo is still
+    blocked on OAuth approval, so other platforms render the honest empty
+    state below rather than an error.
+
+    Team names on TransactionMove/TransactionPickMove already come resolved
+    off the repository (attributed by roster_id, not name -- see domain.py),
+    so no franchise lookup is needed here, unlike league_matchups().
+    """
+    league = _member_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+
+    repo = repository_for(league)
+    transactions = sorted(
+        repo.transactions(),
+        key=lambda t: (t.processed_at is None, t.processed_at or 0),
+        reverse=True,
+    )
+
+    return render_template(
+        'league_transactions.html', active='league-transactions',
+        transactions=transactions,
+        **_league_page_ctx(league, 'transactions'),
+    )
+
+
 @app.route('/league/<league_id>/draft-patterns')
 def league_draft_patterns(league_id: str):
     """What this league actually drafts, and when -- from its own history.
