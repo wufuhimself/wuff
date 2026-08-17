@@ -1,0 +1,7 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "deploy": {
+    "startCommand": "python3 -m app sync-sweep",
+    "cronSchedule": "0 */6 * * *"
+  }
+}

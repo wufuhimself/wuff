@@ -232,16 +232,30 @@ The first version strangers can touch.
     on a real failure (verified against a live 404 from Sleeper on one
     already-defunct league in the local config, not a bug this change
     introduced).
-    ⚠️ **Deploy step still open:** nothing calls `sync-sweep` yet in
-    production. Railway runs cron as a **separate service** with its own
-    `cronSchedule` (config-as-code or dashboard) whose start command is
-    `python3 -m app sync-sweep` and which must exit on completion — it
-    cannot be the same always-running `web` service, and folding it in
-    would silently stop every job the old in-process scheduler ran. This
-    does **not** require a Dockerfile — Railway's cron scheduling works
-    the same under Nixpacks — so containerizing the app and adding the
-    cron service are independent decisions, only related in that both
-    happened to come up the same day. Until that second service exists,
+    `railway.sync-sweep.json` (committed, not the default `railway.json` —
+    naming it separately means it only applies to whichever service is
+    told to use it, not the existing `web` service) declares
+    `startCommand: python3 -m app sync-sweep` and `cronSchedule: 0 */6 * * *`
+    (every 6h, matching the old `SLEEPER_SYNC_INTERVAL_MINUTES` default —
+    the daily jobs just run more often than strictly needed, which is
+    cheap and harmless; not worth a second cron service to split the
+    cadence until there's a reason to).
+    ⚠️ **Deploy step still open, manual, one-time, in the Railway
+    dashboard** (this part cannot be done from the repo): create a **new
+    service** in the same Railway project, pointed at this same GitHub
+    repo, with no domain/port needed. In that service's Settings →
+    Config-as-code, set the path to `railway.sync-sweep.json`. Set the
+    same `DATABASE_URL` (and any other env vars `sync-sweep`'s jobs need —
+    it shares `app/db.py`'s Postgres connection with `web`) on the new
+    service; Railway env vars don't cross services automatically. Confirm
+    the Cron Schedule shows under that service's Settings once the config
+    file is picked up. It must stay a **separate** service from `web` —
+    cron services must exit on completion, and folding this into the
+    always-running web service would silently stop every job the old
+    in-process scheduler ran. Does **not** require a Dockerfile — Railway's
+    cron scheduling works the same under Nixpacks — so containerizing the
+    app and adding the cron service are independent decisions, only
+    related in that both came up the same day. Until that service exists,
     rankings/ADP/nfl-rosters/player-registry/schedule/league-sync all stay
     frozen at whatever `sync-sweep` was last run manually.
 
