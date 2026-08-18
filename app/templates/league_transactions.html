@@ -29,8 +29,8 @@
                 <td>
                   {% for m in t.moves %}
                   <div>
-                    {% if m.action == 'add' %}<span style="color: #15803d; font-weight: 600;">+</span>
-                    {% else %}<span style="color: #991b1b; font-weight: 600;">–</span>{% endif %}
+                    {% if m.action == 'add' %}<span style="color: var(--green); font-weight: 600;">+</span>
+                    {% else %}<span style="color: var(--red); font-weight: 600;">–</span>{% endif %}
                     {{ m.player_name or 'Unknown player' }}
                     <span class="status">({{ m.team_name or 'Unknown team' }})</span>
                   </div>
