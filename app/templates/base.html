@@ -124,16 +124,56 @@
       .year-links a { margin-right: 0.75rem; }
       select, input[type="text"], input[type="file"] { font: inherit; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: clamp(0.9rem, 2vw, 1rem); min-height: 44px; }
       code { background: var(--surface-alt); color: var(--text); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.9em; }
+      .nav-toggle { display: none; }
+      .nav-toggle-label { display: none; }
       @media (max-width: 640px) {
         header { padding: 0.75rem 0.5rem; }
         header h1 { margin-bottom: 0.5rem; }
-        nav { gap: 0.15rem; }
-        nav a { padding: 0.4rem 0.5rem; }
         main { padding: 0.75rem; }
         .card { padding: 0.75rem; margin-bottom: 1rem; }
         .grid-two { grid-template-columns: 1fr; }
         .table th, .table td { padding: 0.35rem 0.4rem; }
         .table.compact th, .table.compact td { padding: 0.3rem 0.35rem; }
+
+        /* Hamburger toggle: checkbox-hack, no JS, matches the <details>
+           pattern already used for the profile/nav-group dropdowns. */
+        .brand-row { position: relative; }
+        .nav-toggle-label {
+          display: flex; align-items: center; justify-content: center;
+          width: 44px; height: 44px; margin-left: auto; cursor: pointer;
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 8px; flex: 0 0 auto;
+        }
+        .nav-toggle-label span, .nav-toggle-label span::before, .nav-toggle-label span::after {
+          content: ""; display: block; width: 20px; height: 2px; background: var(--pink);
+          border-radius: 2px; position: relative; transition: transform .15s, opacity .15s;
+        }
+        .nav-toggle-label span::before { position: absolute; top: -6px; }
+        .nav-toggle-label span::after { position: absolute; top: 6px; }
+        .nav-toggle:checked ~ .brand-row .nav-toggle-label span { background: transparent; }
+        .nav-toggle:checked ~ .brand-row .nav-toggle-label span::before { transform: translateY(6px) rotate(45deg); }
+        .nav-toggle:checked ~ .brand-row .nav-toggle-label span::after { transform: translateY(-6px) rotate(-45deg); }
+
+        header nav, header .league-nav {
+          display: none; position: absolute; left: 0; right: 0; top: 100%;
+          flex-direction: column; align-items: stretch; gap: 0;
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.45);
+          padding: 0.5rem; z-index: 30; margin: 0.4rem 0 0;
+        }
+        .nav-toggle:checked ~ .brand-row nav,
+        .nav-toggle:checked ~ .league-nav {
+          display: flex;
+        }
+        header nav a, header .league-nav a,
+        header nav .profile-menu, header .league-nav .nav-group { width: 100%; }
+        header nav a, header .league-nav > a { padding: 0.7rem 0.6rem; }
+        .league-nav .league-name, .league-nav .platform-tag { display: none; }
+        .profile-menu-panel, .nav-group-panel {
+          position: static; box-shadow: none; border: none; width: 100%;
+          min-width: 0; max-width: none; margin-top: 0.2rem; padding-left: 0.6rem;
+        }
+        .profile-menu summary, .league-nav .nav-group summary { max-width: none; }
       }
       @media (min-width: 641px) {
         .grid-two { grid-template-columns: repeat(2, 1fr); }
@@ -150,9 +190,11 @@
   </head>
   <body>
     <header>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle">
       <div class="brand-row">
         <h1><a href="{{ '/leagues' if current_user.is_authenticated else '/' }}">WuFF</a></h1>
         <p class="tagline">Wufu's Fantasy Football Assistant GM</p>
+        <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle menu"><span></span></label>
         <nav>
           {% if current_user.is_authenticated %}
           <details class="profile-menu">
