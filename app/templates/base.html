@@ -26,13 +26,13 @@
       .brand-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 1rem; max-width: 1200px; margin: 0 auto; }
       .brand-row h1 { margin: 0; font-size: clamp(1.3rem, 5vw, 1.7rem); font-weight: 800; letter-spacing: -0.02em; }
       .brand-row h1 a { color: var(--text); text-decoration: none; }
-      .tagline { margin: 0; color: var(--purple-light); font-size: clamp(0.75rem, 2vw, 0.9rem); flex: 1 1 auto; }
+      .tagline { margin: 0; color: var(--pink); font-size: clamp(0.75rem, 2vw, 0.9rem); flex: 1 1 auto; }
       nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
-      nav a { color: var(--purple-light); text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
+      nav a { color: var(--pink); text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
       nav a:hover { background: rgba(178,133,255,.14); color: var(--text); }
       nav a.active { background: rgba(178,133,255,.24); color: var(--text); }
       .profile-menu { position: relative; }
-      .profile-menu summary { list-style: none; cursor: pointer; color: var(--purple-light); font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .profile-menu summary { list-style: none; cursor: pointer; color: var(--pink); font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .profile-menu summary::-webkit-details-marker { display: none; }
       .profile-menu summary:hover, .profile-menu summary.active { background: rgba(178,133,255,.18); color: var(--text); }
       .profile-menu[open] summary { background: rgba(178,133,255,.24); color: var(--text); }
@@ -41,24 +41,24 @@
       .profile-menu-panel li { padding: 0.35rem 0.2rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
       .profile-menu-panel li:last-child { border-bottom: none; }
       .profile-menu-panel li a { color: var(--text); font-weight: 600; text-decoration: none; }
-      .profile-menu-panel li a:hover { color: var(--purple-light); }
-      .profile-menu-all { display: block; font-size: 0.85rem; font-weight: 600; color: var(--purple-light); text-decoration: none; padding: 0.3rem 0.2rem; }
+      .profile-menu-panel li a:hover { color: var(--pink); }
+      .profile-menu-all { display: block; font-size: 0.85rem; font-weight: 600; color: var(--pink); text-decoration: none; padding: 0.3rem 0.2rem; }
       .profile-menu-all:hover { text-decoration: underline; }
       .profile-menu-panel form { margin-top: 0.4rem; }
       .profile-menu-panel form .button-ghost { width: 100%; justify-content: flex-start; padding: 0.4rem 0.2rem; min-height: auto; }
       .league-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; max-width: 1200px; margin: 0.6rem auto 0; padding: 0.35rem 0 0.45rem; border-top: 1px solid rgba(178,133,255,.16); }
       .league-nav .nav-group { position: relative; }
-      .league-nav .nav-group summary { list-style: none; cursor: pointer; color: var(--purple-light); text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
+      .league-nav .nav-group summary { list-style: none; cursor: pointer; color: var(--pink); text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
       .league-nav .nav-group summary::-webkit-details-marker { display: none; }
       .league-nav .nav-group summary::after { content: " \25BE"; }
       .league-nav .nav-group summary:hover, .league-nav .nav-group summary.active { background: rgba(178,133,255,.14); color: var(--text); }
       .league-nav .nav-group[open] summary { background: rgba(178,133,255,.24); color: var(--text); }
       .league-nav .nav-group-panel { position: absolute; left: 0; top: calc(100% + 0.4rem); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.45); padding: 0.4rem; width: max-content; min-width: 180px; z-index: 20; }
       .league-nav .nav-group-panel a { display: block; color: var(--text); text-decoration: none; font-weight: 600; font-size: 0.85rem; padding: 0.5rem 0.6rem; border-radius: 6px; }
-      .league-nav .nav-group-panel a:hover { background: var(--surface-alt); color: var(--purple-light); }
-      .league-nav .nav-group-panel a.active { background: rgba(178,133,255,.18); color: var(--purple-light); }
+      .league-nav .nav-group-panel a:hover { background: var(--surface-alt); color: var(--pink); }
+      .league-nav .nav-group-panel a.active { background: rgba(178,133,255,.18); color: var(--pink); }
       .league-nav .league-name { color: var(--text); font-weight: 700; font-size: clamp(0.8rem, 2.5vw, 0.95rem); padding: 0.35rem 0.7rem 0.35rem 0; margin-right: 0.35rem; max-width: 45vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .league-nav .platform-tag { background: rgba(178,133,255,.18); color: var(--purple-light); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.5rem; }
+      .league-nav .platform-tag { background: rgba(178,133,255,.18); color: var(--pink); border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.5rem; }
       header:not(:has(.league-nav)) { padding-bottom: 0.9rem; }
       main { padding: 1rem; max-width: 1200px; margin: 0 auto; }
       .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.3); margin-bottom: 1.25rem; padding: 1rem; overflow-x: auto; }
@@ -96,13 +96,13 @@
       .button:hover:not(:disabled) { background: linear-gradient(135deg, #8258e8, var(--purple)); box-shadow: 0 4px 10px rgba(107,63,212,.4); transform: translateY(-1px); }
       .button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,.3); }
       .button:disabled { opacity: 0.45; cursor: not-allowed; }
-      .button-secondary { background: var(--surface); color: var(--purple-light); border: 1.5px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+      .button-secondary { background: var(--surface); color: var(--pink); border: 1.5px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
       .button-secondary:hover:not(:disabled) { background: var(--surface-alt); border-color: var(--purple); box-shadow: 0 3px 8px rgba(0,0,0,.3); transform: translateY(-1px); }
       .button-secondary:active:not(:disabled) { transform: translateY(0); }
-      .button-ghost { background: transparent; color: var(--purple-light); box-shadow: none; }
+      .button-ghost { background: transparent; color: var(--pink); box-shadow: none; }
       .button-ghost:hover:not(:disabled) { background: rgba(178,133,255,.1); box-shadow: none; transform: none; }
       .status { color: var(--muted); margin-top: 0.5rem; font-size: clamp(0.8rem, 2vw, 0.92rem); }
-      .message { background: rgba(178,133,255,.14); color: var(--purple-light); border-left: 4px solid var(--purple); padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+      .message { background: rgba(178,133,255,.14); color: var(--pink); border-left: 4px solid var(--purple); padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
       .error { background: rgba(255,92,108,.14); color: var(--red); border-left: 4px solid var(--red); padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
       .pill { display: inline-block; background: var(--surface-alt); color: var(--muted); border-radius: 999px; padding: 0.25rem 0.6rem; font-size: clamp(0.65rem, 1.5vw, 0.8rem); margin-right: 0.35rem; font-weight: 600; white-space: nowrap; }
       .keeper-card { display: block; width: 100%; text-align: left; font-family: inherit; font-size: 0.9rem; cursor: pointer; margin-bottom: 0.4rem; padding: 0.5rem 0.6rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; transition: border-color .1s, background .1s; color: var(--text); }
