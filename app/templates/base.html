@@ -38,10 +38,14 @@
       .profile-menu[open] summary { background: rgba(178,133,255,.24); color: var(--text); }
       .profile-menu-panel { position: absolute; right: 0; top: calc(100% + 0.4rem); background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.45); padding: 0.6rem; width: max-content; min-width: 220px; max-width: min(720px, 90vw); z-index: 20; }
       .profile-menu-panel ul { list-style: none; margin: 0 0 0.5rem; padding: 0; }
-      .profile-menu-panel li { padding: 0.35rem 0.2rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+      .profile-menu-panel li { display: flex; align-items: center; gap: 0.3rem; padding: 0.35rem 0.2rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
       .profile-menu-panel li:last-child { border-bottom: none; }
-      .profile-menu-panel li a { color: var(--text); font-weight: 600; text-decoration: none; }
+      .profile-menu-panel li a { color: var(--text); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .profile-menu-panel li a:hover { color: var(--pink); }
+      .profile-menu-panel li .pill { margin-right: 0; }
+      .profile-menu-panel li form { margin: 0 0 0 auto; }
+      .profile-menu-delete { background: none; border: none; padding: 0.15rem 0.35rem; cursor: pointer; color: var(--muted); font-size: 0.9rem; line-height: 1; border-radius: 4px; min-width: auto; min-height: auto; }
+      .profile-menu-delete:hover { color: var(--red); background: rgba(255,92,108,.12); }
       .profile-menu-all { display: block; font-size: 0.85rem; font-weight: 600; color: var(--pink); text-decoration: none; padding: 0.3rem 0.2rem; }
       .profile-menu-all:hover { text-decoration: underline; }
       .profile-menu-panel form { margin-top: 0.4rem; }
@@ -157,7 +161,14 @@
               {% if nav_leagues %}
               <ul>
                 {% for l in nav_leagues %}
-                <li><a href="{{ l.href }}">{{ l.name }}</a> <span class="pill">{{ l.platform }}</span></li>
+                <li>
+                  <a href="{{ l.href }}">{{ l.name }}</a> <span class="pill">{{ l.platform }}</span>
+                  <form method="post" action="/my/leagues/delete" class="delete-league-form"
+                        data-league-name="{{ l.name }}">
+                    <input type="hidden" name="slug" value="{{ l.slug }}">
+                    <button type="submit" class="profile-menu-delete" title="Delete {{ l.name }}" aria-label="Delete {{ l.name }}">✕</button>
+                  </form>
+                </li>
                 {% endfor %}
               </ul>
               {% else %}
@@ -252,5 +263,22 @@
       {% if error %}<div class="error">{{ error }}</div>{% endif %}
       {% block content %}{% endblock %}
     </main>
+    <script>
+      // Shared confirm() for every "Delete league" form (profile menu
+      // dropdown + /leagues page) -- data-league-name avoids building a JS
+      // string literal inside a Jinja attribute, which breaks on an
+      // apostrophe in a league name (e.g. a team/league named with a
+      // possessive).
+      document.querySelectorAll('.delete-league-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          var name = form.getAttribute('data-league-name') || 'this league';
+          var ok = confirm(
+            'Remove ' + name + ' from your leagues? ' +
+            'Your keeper picks and board adjustments stay in place in case you or a teammate re-adds it.'
+          );
+          if (!ok) event.preventDefault();
+        });
+      });
+    </script>
   </body>
 </html>

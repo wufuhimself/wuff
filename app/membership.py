@@ -101,6 +101,46 @@ def set_default_league(user_id: int, slug: str) -> bool:
     return True
 
 
+def unfollow_league(user_id: int, slug: str) -> bool:
+    """Remove this user's membership in a league ('Delete league' in the
+    profile menu / /leagues). False when the league is unknown or not
+    theirs -- same guard as set_default_league, for the same reason: this
+    must not be usable to touch anyone else's membership.
+
+    Deliberately unfollow-only, not a real delete: KeeperMark/SyncRun/
+    BoardAdjustment/EspnCredential are keyed on (platform,
+    platform_league_id) strings, not a DbLeague foreign key, so they are
+    not cleanly cascadable, and a league other users still follow must not
+    lose its data because one member left. The DbLeague row and every
+    other user's UserLeague row are untouched; if this was the last
+    follower, the league becomes invisible to everyone -- the same state
+    as a registry league nobody has been granted yet -- rather than being
+    destroyed. If the user's stored default_league_slug pointed at this
+    league, no explicit cleanup is needed here:
+    default_league_for_user() already treats a stored slug the user no
+    longer follows as unset and falls through to their next followed
+    league (or None), by design.
+    """
+    league = resolve_league(slug)
+    if league is None or not user_follows(user_id, league):
+        return False
+    with SessionLocal() as session:
+        row = (
+            session.query(DbLeague)
+            .filter_by(platform=league.platform, platform_league_id=league.platform_league_id)
+            .one_or_none()
+        )
+        if row is None:
+            return False
+        deleted = (
+            session.query(UserLeague)
+            .filter_by(user_id=user_id, league_id=row.id)
+            .delete()
+        )
+        session.commit()
+    return deleted > 0
+
+
 def ensure_db_league(league: League) -> int:
     """DbLeague row id for a resolved league, created from the registry entry
     if it only exists in leagues.json so far. Same shape save_league_rules()

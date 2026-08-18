@@ -27,6 +27,11 @@
               <button type="submit" class="button button-ghost">Make default</button>
             </form>
             {% endif %}
+            <form method="post" action="/my/leagues/delete" class="delete-league-form" style="display:inline"
+                  data-league-name="{{ l.name }}">
+              <input type="hidden" name="slug" value="{{ l.slug }}">
+              <button type="submit" class="button button-ghost">Delete league</button>
+            </form>
           </li>
           {% endfor %}
         </ul>

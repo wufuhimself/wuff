@@ -51,6 +51,7 @@ from .membership import (
     default_league_for_user,
     followed_league_rows,
     set_default_league,
+    unfollow_league,
     user_follows,
     user_follows_platform_league,
 )
@@ -194,8 +195,11 @@ def _inject_league_context():
     if current_user.is_authenticated:
         # Cheap on purpose -- runs on every page via context processor, so no
         # per-league sync status here (that's what /leagues itself is for).
+        # slug is already on the row (no extra query) -- needed so the
+        # per-row "delete league" link in the dropdown can post it.
         nav_leagues = [
-            {'name': row.name, 'platform': row.platform, 'href': _league_href(row.platform, row.platform_league_id)}
+            {'name': row.name, 'platform': row.platform, 'slug': row.slug,
+             'href': _league_href(row.platform, row.platform_league_id)}
             for row in followed_league_rows(current_user.id)
         ]
     return {
@@ -609,6 +613,21 @@ def my_league_set_default():
     slug = request.form.get('slug', '').strip()
     if set_default_league(current_user.id, slug):
         return redirect(url_for('leagues_view', message='Default league updated.'))
+    return redirect(url_for('leagues_view', message='Not one of your leagues.'))
+
+
+@app.route('/my/leagues/delete', methods=['POST'])
+@login_required
+def my_league_delete():
+    """'Delete league' -- actually unfollow (see membership.unfollow_league's
+    docstring for why this is deliberately not a real delete). Rejects
+    leagues the user doesn't follow, same guard as set_default -- this must
+    not double as a way to touch someone else's membership."""
+    slug = request.form.get('slug', '').strip()
+    league = resolve_league(slug)
+    name = league.name if league is not None else slug
+    if unfollow_league(current_user.id, slug):
+        return redirect(url_for('leagues_view', message=f'Removed {name} from your leagues.'))
     return redirect(url_for('leagues_view', message='Not one of your leagues.'))
 
 
