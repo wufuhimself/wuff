@@ -23,13 +23,24 @@
         <p class="status">Connect a Sleeper league by username, or an ESPN league by ID — both self-serve,
           no waiting on approval. (Yahoo leagues are supported but currently added by request while
           Yahoo's API access is pending.)</p>
-        <div class="grid" style="margin-top: 1rem;">
-          <div class="team-card">
-            <h3 style="margin-top: 0;">Keeper board</h3>
-            <p class="status">Every keeper-eligible player, scored and ranked by this league's own rules —
-              round restrictions, consecutive-season caps. Click a card to mark a keeper; the draft board
-              updates live.</p>
+        <div class="team-card" style="margin-top: 1rem;">
+          <h3 style="margin-top: 0;">Keeper board — click, and watch the draft board move</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;">
+            <img src="/static/img/keeper-board-demo.gif" alt="Clicking a keeper card on the keepers board, showing the draft board update live"
+                 style="max-width: 100%; width: 460px; border-radius: 10px; border: 1px solid var(--border); flex: 1 1 360px;">
+            <div style="flex: 1 1 280px;">
+              <p class="status">Every keeper-eligible player, scored and ranked by this league's own rules —
+                round restrictions, consecutive-season caps. Click a card to mark a keeper or drop one; the
+                remaining draft board reorders live, so you can try out different keeper calls before
+                committing and see exactly how each one reshapes the board.</p>
+              <p class="status">It also shows position scarcity as keepers lock in — this league's board
+                right now has <strong style="color: var(--text);">11 of the top 20 WRs already kept</strong>,
+                so WR depth on draft day is thinner than a generic ranking site would suggest. That's the
+                kind of thing only your own league's data can tell you.</p>
+            </div>
           </div>
+        </div>
+        <div class="grid" style="margin-top: 1rem;">
           <div class="team-card">
             <h3 style="margin-top: 0;">Mock draft</h3>
             <p class="status">Simulates your league's draft from current keepers and market rankings, with
