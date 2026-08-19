@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from flask_login import UserMixin
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -72,6 +72,11 @@ class DbLeague(Base):
     # object; merged over the registry/default format by league_service.
     rules_json: Mapped[Optional[str]] = mapped_column(String(4000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    # False = platform confirms the league is gone (e.g. deleted on Sleeper's
+    # side, 404 on sync). Row/history/followers are kept for the record;
+    # sync_scheduler.leagues_to_sync() just stops retrying it. Default True
+    # so every existing row keeps syncing until someone flips it off.
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     followers = relationship('UserLeague', back_populates='league', cascade='all, delete-orphan')
 

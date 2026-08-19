@@ -21,7 +21,8 @@
       "name": "👑 Royal Rumble League 👑",
       "format": "redraft",
       "season": "2026",
-      "totalRosters": 12
+      "totalRosters": 12,
+      "active": false
     },
     {
       "leagueId": "1390773146201657344",

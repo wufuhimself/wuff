@@ -64,6 +64,10 @@ _COLUMN_BACKFILLS = [
     # falls back to matching on team_name, which is what those rows have
     # always used. Backfilled by `python3 -m app build-franchises`.
     ('keeper_marks', 'franchise_id', 'VARCHAR(160)'),
+    # True for every pre-existing league -- they were all still syncing
+    # before this column existed, so "keep syncing" is the correct default,
+    # not just a schema convenience.
+    ('leagues', 'active', 'BOOLEAN NOT NULL DEFAULT TRUE'),
 ]
 
 

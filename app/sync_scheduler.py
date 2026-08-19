@@ -150,18 +150,22 @@ def sync_one_league(platform: str, platform_league_id: str) -> str:
 
 def leagues_to_sync() -> List[Tuple[str, str]]:
     """Every syncable league wuff knows, as (platform, platform_league_id):
-    DB-imported Sleeper + ESPN leagues plus the local Sleeper config set."""
+    DB-imported Sleeper + ESPN leagues plus the local Sleeper config set.
+    Skips DB rows marked inactive (e.g. a league confirmed deleted on the
+    platform's side) -- the row and its history stay, sync just stops."""
     pairs: List[Tuple[str, str]] = []
     with SessionLocal() as session:
         rows = (
             session.query(DbLeague.platform, DbLeague.platform_league_id)
-            .filter(DbLeague.platform.in_(['sleeper', 'espn']))
+            .filter(DbLeague.platform.in_(['sleeper', 'espn']), DbLeague.active.is_(True))
             .all()
         )
         pairs.extend((platform, platform_league_id) for platform, platform_league_id in rows)
     for entry in load_sleeper_leagues_config().get('leagues', []):
         league_id = entry.get('leagueId')
-        if league_id and ('sleeper', league_id) not in pairs:
+        if not league_id or entry.get('active') is False:
+            continue
+        if ('sleeper', league_id) not in pairs:
             pairs.append(('sleeper', league_id))
     return pairs
 
