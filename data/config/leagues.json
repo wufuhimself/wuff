@@ -94,48 +94,6 @@
       }
     },
     {
-      "leagueId": "sleeper-1391819447341158400",
-      "platform": "sleeper",
-      "platformLeagueId": "1391819447341158400",
-      "name": "\ud83d\udc51 Royal Rumble League \ud83d\udc51",
-      "season": "2026",
-      "format": {
-        "teams": 12,
-        "league_id": "1391819447341158400",
-        "league_name": "\ud83d\udc51 Royal Rumble League \ud83d\udc51",
-        "draft_type": null,
-        "scoring_type": null,
-        "keeper_cost_uses_draft_round": false,
-        "keeper_slots_at_draft_end": true,
-        "keeper_max_consecutive_seasons": 2,
-        "keeper_slots": 0,
-        "keeper_ineligible_rounds": [],
-        "keeper_slot_rounds": [],
-        "roster_positions": [],
-        "scoring": {
-          "pass_td": 4.0,
-          "pass_yd_per_point": 25.0,
-          "rush_yd_per_point": 10.0,
-          "rec_yd_per_point": 10.0,
-          "receptions": 0.5,
-          "rush_td": 6.0,
-          "rec_td": 6.0,
-          "interception": -1.0,
-          "fumble_lost": -2.0
-        },
-        "starters": {
-          "QB": 1,
-          "RB": 2,
-          "WR": 2,
-          "TE": 1,
-          "FLEX": 0,
-          "SUPERFLEX": 0,
-          "DEF": 1,
-          "K": 1
-        }
-      }
-    },
-    {
       "leagueId": "sleeper-1390773146201657344",
       "platform": "sleeper",
       "platformLeagueId": "1390773146201657344",
