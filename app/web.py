@@ -1086,7 +1086,9 @@ def sleeper_league_view(league_id: str):
     if league is None:
         return redirect(url_for('leagues_view'))
     snapshot = load_synced_league(league_id)
-    sync_error = None if snapshot is not None else 'Not synced yet — sync it from /leagues.'
+    sync_error = None if snapshot is not None else (
+        'Not synced yet — sync it from <a href="/leagues">the leagues page</a>.'
+    )
     slot_labels = (snapshot or {}).get('rosterPositions') or []
     return render_template(
         'league_overview.html', active='sleeper',
@@ -1103,7 +1105,9 @@ def espn_league_view(league_id: str):
     if league is None:
         return redirect(url_for('leagues_view'))
     snapshot = espn_manager.load_synced_league(league_id)
-    sync_error = None if snapshot is not None else 'Not synced yet — import this league from /my/onboard first.'
+    sync_error = None if snapshot is not None else (
+        'Not synced yet — import this league from <a href="/my/onboard">onboarding</a> first.'
+    )
     slot_labels = (snapshot or {}).get('rosterPositions') or []
     return render_template(
         'league_overview.html', active='espn',

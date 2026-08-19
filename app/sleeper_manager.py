@@ -1,7 +1,9 @@
 """Sync orchestration for Sleeper leagues into wuff's local data layer.
 
 Sleeper is readonly and unauthenticated, so "sync" just means: fetch the
-current state from the API and overwrite the local JSON snapshot. There is
+current state from the API and overwrite the stored PlatformSnapshot rows
+(app/snapshot_store.py -- DB-backed, not the data/raw/sleeper/ JSON files
+this used to write, which never survived a Railway redeploy). There is
 no push side, and no token to manage — see [[feedback_yahoo_fantasy_api_approval]]
 for contrast with the Yahoo side.
 
@@ -14,7 +16,6 @@ IDs by hand.
 
 import json
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import sleeper_client
@@ -22,8 +23,10 @@ from .paths import (
     SLEEPER_LEAGUES_CONFIG_FILE,
     SLEEPER_PLAYERS_CACHE_FILE,
     ensure_parent_dir,
-    sleeper_league_dir,
 )
+from .snapshot_store import read_snapshot, read_snapshots, write_snapshot
+
+PLATFORM = 'sleeper'
 
 
 def load_sleeper_leagues_config() -> Dict[str, Any]:
@@ -109,20 +112,13 @@ def _resolve_player(player_id: str, players_cache: Dict[str, Any]) -> Dict[str, 
     }
 
 
-def _write_json(path: Path, data: Any) -> None:
-    ensure_parent_dir(path)
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-
 def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Pull league info, rosters, users, and draft results for one league
-    and write them to data/raw/sleeper/{league_id}/. Returns a short summary
-    for CLI/log output."""
+    and write them as PlatformSnapshot rows. Returns a short summary for
+    CLI/log output."""
     if players_cache is None:
         players_cache = load_players_cache()
 
-    league_dir = sleeper_league_dir(league_id)
     league = sleeper_client.get_league(league_id)
     users = sleeper_client.get_league_users(league_id)
     rosters = sleeper_client.get_league_rosters(league_id)
@@ -150,7 +146,7 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
             'starters': starters,
         })
 
-    _write_json(league_dir / 'league.json', {
+    write_snapshot(PLATFORM, league_id, 'league', {
         'leagueId': league_id,
         'name': league.get('name'),
         'season': league.get('season'),
@@ -160,7 +156,7 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
         'rosterPositions': league.get('roster_positions'),
         'syncedAt': datetime.now(timezone.utc).isoformat(),
     })
-    _write_json(league_dir / 'rosters.json', resolved_rosters)
+    write_snapshot(PLATFORM, league_id, 'rosters', resolved_rosters)
 
     # Draft results, if a draft exists for this league/season yet.
     drafts = sleeper_client.get_league_drafts(league_id)
@@ -182,13 +178,13 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
                 'position': metadata.get('position'),
                 'team': metadata.get('team'),
             })
-        _write_json(league_dir / f'draft_{draft_id}.json', {
+        write_snapshot(PLATFORM, league_id, 'drafts', {
             'draftId': draft_id,
             'season': draft.get('season'),
             'status': draft.get('status'),
             'type': draft.get('type'),
             'picks': resolved_picks,
-        })
+        }, key=str(draft_id))
         draft_summaries.append({'draftId': draft_id, 'status': draft.get('status'), 'pickCount': len(resolved_picks)})
 
     transaction_count = sync_transactions(league_id, players_cache)
@@ -222,17 +218,16 @@ def sync_transactions(league_id: str, players_cache: Optional[Dict[str, Any]] = 
     Deliberately NOT resolved into team names/canonical player ids here --
     that normalization happens once, in app/repository.py's typed API, the
     same place roster/draft normalization happens. This function's job is
-    only to get Sleeper's own shape onto disk. Returns the transaction count.
+    only to get Sleeper's own shape into storage. Returns the transaction count.
     """
     if players_cache is None:
         players_cache = load_players_cache()
 
-    league_dir = sleeper_league_dir(league_id)
     transactions = []
     for week in TRANSACTION_WEEKS:
         transactions.extend(sleeper_client.get_league_transactions(league_id, week))
 
-    _write_json(league_dir / 'transactions.json', {
+    write_snapshot(PLATFORM, league_id, 'transactions', {
         'leagueId': league_id,
         'syncedAt': datetime.now(timezone.utc).isoformat(),
         'transactions': transactions,
@@ -240,37 +235,22 @@ def sync_transactions(league_id: str, players_cache: Optional[Dict[str, Any]] = 
     return len(transactions)
 
 
-def _read_json(path: Path) -> Optional[Any]:
-    if not path.exists():
-        return None
-    with open(path, encoding='utf-8') as f:
-        return json.load(f)
-
-
 def load_synced_league(league_id: str) -> Optional[Dict[str, Any]]:
     """League settings/status as of the last sleeper-sync run, or None if never synced."""
-    return _read_json(sleeper_league_dir(league_id) / 'league.json')
+    return read_snapshot(PLATFORM, league_id, 'league')
 
 
 def load_synced_rosters(league_id: str) -> List[Dict[str, Any]]:
-    return _read_json(sleeper_league_dir(league_id) / 'rosters.json') or []
+    return read_snapshot(PLATFORM, league_id, 'rosters') or []
 
 
 def load_synced_drafts(league_id: str) -> List[Dict[str, Any]]:
-    """All draft_*.json files synced for this league, most recently synced first."""
-    league_dir = sleeper_league_dir(league_id)
-    if not league_dir.exists():
-        return []
-    drafts = []
-    for path in sorted(league_dir.glob('draft_*.json')):
-        data = _read_json(path)
-        if data:
-            drafts.append(data)
-    return drafts
+    """Every draft synced for this league, most recently synced first."""
+    return read_snapshots(PLATFORM, league_id, 'drafts')
 
 
 def load_synced_transactions(league_id: str) -> List[Dict[str, Any]]:
-    payload = _read_json(sleeper_league_dir(league_id) / 'transactions.json')
+    payload = read_snapshot(PLATFORM, league_id, 'transactions')
     return (payload or {}).get('transactions', [])
 
 
@@ -299,14 +279,13 @@ def sync_matchups(league_id: str, league: Optional[Dict[str, Any]] = None) -> in
     except (TypeError, ValueError):
         current_week = 0
 
-    league_dir = sleeper_league_dir(league_id)
     weeks = {}
     for week in range(1, current_week + 1):
         rows = sleeper_client.get_league_matchups(league_id, week)
         if rows:
             weeks[str(week)] = rows
 
-    _write_json(league_dir / 'matchups.json', {
+    write_snapshot(PLATFORM, league_id, 'matchups', {
         'leagueId': league_id,
         'season': league.get('season'),
         'syncedAt': datetime.now(timezone.utc).isoformat(),
@@ -317,7 +296,7 @@ def sync_matchups(league_id: str, league: Optional[Dict[str, Any]] = None) -> in
 
 def load_synced_matchups(league_id: str) -> Dict[str, List[Dict[str, Any]]]:
     """{week_str: [roster rows]} as last synced."""
-    payload = _read_json(sleeper_league_dir(league_id) / 'matchups.json')
+    payload = read_snapshot(PLATFORM, league_id, 'matchups')
     return (payload or {}).get('weeks', {})
 
 
@@ -334,8 +313,7 @@ def sync_playoffs(league_id: str) -> Dict[str, int]:
     """
     winners = sleeper_client.get_league_winners_bracket(league_id)
     losers = sleeper_client.get_league_losers_bracket(league_id)
-    league_dir = sleeper_league_dir(league_id)
-    _write_json(league_dir / 'playoffs.json', {
+    write_snapshot(PLATFORM, league_id, 'playoffs', {
         'leagueId': league_id,
         'syncedAt': datetime.now(timezone.utc).isoformat(),
         'winnersBracket': winners,
@@ -346,7 +324,7 @@ def sync_playoffs(league_id: str) -> Dict[str, int]:
 
 def load_synced_playoffs(league_id: str) -> Dict[str, List[Dict[str, Any]]]:
     """{'winnersBracket': [...], 'losersBracket': [...]} as last synced."""
-    payload = _read_json(sleeper_league_dir(league_id) / 'playoffs.json')
+    payload = read_snapshot(PLATFORM, league_id, 'playoffs')
     if not payload:
         return {'winnersBracket': [], 'losersBracket': []}
     return {
@@ -363,5 +341,9 @@ def sync_all_leagues() -> List[Dict[str, Any]]:
         players_cache = load_players_cache()
     results = []
     for entry in config.get('leagues', []):
+        # Skip a league marked inactive (e.g. confirmed deleted on Sleeper's
+        # side) -- same reasoning as sync_scheduler.leagues_to_sync().
+        if entry.get('active') is False:
+            continue
         results.append(sync_league(entry['leagueId'], players_cache))
     return results

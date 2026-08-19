@@ -16,7 +16,7 @@
       </section>
 
       {% if error %}
-      <section class="card"><p class="status">{{ error }}</p></section>
+      <section class="card"><p class="status">{{ error|safe }}</p></section>
       {% endif %}
 
       {% if not error and not standings_rows %}

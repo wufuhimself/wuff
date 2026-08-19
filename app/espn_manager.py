@@ -1,33 +1,21 @@
 """Sync orchestration for ESPN leagues into wuff's local data layer.
 
-Snapshots are written in the SAME shapes sleeper_manager produces
-(rosters.json entries, draft_*.json, league.json), so the repository layer
-and the league-snapshot template work unchanged regardless of platform.
+Snapshots are written in the SAME shapes sleeper_manager produces ('league',
+'rosters', 'drafts' PlatformSnapshot kinds -- see snapshot_models.py), so
+the repository layer and the league-overview template work unchanged
+regardless of platform.
 
 Private leagues need the user's espn_s2/SWID cookies at sync time — the
 web layer stores them encrypted (see app/models.py EspnCredential) and
 passes them in; this module never persists credentials.
 """
-import json
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from . import espn_client
-from .paths import ensure_parent_dir, espn_league_dir
+from .snapshot_store import read_snapshot, read_snapshots, write_snapshot
 
-
-def _write_json(path: Path, data: Any) -> None:
-    ensure_parent_dir(path)
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-
-def _read_json(path: Path) -> Optional[Any]:
-    if not path.exists():
-        return None
-    with open(path, encoding='utf-8') as f:
-        return json.load(f)
+PLATFORM = 'espn'
 
 
 def _team_display_name(team: Dict[str, Any]) -> str:
@@ -64,10 +52,9 @@ def sync_league(
     espn_s2: Optional[str] = None,
     swid: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Pull league/teams/rosters/draft for one ESPN league and write snapshots
-    to data/raw/espn/{league_id}/. Returns a short summary."""
+    """Pull league/teams/rosters/draft for one ESPN league and write
+    PlatformSnapshot rows. Returns a short summary."""
     payload = espn_client.fetch_league(league_id, season, espn_s2=espn_s2, swid=swid)
-    league_dir = espn_league_dir(league_id)
 
     members = {m.get('id'): m.get('displayName') for m in payload.get('members') or []}
 
@@ -98,7 +85,7 @@ def sync_league(
             'starters': starters,
         })
 
-    _write_json(league_dir / 'league.json', {
+    write_snapshot(PLATFORM, league_id, 'league', {
         'leagueId': league_id,
         'name': ((payload.get('settings') or {}).get('name')) or f'ESPN league {league_id}',
         'season': str(payload.get('seasonId') or season),
@@ -106,7 +93,7 @@ def sync_league(
         'rosterPositions': _roster_positions(payload),
         'syncedAt': datetime.now(timezone.utc).isoformat(),
     })
-    _write_json(league_dir / 'rosters.json', resolved_rosters)
+    write_snapshot(PLATFORM, league_id, 'rosters', resolved_rosters)
 
     draft = payload.get('draftDetail') or {}
     draft_summaries = []
@@ -127,13 +114,13 @@ def sync_league(
                 'team': player.get('team'),
             })
         season_str = str(payload.get('seasonId') or season)
-        _write_json(league_dir / f'draft_{season_str}.json', {
+        write_snapshot(PLATFORM, league_id, 'drafts', {
             'draftId': season_str,
             'season': season_str,
             'status': 'complete',
             'type': 'snake',
             'picks': resolved_picks,
-        })
+        }, key=season_str)
         draft_summaries.append({'draftId': season_str, 'status': 'complete', 'pickCount': len(resolved_picks)})
 
     return {
@@ -145,20 +132,12 @@ def sync_league(
 
 
 def load_synced_league(league_id: str) -> Optional[Dict[str, Any]]:
-    return _read_json(espn_league_dir(league_id) / 'league.json')
+    return read_snapshot(PLATFORM, league_id, 'league')
 
 
 def load_synced_rosters(league_id: str) -> List[Dict[str, Any]]:
-    return _read_json(espn_league_dir(league_id) / 'rosters.json') or []
+    return read_snapshot(PLATFORM, league_id, 'rosters') or []
 
 
 def load_synced_drafts(league_id: str) -> List[Dict[str, Any]]:
-    league_dir = espn_league_dir(league_id)
-    if not league_dir.exists():
-        return []
-    drafts = []
-    for path in sorted(league_dir.glob('draft_*.json')):
-        data = _read_json(path)
-        if data:
-            drafts.append(data)
-    return drafts
+    return read_snapshots(PLATFORM, league_id, 'drafts')

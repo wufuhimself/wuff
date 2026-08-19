@@ -47,15 +47,6 @@ PLAYER_ALIASES_FILE = CONFIG_DIR / 'player_aliases.json'
 FRANCHISE_ALIASES_FILE = CONFIG_DIR / 'franchise_aliases.json'
 
 
-RAW_ESPN_DIR = RAW_DIR / 'espn'
-
-
-def sleeper_league_dir(league_id: str) -> Path:
-    return RAW_SLEEPER_DIR / league_id
-
-
-def espn_league_dir(league_id: str) -> Path:
-    return RAW_ESPN_DIR / league_id
 YAHOO_RANKINGS_FILE = RAW_RANKINGS_DIR / 'yahoo_rankings.json'
 RANKINGS_COMBINED_FILE = RAW_RANKINGS_DIR / 'rankings_combined.json'
 YAHOO_ROSTER_FILE = RAW_ROSTERS_DIR / 'yahoo_roster.json'

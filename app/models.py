@@ -25,6 +25,7 @@ from .player_models import (  # noqa: F401  pylint: disable=unused-import
     PlayerAlias,
     PlayerRecord,
 )
+from .snapshot_models import PlatformSnapshot  # noqa: F401  pylint: disable=unused-import
 from .yahoo_models import (  # noqa: F401  pylint: disable=unused-import
     YahooDraftPick,
     YahooDraftPickOwnership,
