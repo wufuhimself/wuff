@@ -17,7 +17,9 @@
             <a href="{{ l.href }}">{{ l.name }}</a>
             {% if l.isDefault %}<span class="pill">default</span>{% endif %}
             <span class="status">{% if l.teams %}{{ l.teams }} teams{% endif %}{% if l.season %} · {{ l.season }}{% endif %}
-              {% if l.lastSyncAt %} · synced {{ l.lastSyncAt }} ({{ l.lastSyncStatus }}){% else %} · never synced{% endif %}</span>
+              {% if l.lastSyncAt %} · synced {{ l.lastSyncAt }}
+                {% if l.lastSyncStatus == 'error' and l.lastSyncDetail %}<span title="{{ l.lastSyncDetail }}">(error)</span>{% else %}({{ l.lastSyncStatus }}){% endif %}
+              {% else %} · never synced{% endif %}</span>
             <form method="post" action="/my/leagues/sync/{{ l.platformLeagueId }}" style="display:inline">
               <button type="submit" class="button button-ghost">Sync now</button>
             </form>

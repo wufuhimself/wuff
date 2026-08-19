@@ -1049,6 +1049,7 @@ def leagues_view():
                 'isDefault': row.slug == default_slug,
                 'lastSyncAt': last_run.started_at.strftime('%Y-%m-%d %H:%M UTC') if last_run else None,
                 'lastSyncStatus': last_run.status if last_run else None,
+                'lastSyncDetail': last_run.detail if last_run else None,
             })
     provider_order = [p for p in ('yahoo', 'sleeper', 'espn') if p in providers]
     return render_template(
