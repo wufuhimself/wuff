@@ -2,6 +2,10 @@
 
 *Keeper decisions, draft boards, and roster strategy across leagues, not bound to one platform.*
 
+**Live:** [wuff-production.up.railway.app](https://wuff-production.up.railway.app) — enter
+any email to sign in; it's a real magic-link flow (no password), so check that inbox for the
+login link.
+
 ## What this is
 
 Most fantasy tools are dashboards: they show data, you decide. WuFF is built as an
@@ -16,7 +20,8 @@ hand-tuned).
 **Where it stands today:** a strong "on-demand advisor" across 7 leagues — 1 Yahoo
 (deepest-supported, keeper/draft rules live) + 6 Sleeper (readonly). Interactive keeper
 selection lives at `/keepers-board` (Yahoo) and `/league/<slug>/keepers` (any league) —
-click a player card to toggle kept/not-kept, no login, live AJAX updates. Read-only
+click a player card to toggle kept/not-kept, live AJAX updates. Login required app-wide
+(magic-link email). Read-only
 against Yahoo (write access requires manual API approval, currently pending). ESPN import
 is in beta. Multi-user accounts (Phase 1) exist — Sleeper username onboarding included.
 
