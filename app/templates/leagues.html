@@ -21,7 +21,11 @@
                 {% if l.lastSyncStatus == 'error' and l.lastSyncDetail %}<span title="{{ l.lastSyncDetail }}">(error)</span>{% else %}({{ l.lastSyncStatus }}){% endif %}
               {% else %} · never synced{% endif %}</span>
             <form method="post" action="/my/leagues/sync/{{ l.platformLeagueId }}" style="display:inline">
+              {% if l.syncCooldown %}
+              <button type="submit" class="button button-ghost" disabled title="Synced recently — next sync available in {{ l.syncCooldown }}">Sync now ({{ l.syncCooldown }})</button>
+              {% else %}
               <button type="submit" class="button button-ghost">Sync now</button>
+              {% endif %}
             </form>
             {% if not l.isDefault %}
             <form method="post" action="/my/leagues/default" style="display:inline">

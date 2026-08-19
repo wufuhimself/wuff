@@ -31,7 +31,7 @@ API pacing is enforced globally in sleeper_client, not here.
 import logging
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -112,10 +112,16 @@ def _espn_sync_args(platform_league_id: str) -> Tuple[int, Optional[str], Option
     return season, espn_s2, swid
 
 
-def sync_one_league(platform: str, platform_league_id: str) -> str:
-    """Sync one league's snapshots, recording a SyncRun. Returns final status."""
+def sync_one_league(platform: str, platform_league_id: str, trigger: str = 'scheduled') -> str:
+    """Sync one league's snapshots, recording a SyncRun. Returns final status.
+
+    trigger: 'manual' (user clicked "Sync now"/onboarding import) or
+    'scheduled' (sync-sweep cron, the default) -- see SyncRun.trigger's
+    docstring. Only 'manual' runs count against the manual-sync cooldown in
+    web.py's sync_cooldown_remaining()."""
     with SessionLocal() as session:
-        run = SyncRun(platform=platform, platform_league_id=platform_league_id, status='running')
+        run = SyncRun(platform=platform, platform_league_id=platform_league_id,
+                       status='running', trigger=trigger)
         session.add(run)
         session.commit()
         run_id = run.id
@@ -146,6 +152,38 @@ def sync_one_league(platform: str, platform_league_id: str) -> str:
             run.finished_at = _utcnow()
             session.commit()
     return status
+
+
+MANUAL_SYNC_COOLDOWN_SECONDS = 3 * 60 * 60
+
+
+def manual_sync_cooldown_remaining(platform: str, platform_league_id: str) -> Optional[timedelta]:
+    """How much longer until the "Sync now" button is usable again for this
+    league, or None if it's usable right now.
+
+    Only counts trigger='manual' runs (see SyncRun.trigger) -- the scheduled
+    sweep syncing a league 5 minutes ago must not make the button look
+    throttled; only a user's own recent click should. Looks at started_at
+    (not finished_at) for a still-'running' manual sync too, so a slow sync
+    that hasn't finished yet still blocks a second click.
+    """
+    with SessionLocal() as session:
+        last = (
+            session.query(SyncRun)
+            .filter(SyncRun.platform == platform,
+                    SyncRun.platform_league_id == platform_league_id,
+                    SyncRun.trigger == 'manual')
+            .order_by(SyncRun.started_at.desc())
+            .first()
+        )
+    if last is None:
+        return None
+    started_at = last.started_at
+    if started_at.tzinfo is None:
+        started_at = started_at.replace(tzinfo=timezone.utc)
+    elapsed = _utcnow() - started_at
+    remaining = timedelta(seconds=MANUAL_SYNC_COOLDOWN_SECONDS) - elapsed
+    return remaining if remaining > timedelta(0) else None
 
 
 def leagues_to_sync() -> List[Tuple[str, str]]:
@@ -309,15 +347,20 @@ def ensure_scheduler_started() -> bool:
 
 def queue_league_sync(platform_league_id: str, platform: str = 'sleeper') -> bool:
     """Sync a league in the background; inline fallback when scheduler disabled.
-    Returns True when queued, False when it ran inline."""
+    Returns True when queued, False when it ran inline.
+
+    Always trigger='manual' -- every caller of this function (the "Sync
+    now" button, onboarding import) is a user-initiated request, unlike
+    sync_all_due()'s scheduled sweep. See sync_one_league's docstring."""
     if ensure_scheduler_started() and _scheduler is not None:
         _scheduler.add_job(
             sync_one_league,
             args=[platform, platform_league_id],
+            kwargs={'trigger': 'manual'},
             id=f'{platform}-sync-{platform_league_id}',
             replace_existing=True,
             misfire_grace_time=300,
         )
         return True
-    sync_one_league(platform, platform_league_id)
+    sync_one_league(platform, platform_league_id, trigger='manual')
     return False

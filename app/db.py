@@ -68,6 +68,10 @@ _COLUMN_BACKFILLS = [
     # before this column existed, so "keep syncing" is the correct default,
     # not just a schema convenience.
     ('leagues', 'active', 'BOOLEAN NOT NULL DEFAULT TRUE'),
+    # 'scheduled' for every pre-existing row -- see SyncRun.trigger's
+    # docstring for why that's the correct historical default, not just a
+    # schema convenience.
+    ('sync_runs', 'trigger', "VARCHAR(16) NOT NULL DEFAULT 'scheduled'"),
 ]
 
 

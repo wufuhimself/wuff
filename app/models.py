@@ -112,6 +112,15 @@ class SyncRun(Base):
     platform_league_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default='running')
     detail: Mapped[Optional[str]] = mapped_column(String(500))
+    # 'manual' (user clicked "Sync now") or 'scheduled' (sync-sweep cron).
+    # Added 2026-08-19 so the manual-sync throttle (web.py) can tell "you
+    # just clicked this 10 minutes ago" apart from "the cron job happened to
+    # run 10 minutes ago" -- only the former should count against the
+    # cooldown. Pre-existing rows backfill to 'scheduled': every sync before
+    # this column existed came from the original scheduler-only design (the
+    # manual "Sync now" button and its throttle are both new), so that's the
+    # only correct historical default.
+    trigger: Mapped[str] = mapped_column(String(16), nullable=False, default='scheduled')
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
