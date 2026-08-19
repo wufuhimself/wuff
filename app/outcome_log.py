@@ -22,6 +22,18 @@ by decision_id (now including platform+platform_league_id) so a later
 forecast for the same (league, decision_type, season, entity) overwrites the
 previous pending one rather than piling up duplicates. Resolved entries are
 left alone — they're historical record.
+
+Change history (2026-08-19): the upsert above is destructive by design --
+useful for "don't pile up duplicates," bad for "why did this forecast
+change," which needs the *old* value to still exist somewhere. Before an
+upsert overwrites a pending entry with a genuinely different forecast,
+log_outcome() appends the old forecast to data/processed/outcome_log_history.json
+(same on-disk-JSON, gitignored-processed-dir pattern as outcome_log.json
+itself and app/ranking_history.py -- same ephemeral-disk deploy caveat
+applies, not re-solved here). Gated on the forecast dict actually differing:
+keeper_service.log_team_keeper_forecast() re-logs a team's forecast on every
+card click, so an unconditional append would flood this file with identical
+re-saves. forecast_history(decision_id) reads it back, oldest first.
 """
 import json
 from datetime import datetime
@@ -34,6 +46,7 @@ from .player_registry import normalize_name
 from .repository import get_repository, repository_for
 
 OUTCOME_LOG_FILE = PROCESSED_DIR / 'outcome_log.json'
+OUTCOME_LOG_HISTORY_FILE = PROCESSED_DIR / 'outcome_log_history.json'
 
 # Default league for callers that don't specify one -- keeps existing
 # decision_ids and CLI call sites (app/cli.py) unchanged.
@@ -82,6 +95,29 @@ def save_outcomes(outcomes: List[Dict[str, Any]], path=None) -> None:
     path.write_text(json.dumps(outcomes, indent=2))
 
 
+def load_outcome_history(path=None) -> List[Dict[str, Any]]:
+    path = path or OUTCOME_LOG_HISTORY_FILE
+    if not path.exists():
+        return []
+    return json.loads(path.read_text())
+
+
+def _append_outcome_history(entry: Dict[str, Any], path=None) -> None:
+    path = path or OUTCOME_LOG_HISTORY_FILE
+    history = load_outcome_history(path)
+    history.append(entry)
+    ensure_parent_dir(path)
+    path.write_text(json.dumps(history, indent=2))
+
+
+def forecast_history(decision_id: str) -> List[Dict[str, Any]]:
+    """Every superseded forecast for one decision_id, oldest first. Empty
+    until a forecast has actually changed at least once (see module
+    docstring) -- a decision logged only once has no history, just its one
+    live entry in outcome_log.json."""
+    return [e for e in load_outcome_history() if e['decision_id'] == decision_id]
+
+
 def log_outcome(
     decision_type: str,
     season: int,
@@ -127,6 +163,13 @@ def log_outcome(
     for i, existing in enumerate(outcomes):
         if existing['decision_id'] == decision_id:
             if existing['status'] == 'pending':
+                if existing['forecast'] != forecast:
+                    _append_outcome_history({
+                        'decision_id': decision_id,
+                        'superseded_at': existing['forecasted_at'],
+                        'forecast': existing['forecast'],
+                        'forecast_method_version': existing['forecast_method_version'],
+                    })
                 outcomes[i] = entry
             return outcomes[i]
     outcomes.append(entry)
