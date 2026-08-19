@@ -1,0 +1,15 @@
+# LangGraph/LangChain prototype deps (WS-6 LLM reasoning layer spike,
+# see Obsidian WS-6-agent-runtime/LangGraph_Prototype_Plan_2026-08-19.md).
+# Deliberately NOT in requirements.txt: this is a narrow, unproven spike
+# per the plan's own scoping, not something every deploy should carry yet.
+# Install with: pip install -r requirements-langgraph.txt
+langgraph
+langchain
+# LLM binding: local via Ollama (free, runs on-machine) rather than
+# langchain-anthropic -- switched 2026-08-19 when the spike's actual API
+# cost became real instead of hypothetical. Needs `brew install ollama`,
+# `brew services start ollama`, and `ollama pull llama3.1:8b` (~4.9GB,
+# one-time) before scripts/langgraph_spike.py will run. Swap back to
+# langchain-anthropic + ANTHROPIC_API_KEY (see .env.example) if/when
+# quality needs outgrow a local 8B model.
+langchain-ollama
