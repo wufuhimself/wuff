@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Ask — {{ league_display_name }} — WuFF{% endblock %}
+{% block content %}
+
+      <section class="card">
+        <h2>Ask about this league</h2>
+        <p class="status">Answers come from this league's own forecast log (keeper picks,
+          draft-slot predictions), not live data or outside knowledge — the model only sees
+          what WuFF has already logged and can be wrong or incomplete. Prototype (WS-6 LangGraph
+          spike): runs on a local model, may be slow, and quality is still rough.</p>
+
+        <form method="post" style="display: grid; gap: 0.75rem; max-width: 40rem; margin-top: 1rem;">
+          <textarea name="question" rows="2" placeholder="e.g. Which players had their keeper forecast change recently?" required style="width: 100%; font: inherit; padding: 0.5rem;"></textarea>
+          <div><button type="submit" class="button">Ask</button></div>
+        </form>
+      </section>
+
+      <section class="card" style="margin-top: 1.5rem;">
+        {% if not history %}
+        <p class="status">No questions asked yet. This is a new conversation thread — it'll
+          remember what you ask across visits.</p>
+        {% else %}
+        <h2>Conversation</h2>
+        <div style="display: grid; gap: 1.25rem; margin-top: 1rem;">
+          {% for turn in history %}
+          <div>
+            <p><strong>You:</strong> {{ turn.question }}</p>
+            <p class="status" style="white-space: pre-wrap;">{{ turn.answer }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </section>
+{% endblock %}

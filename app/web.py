@@ -9,6 +9,7 @@ from markupsafe import Markup
 from flask_login import current_user, login_required, login_user, logout_user
 
 from . import espn_manager, sleeper_client
+from .agent_reasoning import ask, conversation_history, thread_id_for
 from .auth import (
     generate_login_token,
     get_or_create_user,
@@ -954,6 +955,36 @@ def league_transactions(league_id: str):
         'league_transactions.html', active='league-transactions',
         transactions=transactions,
         **_league_page_ctx(league, 'transactions'),
+    )
+
+
+@app.route('/league/<league_id>/ask', methods=['GET', 'POST'])
+def league_ask(league_id: str):
+    """Natural-language Q&A over this league's outcome log (WS-6 LangGraph
+    prototype, step 2 -- see app/agent_reasoning.py and the Obsidian plan).
+
+    One thread per (user, league) via agent_reasoning.thread_id_for -- your
+    conversation with this league's agent persists across visits, and you
+    can't see another user's thread even for a league you share. POST then
+    redirect-to-GET (like league_settings above) so refreshing the page
+    after asking a question doesn't resubmit it.
+    """
+    league = _member_league(league_id)
+    if league is None:
+        return redirect(url_for('leagues_view'))
+
+    thread_id = thread_id_for(current_user.id, league.platform, league.platform_league_id)
+
+    if request.method == 'POST':
+        question = request.form.get('question', '').strip()
+        if question:
+            ask(league.platform, league.platform_league_id, question, thread_id)
+        return redirect(url_for('league_ask', league_id=league_id))
+
+    return render_template(
+        'league_ask.html', active='league-ask',
+        history=conversation_history(thread_id),
+        **_league_page_ctx(league, 'ask'),
     )
 
 

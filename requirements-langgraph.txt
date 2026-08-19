@@ -4,6 +4,7 @@
 # per the plan's own scoping, not something every deploy should carry yet.
 # Install with: pip install -r requirements-langgraph.txt
 langgraph
+langgraph-checkpoint-sqlite
 langchain
 # LLM binding: local via Ollama (free, runs on-machine) rather than
 # langchain-anthropic -- switched 2026-08-19 when the spike's actual API
