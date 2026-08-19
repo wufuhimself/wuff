@@ -9,7 +9,7 @@
           slots above zero.</p>
       </section>
       {% elif error %}
-      <section class="card"><p class="status">{{ error }}</p></section>
+      {# error text itself renders once, via base.html's banner #}
       {% else %}
 
       <section class="card">

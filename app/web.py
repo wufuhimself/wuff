@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 from flask import Flask, redirect, render_template, request, url_for
+from markupsafe import Markup
 from flask_login import current_user, login_required, login_user, logout_user
 
 from . import espn_manager, sleeper_client
@@ -1086,7 +1087,7 @@ def sleeper_league_view(league_id: str):
     if league is None:
         return redirect(url_for('leagues_view'))
     snapshot = load_synced_league(league_id)
-    sync_error = None if snapshot is not None else (
+    sync_error = None if snapshot is not None else Markup(
         'Not synced yet — sync it from <a href="/leagues">the leagues page</a>.'
     )
     slot_labels = (snapshot or {}).get('rosterPositions') or []
@@ -1105,7 +1106,7 @@ def espn_league_view(league_id: str):
     if league is None:
         return redirect(url_for('leagues_view'))
     snapshot = espn_manager.load_synced_league(league_id)
-    sync_error = None if snapshot is not None else (
+    sync_error = None if snapshot is not None else Markup(
         'Not synced yet — import this league from <a href="/my/onboard">onboarding</a> first.'
     )
     slot_labels = (snapshot or {}).get('rosterPositions') or []
