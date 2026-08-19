@@ -24,6 +24,7 @@ LLM: local via Ollama (see scripts/langgraph_spike.py's docstring for why --
 API cost, not a technical constraint). Swap point is the ChatOllama(...) call
 below if that ever changes.
 """
+import threading
 from typing import Annotated, Any, Dict, List, TypedDict
 
 from .outcome_log import load_outcome_history, load_outcomes
@@ -62,6 +63,25 @@ class AgentState(TypedDict):
 
 def thread_id_for(user_id: int, platform: str, platform_league_id: str) -> str:
     return f'{user_id}_{platform}_{platform_league_id}'
+
+
+class AskInProgress(Exception):
+    """Raised by ask() when a question is already running on this thread_id.
+    Not a rate limit (see MANUAL_SYNC_COOLDOWN_SECONDS in sync_scheduler.py
+    for the time-based kind) -- this is an in-flight lock, since the actual
+    risk is a slow synchronous Ollama call getting kicked off twice for the
+    same conversation (double-click, a second tab) rather than someone
+    asking too often. Clears the instant the first call finishes, success or
+    error."""
+
+
+# thread_id -> Lock. Module-level and in-memory, not a DB row: this app runs
+# a single process (gunicorn workers=1, see docs/roadmap.md's Phase 1 note
+# -- sync_scheduler.py's BackgroundScheduler already leans on the same
+# assumption), so there's no cross-process case to cover, and an in-flight
+# lock has no reason to outlive the process anyway.
+_in_flight_lock = threading.Lock()
+_in_flight_threads: Dict[str, bool] = {}
 
 
 def _league_log_text(platform: str, platform_league_id: str) -> str:
@@ -153,23 +173,39 @@ def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -
     other sqlite-via-context-manager call sites) rather than holding one open
     for the process lifetime -- avoids a shared-connection-across-requests
     footgun in a threaded Flask dev server.
-    """
-    from langgraph.checkpoint.sqlite import SqliteSaver  # pylint: disable=import-outside-toplevel,import-error
 
-    ensure_parent_dir(AGENT_CHECKPOINT_FILE)
-    with SqliteSaver.from_conn_string(str(AGENT_CHECKPOINT_FILE)) as checkpointer:
-        graph = _build_graph(checkpointer)
-        config = {'configurable': {'thread_id': thread_id}}
-        # messages: [] here is the per-invoke contribution the reducer
-        # appends with -- the checkpointer supplies whatever accumulated
-        # from earlier turns on this thread_id, this call adds one more via
-        # reason_node's own return (see _append_messages).
-        result = graph.invoke(
-            {'platform': platform, 'platform_league_id': platform_league_id,
-             'user_query': question, 'retrieved_context': '', 'answer': '', 'messages': []},
-            config=config,
-        )
-    return result['answer']
+    Raises AskInProgress instead of running a second overlapping call for
+    the same thread_id -- the Ollama call is slow and synchronous, so a
+    double-click or a second tab would otherwise kick off two concurrent
+    LLM calls competing for the same local machine's CPU/GPU. Cleared in a
+    finally so a raised exception or a timeout can't leave a thread
+    permanently locked out.
+    """
+    with _in_flight_lock:
+        if _in_flight_threads.get(thread_id):
+            raise AskInProgress(f'A question is already in progress for {thread_id}.')
+        _in_flight_threads[thread_id] = True
+
+    try:
+        from langgraph.checkpoint.sqlite import SqliteSaver  # pylint: disable=import-outside-toplevel,import-error
+
+        ensure_parent_dir(AGENT_CHECKPOINT_FILE)
+        with SqliteSaver.from_conn_string(str(AGENT_CHECKPOINT_FILE)) as checkpointer:
+            graph = _build_graph(checkpointer)
+            config = {'configurable': {'thread_id': thread_id}}
+            # messages: [] here is the per-invoke contribution the reducer
+            # appends with -- the checkpointer supplies whatever accumulated
+            # from earlier turns on this thread_id, this call adds one more
+            # via reason_node's own return (see _append_messages).
+            result = graph.invoke(
+                {'platform': platform, 'platform_league_id': platform_league_id,
+                 'user_query': question, 'retrieved_context': '', 'answer': '', 'messages': []},
+                config=config,
+            )
+        return result['answer']
+    finally:
+        with _in_flight_lock:
+            _in_flight_threads.pop(thread_id, None)
 
 
 def conversation_history(thread_id: str) -> List[Dict[str, str]]:

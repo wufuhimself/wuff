@@ -9,11 +9,34 @@
           what WuFF has already logged and can be wrong or incomplete. Prototype (WS-6 LangGraph
           spike): runs on a local model, may be slow, and quality is still rough.</p>
 
-        <form method="post" style="display: grid; gap: 0.75rem; max-width: 40rem; margin-top: 1rem;">
+        <form method="post" id="ask-form" style="display: grid; gap: 0.75rem; max-width: 40rem; margin-top: 1rem;">
           <textarea name="question" rows="2" placeholder="e.g. Which players had their keeper forecast change recently?" required style="width: 100%; font: inherit; padding: 0.5rem;"></textarea>
-          <div><button type="submit" class="button">Ask</button></div>
+          <div><button type="submit" class="button" id="ask-submit">Ask</button></div>
         </form>
       </section>
+
+<script>
+// Disable the button once clicked so a double-click or an itchy trigger
+// finger can't fire two overlapping questions -- the real guard is the
+// server-side in-flight lock in app/agent_reasoning.py (AskInProgress),
+// this is just so the UI doesn't invite the double-click in the first
+// place. Re-enables on back/forward-cache restore (pageshow), since a
+// disabled button would otherwise stay stuck disabled forever on browsers
+// that restore the page from cache instead of reloading it.
+(function () {
+  var form = document.getElementById('ask-form');
+  var button = document.getElementById('ask-submit');
+  if (!form || !button) return;
+  form.addEventListener('submit', function () {
+    button.disabled = true;
+    button.textContent = 'Asking…';
+  });
+  window.addEventListener('pageshow', function () {
+    button.disabled = false;
+    button.textContent = 'Ask';
+  });
+})();
+</script>
 
       <section class="card" style="margin-top: 1.5rem;">
         {% if not history %}

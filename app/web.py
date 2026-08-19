@@ -9,7 +9,7 @@ from markupsafe import Markup
 from flask_login import current_user, login_required, login_user, logout_user
 
 from . import espn_manager, sleeper_client
-from .agent_reasoning import ask, conversation_history, thread_id_for
+from .agent_reasoning import AskInProgress, ask, conversation_history, thread_id_for
 from .auth import (
     generate_login_token,
     get_or_create_user,
@@ -34,7 +34,7 @@ from .draft_patterns import (
     position_timing,
     resolved_picks,
 )
-from .free_rankings import refresh_free_rankings
+from .free_rankings import manual_refresh_cooldown_remaining, refresh_free_rankings
 from .domain import BRACKET_TYPES
 from .franchise_store import franchise_id_for_team
 from .franchise_store import get_registry as franchise_registry_for
@@ -64,7 +64,7 @@ from .sleeper_manager import load_sleeper_leagues_config, load_synced_league
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .player_registry import normalize_name
 from .strategy import league_keeper_board
-from .sync_scheduler import ensure_scheduler_started, queue_league_sync
+from .sync_scheduler import ensure_scheduler_started, manual_sync_cooldown_remaining, queue_league_sync
 
 # The root logger defaults to WARNING, which hides the background jobs'
 # progress lines under gunicorn -- and those jobs fetch the data whose
@@ -120,6 +120,19 @@ def _league_href(platform: str, platform_league_id: str) -> str:
     if platform == 'espn':
         return f'/espn/{platform_league_id}'
     return '/'
+
+
+def _format_cooldown(remaining) -> str:
+    """timedelta -> 'Xh Ym' (or 'Ym' under an hour), for the manual-sync and
+    rankings-refresh cooldown messages/button labels."""
+    total_minutes = max(1, int(remaining.total_seconds() // 60))
+    hours, minutes = divmod(total_minutes, 60)
+    return f'{hours}h {minutes}m' if hours else f'{minutes}m'
+
+
+def _rankings_cooldown_label() -> Optional[str]:
+    remaining = manual_refresh_cooldown_remaining()
+    return _format_cooldown(remaining) if remaining else None
 
 
 def _current_default_league():
@@ -335,6 +348,13 @@ def refresh_rankings():
     on-demand trigger -- lives on /keepers-board and /mock-draft (?next=
     picks which page the redirect lands back on)."""
     next_view = 'mock_draft_view' if request.args.get('next') == 'mock-draft' else 'keepers_board_view'
+
+    remaining = manual_refresh_cooldown_remaining()
+    if remaining is not None:
+        return redirect(url_for(next_view, message=(
+            f"Rankings were refreshed recently — try again in {_format_cooldown(remaining)}."
+        )))
+
     try:
         summary = refresh_free_rankings(scoring='ppr')
     except (RuntimeError, ValueError) as exc:
@@ -410,6 +430,7 @@ def keepers_board_view():
         keeper_marks=include_marks, message=request.args.get('message', ''),
         can_adjust=current_user.is_authenticated,
         has_adjustments=any(row.get('userOffset') for row in remaining_board),
+        rankings_cooldown=_rankings_cooldown_label(),
     )
 
 
@@ -646,6 +667,13 @@ def my_league_sync(platform_league_id: str):
         )
     if followed is None:
         return redirect(url_for('leagues_view', message='Not one of your leagues.'))
+
+    remaining = manual_sync_cooldown_remaining(followed.platform, platform_league_id)
+    if remaining is not None:
+        return redirect(url_for('leagues_view', message=(
+            f"Synced recently — try again in {_format_cooldown(remaining)}."
+        )))
+
     queued = queue_league_sync(platform_league_id, followed.platform)
     note = 'Sync started in background.' if queued else 'Synced.'
     return redirect(url_for('leagues_view', message=note))
@@ -978,12 +1006,17 @@ def league_ask(league_id: str):
     if request.method == 'POST':
         question = request.form.get('question', '').strip()
         if question:
-            ask(league.platform, league.platform_league_id, question, thread_id)
+            try:
+                ask(league.platform, league.platform_league_id, question, thread_id)
+            except AskInProgress:
+                return redirect(url_for('league_ask', league_id=league_id,
+                                         message='Still answering your last question — hang tight.'))
         return redirect(url_for('league_ask', league_id=league_id))
 
     return render_template(
         'league_ask.html', active='league-ask',
         history=conversation_history(thread_id),
+        message=request.args.get('message', ''),
         **_league_page_ctx(league, 'ask'),
     )
 
@@ -1070,6 +1103,7 @@ def leagues_view():
                 .order_by(SyncRun.started_at.desc())
                 .first()
             )
+            cooldown = manual_sync_cooldown_remaining(row.platform, row.platform_league_id)
             providers.setdefault(row.platform, []).append({
                 'name': row.name,
                 'slug': row.slug,
@@ -1082,6 +1116,9 @@ def leagues_view():
                 'lastSyncAt': last_run.started_at.strftime('%Y-%m-%d %H:%M UTC') if last_run else None,
                 'lastSyncStatus': last_run.status if last_run else None,
                 'lastSyncDetail': last_run.detail if last_run else None,
+                # Manual "Sync now" cooldown (3h, see sync_scheduler.py) --
+                # None means the button is usable right now.
+                'syncCooldown': _format_cooldown(cooldown) if cooldown else None,
             })
     provider_order = [p for p in ('yahoo', 'sleeper', 'espn') if p in providers]
     return render_template(
