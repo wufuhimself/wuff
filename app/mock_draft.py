@@ -120,32 +120,35 @@ def starter_slots_for(league_format: LeagueFormat) -> Dict[str, int]:
     return {pos: count for pos, count in slots.items() if count}
 
 
-def current_teams_from_keeper_board(per_team: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
-    """Build {team_name: {manager, keeper1, keeper2}} from live keeper-board
-    state (keeper_service.keeper_board_state()['per_team']) -- so the mock
-    draft reflects whatever is actually selected on the keeper board right
-    now. This is the only source of teams/keepers for the simulator; the old
-    keeper_predictions_2026.csv path was removed 2026-08-11 once the
-    interactive board superseded it (the CSV was a July snapshot that had
-    already drifted out of sync with real selections).
+def current_teams_from_keeper_board(per_team: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Build {team_name: {manager, keepers: [name, ...]}} from live
+    keeper-board state (keeper_service.keeper_board_state()['per_team']) --
+    so the mock draft reflects whatever is actually selected on the keeper
+    board right now, and its candidate pool is the real post-keeper board
+    (every 'chosen' keeper, not the raw full rankings list) rather than a
+    second, separate approximation of it. This is the only source of
+    teams/keepers for the simulator; the old keeper_predictions_2026.csv path
+    was removed 2026-08-11 once the interactive board superseded it (the CSV
+    was a July snapshot that had already drifted out of sync with real
+    selections).
 
-    keeper1/keeper2 only (mock_draft's keeper slots are 2/team); manager is
-    left blank since nothing downstream reads it. A team with 0 or 1 chosen
-    keepers just gets fewer keeper slots filled -- simulate_draft() already
-    tolerates empty keeper names."""
+    Every 'chosen' keeper, not a hardcoded 2-slot keeper1/keeper2 pair
+    (2026-08-20 fix) -- the old 2-slot shape silently truncated any team
+    with 3+ real keepers (any Sleeper league with keeper_slots=0, i.e. no
+    cap, can have that many) to its first two, leaving the rest still
+    eligible to be drafted by someone else in the simulation. manager is
+    left blank since nothing downstream reads it. A team with zero chosen
+    keepers just gets an empty list; simulate_draft() already tolerates
+    that."""
     teams = {}
     for entry in per_team:
         team_name = entry.get('team', '')
         if not team_name:
             continue
         chosen = entry.get('chosen', [])
-        keeper_names = [c.get('playerName', '') for c in chosen[:2]]
-        while len(keeper_names) < 2:
-            keeper_names.append('')
         teams[team_name] = {
             'manager': '',
-            'keeper1': keeper_names[0],
-            'keeper2': keeper_names[1],
+            'keepers': [c.get('playerName', '') for c in chosen],
         }
     return teams
 
@@ -596,13 +599,13 @@ def simulate_draft(
 
 
 def run_mock_draft(
-    current_teams: Dict[str, Dict[str, str]],
+    current_teams: Dict[str, Dict[str, Any]],
     repo: Optional[LeagueDataRepository] = None,
     league_format: Optional[LeagueFormat] = None,
 ) -> List[Dict[str, Any]]:
     """End-to-end: load data, simulate draft, return picks.
 
-    current_teams: {team_name: {manager, keeper1, keeper2}}, built by
+    current_teams: {team_name: {manager, keepers: [name, ...]}}, built by
     current_teams_from_keeper_board() from live keeper-board state. Required
     -- the old keeper_predictions_2026.csv default was removed 2026-08-11
     because it silently simulated a stale July snapshot instead of the
@@ -613,7 +616,7 @@ def run_mock_draft(
     repo = repo if repo is not None else get_repository()
     league_format = league_format if league_format is not None else load_league_format()
 
-    keeper_predictions = {team: [v['keeper1'], v['keeper2']] for team, v in current_teams.items()}
+    keeper_predictions = {team: v['keepers'] for team, v in current_teams.items()}
     rankings_lookup, rankings_all = rankings_for(repo)
     draft_order = build_draft_order(repo, league_format, current_teams=current_teams)
     manager_profiles = build_manager_profiles(rankings_lookup, repo=repo)
