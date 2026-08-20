@@ -756,6 +756,56 @@ transactions all need a player key before they can exist.
 4. **Rankings licensing** — solved at launch by user-upload + free sources,
    but caps how "turnkey" onboarding feels.
 
+## Phase 6 — Agent runtime (LangGraph spike, started 2026-08-19)
+
+Separate thread from Phase 5's domain-model refactor: an LLM reasoning layer
+over the outcome log, not new data ingestion. Plan:
+`WS-6-agent-runtime/LangGraph_Prototype_Plan_2026-08-19.md` in the Obsidian
+vault.
+
+- ✅ **Spike → wired into web app** (2026-08-19): `scripts/langgraph_spike.py`
+  (step 1) proved out enough to move into `app/agent_reasoning.py` (step 2).
+  `ask(league, question, thread_id)` is the single entry point, same
+  factored-out-of-`web.py` shape as `keeper_service.py`. No vectorstore — a
+  league's outcome log is a few dozen entries at most, so the whole thing
+  (current forecasts + full change history, scoped via
+  platform/platform_league_id) goes straight into the prompt; revisit only if
+  a league's log gets big enough to stop fitting a context window. LLM is
+  **local Ollama (`llama3.1:8b`)**, not the Anthropic API — cost, not a
+  technical constraint; swap point is the single `ChatOllama(...)` call.
+  New deps landed in `requirements.txt`.
+- ✅ **Persistence fixed same night**: first cut used `SqliteSaver` only —
+  looked correct locally, but `data/processed/` is gitignored and Railway's
+  filesystem is ephemeral, so every redeploy silently wiped every user's
+  conversation history. Same bug class as the Sleeper/ESPN snapshot fix
+  (`app/snapshot_store.py`) and still open for `outcome_log.json` itself.
+  Caught by the user asking "is this actually persisted?" after using the
+  live feature, not by testing. Now `PostgresSaver` against `DATABASE_URL`
+  when it points at Postgres (production), `SqliteSaver` at
+  `data/processed/agent_checkpoints.db` otherwise (local dev). `thread_id` is
+  `f"{user_id}_{platform}_{platform_league_id}"` — per user, per league,
+  users can't see each other's threads.
+- ✅ **Renamed Ask → Scouting, rate-limited** (2026-08-19): route
+  `/league/<slug>/ask` → `/league/<slug>/scouting` (`league_ask` →
+  `league_scouting`, nav label, page title/heading). Internal `ask()` /
+  `AskInProgress` names in `agent_reasoning.py` unchanged — they describe the
+  mechanism, not the product-facing name. `QUESTIONS_PER_HOUR_LIMIT = 3`,
+  sliding window (lifts exactly one hour after the oldest of the last 3
+  questions, not top-of-clock-hour), read off the checkpointed messages
+  list's `asked_at` field rather than a separate table — that list is already
+  the durable per-turn record, so the limit needs no persistence of its own.
+  Checked before the in-flight lock so a rate-limited call never contends for
+  it. Page shows N-of-3-left and disables the form at zero. Verified against
+  the real running app: old route 404s, 3 real questions fire exactly 3
+  Ollama calls, 4th is rejected server-side (still exactly 3 calls, still
+  exactly 3 turns in the transcript).
+- **Open:** nothing yet reads `accuracy_report()` (Phase 3's outcome log) back
+  into Scouting's prompt or reasoning — the agent currently reasons over raw
+  forecast/outcome entries, not the aggregated hit-rate numbers. Also open:
+  Ollama is a local/dev dependency — no plan yet for what serves inference in
+  production (self-hosted, or swap to a hosted model once cost is worth
+  revisiting).
+
 ## Explicitly out of scope
 
 - ML feature table / gem-finding (removed 2026-07-31; stays removed).
