@@ -3,7 +3,7 @@
 *Keeper decisions, draft boards, and roster strategy across leagues, not bound to one platform.*
 
 **Live:** [wuff-production.up.railway.app](https://wuff-production.up.railway.app) — enter
-any email to sign in; it's a real magic-link flow (no password), so check that inbox for the
+your email to sign in; it's a real magic-link flow (no password), so check your inbox for the
 login link.
 
 ## What this is
