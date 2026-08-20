@@ -159,26 +159,41 @@ def enrich_with_adp(player_list, adp_map):
         player['adp'] = adp_map.get(player_name)
 
 
-def calculate_keeper_impact(keeper_forecasts, league_format=None):  # pylint: disable=unused-argument
+def elite_tiers_for(league_format) -> dict:
+    """League-wide "elite tier" size per position: how many players this
+    league actually needs, total, to fill every team's starting lineup --
+    starters-per-team x team count, SUPERFLEX counted toward QB (same
+    convention position_limits_for() in mock_draft.py already uses for the
+    same reason: a superflex slot is real QB demand). FLEX is deliberately
+    left unsplit across RB/WR/TE, matching starter_slots_for()'s own
+    precedent, rather than inventing a new allocation rule this league's
+    data can't justify.
+
+    Replaces the old hardcoded {TE:5, RB:16, WR:20, QB:15} table, which
+    assumed a ~12-team/superflex shape and silently misrepresented the
+    impact % for any differently-sized league (e.g. a 10-team or 14-team
+    Sleeper import). A league with no starter slot at a position (no K,
+    say) gets no tier for it, same as position_limits_for()'s K-less-league
+    handling.
+    """
+    teams = league_format.teams
+    tiers = {}
+    for position in ('QB', 'RB', 'WR', 'TE'):
+        starters = league_format.slot_count(position)
+        if position == 'QB':
+            starters += league_format.slot_count('SUPERFLEX')
+        if starters:
+            tiers[position] = starters * teams
+    return tiers
+
+
+def calculate_keeper_impact(keeper_forecasts, league_format=None):
     """Calculate how many elite players at each position are locked up as keepers.
 
-    Shows impact on draft board by counting HIGH confidence keepers per position.
-
-    league_format: accepted but not yet used for the tier-size math below --
-    TODO: elite tier sizes assume a ~12-team/SUPERFLEX-shaped league and will
-    misrepresent impact % for a differently-sized imported league (e.g. a
-    Sleeper dynasty league with a different team count/starter shape). Scaling
-    this correctly is a product decision (what "elite tier" means per
-    position), not a mechanical fix -- revisit when a non-12-team league
-    actually needs accurate impact numbers.
+    Shows impact on draft board by counting HIGH confidence keepers per position,
+    against this league's own elite tier sizes (see elite_tiers_for()).
     """
-    # Define elite tier sizes (how many top players per position matter for strategy)
-    elite_tiers = {
-        'TE': 5,    # Top 5 elite TEs (scarce)
-        'RB': 16,   # Top 16 elite RBs
-        'WR': 20,   # Top 20 elite WRs
-        'QB': 15,   # Top 15 elite QBs
-    }
+    elite_tiers = elite_tiers_for(league_format) if league_format is not None else {}
 
     # Count HIGH confidence keepers by position
     high_conf_keepers = {pos: 0 for pos in elite_tiers}
@@ -189,37 +204,37 @@ def calculate_keeper_impact(keeper_forecasts, league_format=None):  # pylint: di
             if position in elite_tiers and keeper['confidence'] == 'high':
                 high_conf_keepers[position] += 1
 
-    # Build impact summary
+    # Build impact summary. Iterates elite_tiers itself (not a fixed
+    # ['TE','RB','WR','QB'] list) so a league missing a starter slot at some
+    # position -- no TE slot, say -- doesn't KeyError; elite_tiers_for()
+    # already excludes any position the league doesn't start.
     impact = []
-    for position in ['TE', 'RB', 'WR', 'QB']:
+    for position, elite_tier_size in elite_tiers.items():
         kept = high_conf_keepers[position]
-        elite_tier_size = elite_tiers[position]
         available = elite_tier_size - kept
+        pct_kept = round((kept / elite_tier_size) * 100, 1)
 
-        if elite_tier_size > 0:
-            pct_kept = round((kept / elite_tier_size) * 100, 1)
-
-            impact.append({
-                'position': position,
-                'kept': kept,
-                'elite_tier': elite_tier_size,
-                'available': available,
-                'pct_kept': pct_kept,
-            })
+        impact.append({
+            'position': position,
+            'kept': kept,
+            'elite_tier': elite_tier_size,
+            'available': available,
+            'pct_kept': pct_kept,
+        })
 
     return sorted(impact, key=lambda x: x['pct_kept'], reverse=True)
 
 
-def _elite_tier_confidence(position, pos_rank_num):
-    """High-confidence keep if this player is in the scarce elite tier at their position."""
-    if position == 'TE' and pos_rank_num and pos_rank_num <= 5:
-        return 'high', f'TE{pos_rank_num} - top 5 scarce, keep'
-    if position == 'RB' and pos_rank_num and pos_rank_num <= 16:
-        return 'high', f'RB{pos_rank_num} - top 16, premium keeper'
-    if position == 'WR' and pos_rank_num and pos_rank_num <= 20:
-        return 'high', f'WR{pos_rank_num} - top 20, keep for value'
-    if position == 'QB' and pos_rank_num and pos_rank_num <= 15:
-        return 'high', f'QB{pos_rank_num} - top 15, reasonable keeper'
+def _elite_tier_confidence(position, pos_rank_num, elite_tiers):
+    """High-confidence keep if this player is in the scarce elite tier at
+    their position -- elite_tiers (see elite_tiers_for()) is this league's
+    own starters x teams tier size, not a fixed cutoff, so a 10-team league
+    and a 16-team league get different thresholds here."""
+    tier_size = elite_tiers.get(position)
+    if tier_size and pos_rank_num and pos_rank_num <= tier_size:
+        label = {'TE': 'scarce, keep', 'RB': 'premium keeper',
+                  'WR': 'keep for value', 'QB': 'reasonable keeper'}.get(position, 'keep')
+        return 'high', f'{position}{pos_rank_num} - top {tier_size}, {label}'
     return None
 
 
@@ -250,7 +265,7 @@ def _best_available_confidence(keeper, position, rank, pos_rank_num, eligible_by
     return 'medium', f'{pos_label} - best eligible at position'
 
 
-def forecast_keeper_decisions(per_team, adp_map):
+def forecast_keeper_decisions(per_team, adp_map, league_format=None):
     """Forecast which keepers each team will likely keep based on position scarcity.
 
     Position scarcity is the key driver of keeper value - elite players at
@@ -259,9 +274,15 @@ def forecast_keeper_decisions(per_team, adp_map):
 
     If per_team includes alternates, also shows whether teams are "forced" to keep a player
     (limited eligible keeper options) vs. "chosen" (good selection available).
+
+    league_format drives elite_tiers_for() (see there) for the "elite tier"
+    confidence check -- omit only for a caller with no league context (e.g.
+    a unit test), which just means every keeper falls through to the
+    best-available check instead of ever landing "high" via elite tier.
     """
     from .adp_manager import normalize_player_name
 
+    elite_tiers = elite_tiers_for(league_format) if league_format is not None else {}
     forecasts = []
     for team_entry in per_team:
         team_name = team_entry['team']
@@ -297,7 +318,7 @@ def forecast_keeper_decisions(per_team, adp_map):
                     pos_rank_num = int(match.group(1))
 
             # Keeper decision: elite tier OR best available at position for this team
-            confidence, reasoning = _elite_tier_confidence(position, pos_rank_num) or (None, None)
+            confidence, reasoning = _elite_tier_confidence(position, pos_rank_num, elite_tiers) or (None, None)
             if confidence is None:
                 confidence, reasoning = _best_available_confidence(
                     keeper, position, rank, pos_rank_num, eligible_by_position,
@@ -435,7 +456,7 @@ def keeper_board_state(
     for row in remaining_board:
         enrich_with_adp([row], adp_map)
 
-    keeper_forecasts = forecast_keeper_decisions(per_team, adp_map)
+    keeper_forecasts = forecast_keeper_decisions(per_team, adp_map, league_format=league_format)
     keeper_impact = calculate_keeper_impact(keeper_forecasts, league_format=league_format)
 
     # Fixed candidate pool per team for the clickable card UI: EVERY keeper-
