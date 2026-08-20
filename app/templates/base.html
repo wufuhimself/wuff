@@ -260,7 +260,7 @@
           </div>
         </details>
         <a href="/league/{{ default_league_id }}/manager-report" class="{{ 'active' if active == 'manager-report' }}">Manager report card</a>
-        <a href="/league/{{ default_league_id }}/ask" class="{{ 'active' if active == 'league-ask' }}">Ask</a>
+        <a href="/league/{{ default_league_id }}/scouting" class="{{ 'active' if active == 'league-scouting' }}">Scouting</a>
         <a href="/league/{{ default_league_id }}/settings" class="{{ 'active' if active == 'settings' }}">League settings</a>
       </nav>
       {% elif league_display_name is defined %}
@@ -297,7 +297,7 @@
         </details>
         {% endif %}
         <a href="/league/{{ league_slug }}/manager-report" class="{{ 'active' if league_tool == 'manager-report' }}">Manager report card</a>
-        <a href="/league/{{ league_slug }}/ask" class="{{ 'active' if league_tool == 'ask' }}">Ask</a>
+        <a href="/league/{{ league_slug }}/scouting" class="{{ 'active' if league_tool == 'scouting' }}">Scouting</a>
         <a href="/league/{{ league_slug }}/settings" class="{{ 'active' if league_tool == 'settings' }}">League settings</a>
         {% else %}
         <a href="#" class="active">Overview</a>

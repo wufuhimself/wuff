@@ -9,7 +9,15 @@ from markupsafe import Markup
 from flask_login import current_user, login_required, login_user, logout_user
 
 from . import espn_manager, sleeper_client
-from .agent_reasoning import AskInProgress, ask, conversation_history, thread_id_for
+from .agent_reasoning import (
+    AskInProgress,
+    QUESTIONS_PER_HOUR_LIMIT,
+    QuestionLimitReached,
+    ask,
+    conversation_history,
+    questions_asked_in_last_hour,
+    thread_id_for,
+)
 from .auth import (
     generate_login_token,
     get_or_create_user,
@@ -986,10 +994,14 @@ def league_transactions(league_id: str):
     )
 
 
-@app.route('/league/<league_id>/ask', methods=['GET', 'POST'])
-def league_ask(league_id: str):
+@app.route('/league/<league_id>/scouting', methods=['GET', 'POST'])
+def league_scouting(league_id: str):
     """Natural-language Q&A over this league's outcome log (WS-6 LangGraph
     prototype, step 2 -- see app/agent_reasoning.py and the Obsidian plan).
+    Branded "Scouting" in the UI (renamed 2026-08-19, was "Ask") -- the
+    underlying ask()/AskInProgress names in agent_reasoning.py describe the
+    mechanism (asking an LLM a question) and are unchanged; this is the
+    product-facing name.
 
     One thread per (user, league) via agent_reasoning.thread_id_for -- your
     conversation with this league's agent persists across visits, and you
@@ -1009,15 +1021,24 @@ def league_ask(league_id: str):
             try:
                 ask(league.platform, league.platform_league_id, question, thread_id)
             except AskInProgress:
-                return redirect(url_for('league_ask', league_id=league_id,
+                return redirect(url_for('league_scouting', league_id=league_id,
                                          message='Still answering your last question — hang tight.'))
-        return redirect(url_for('league_ask', league_id=league_id))
+            except QuestionLimitReached as exc:
+                return redirect(url_for('league_scouting', league_id=league_id, message=(
+                    f"You've hit the {QUESTIONS_PER_HOUR_LIMIT}-question hourly limit — "
+                    f"try again in {_format_cooldown(exc.retry_after)}."
+                )))
+        return redirect(url_for('league_scouting', league_id=league_id))
 
+    recent = questions_asked_in_last_hour(thread_id)
+    questions_remaining = max(0, QUESTIONS_PER_HOUR_LIMIT - len(recent))
     return render_template(
-        'league_ask.html', active='league-ask',
+        'league_scouting.html', active='league-scouting',
         history=conversation_history(thread_id),
         message=request.args.get('message', ''),
-        **_league_page_ctx(league, 'ask'),
+        questions_remaining=questions_remaining,
+        questions_per_hour_limit=QUESTIONS_PER_HOUR_LIMIT,
+        **_league_page_ctx(league, 'scouting'),
     )
 
 

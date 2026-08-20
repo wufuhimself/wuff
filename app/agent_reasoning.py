@@ -3,7 +3,8 @@
 Pulled out of scripts/langgraph_spike.py (step 1, 2026-08-19) once it proved
 useful enough to wire into the web app -- see the Obsidian plan
 (WS-6-agent-runtime/LangGraph_Prototype_Plan_2026-08-19.md) for the full
-recommended build order. web.py's /league/<slug>/ask route calls
+recommended build order. web.py's /league/<slug>/scouting route (branded
+"Scouting" in the UI, renamed 2026-08-19 -- was "Ask") calls
 ask(league, question, thread_id) as its single entry point, same
 factored-out-of-web.py shape as keeper_service.py.
 
@@ -38,6 +39,7 @@ below if that ever changes.
 """
 import contextlib
 import threading
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any, Dict, List, TypedDict
 
 from .db import DATABASE_URL, _IS_SQLITE
@@ -87,12 +89,46 @@ def thread_id_for(user_id: int, platform: str, platform_league_id: str) -> str:
 
 class AskInProgress(Exception):
     """Raised by ask() when a question is already running on this thread_id.
-    Not a rate limit (see MANUAL_SYNC_COOLDOWN_SECONDS in sync_scheduler.py
-    for the time-based kind) -- this is an in-flight lock, since the actual
-    risk is a slow synchronous Ollama call getting kicked off twice for the
-    same conversation (double-click, a second tab) rather than someone
-    asking too often. Clears the instant the first call finishes, success or
-    error."""
+    Not a rate limit (see QuestionLimitReached below, or
+    MANUAL_SYNC_COOLDOWN_SECONDS in sync_scheduler.py for the time-based
+    kind) -- this is an in-flight lock, since the actual risk is a slow
+    synchronous Ollama call getting kicked off twice for the same
+    conversation (double-click, a second tab) rather than someone asking too
+    often. Clears the instant the first call finishes, success or error."""
+
+
+class QuestionLimitReached(Exception):
+    """Raised by ask() when this thread_id has already asked
+    QUESTIONS_PER_HOUR_LIMIT questions in the last hour. Carries
+    `retry_after` (timedelta) so callers can show a countdown."""
+
+    def __init__(self, retry_after: timedelta):
+        self.retry_after = retry_after
+        super().__init__(f'Question limit reached; try again in {retry_after}.')
+
+
+QUESTIONS_PER_HOUR_LIMIT = 3
+
+
+def questions_asked_in_last_hour(thread_id: str) -> List[str]:
+    """asked_at timestamps (ISO strings) for this thread's questions in the
+    last hour, oldest first. Reads the checkpointed `messages` list rather
+    than a separate table/counter -- it's already the durable record of
+    every turn (same Postgres-in-prod / sqlite-locally persistence as the
+    rest of this module), so the limit needs no persistence of its own.
+    Entries logged before 'asked_at' existed have no such key and are
+    silently excluded (undercounts rather than misdating them into the
+    window -- the safe direction for a rate limit to be wrong in)."""
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    recent = []
+    for turn in conversation_history(thread_id):
+        asked_at = turn.get('asked_at')
+        if not asked_at:
+            continue
+        when = datetime.fromisoformat(asked_at)
+        if when >= cutoff:
+            recent.append(asked_at)
+    return recent
 
 
 # thread_id -> Lock. Module-level and in-memory, not a DB row: this app runs
@@ -170,7 +206,12 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
     llm = ChatOllama(model='llama3.1:8b', temperature=0)
     response = llm.invoke(prompt)
     answer = response.content
-    return {'answer': answer, 'messages': [{'question': state['user_query'], 'answer': answer}]}
+    # asked_at powers the hourly question cap (QUESTIONS_PER_HOUR_LIMIT
+    # below) -- reads this same checkpointed messages list rather than a
+    # separate table, so the limit needs no persistence of its own.
+    asked_at = datetime.now(timezone.utc).isoformat()
+    return {'answer': answer,
+            'messages': [{'question': state['user_query'], 'answer': answer, 'asked_at': asked_at}]}
 
 
 @contextlib.contextmanager
@@ -232,7 +273,17 @@ def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -
     LLM calls competing for the same local machine's CPU/GPU. Cleared in a
     finally so a raised exception or a timeout can't leave a thread
     permanently locked out.
+
+    Raises QuestionLimitReached if this thread has already asked
+    QUESTIONS_PER_HOUR_LIMIT questions in the last hour -- checked before
+    the in-flight lock so a rate-limited call never even contends for it.
     """
+    recent = questions_asked_in_last_hour(thread_id)
+    if len(recent) >= QUESTIONS_PER_HOUR_LIMIT:
+        oldest = datetime.fromisoformat(min(recent))
+        retry_after = oldest + timedelta(hours=1) - datetime.now(timezone.utc)
+        raise QuestionLimitReached(retry_after)
+
     with _in_flight_lock:
         if _in_flight_threads.get(thread_id):
             raise AskInProgress(f'A question is already in progress for {thread_id}.')
@@ -259,7 +310,7 @@ def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -
 
 def conversation_history(thread_id: str) -> List[Dict[str, str]]:
     """Past question/answer turns for this thread, oldest first -- for
-    rendering the /ask page's transcript. Empty list for a fresh thread
+    rendering the Scouting page's transcript. Empty list for a fresh thread
     (nothing asked yet, or -- sqlite only -- the checkpoint file doesn't
     exist yet).
 
