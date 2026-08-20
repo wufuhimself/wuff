@@ -272,19 +272,29 @@
         <span class="platform-tag">{{ default_league_platform }}</span>
         <span class="league-name">{{ default_league_name }}</span>
         <a href="/" class="{{ 'active' if active == 'dashboard' }}">Overview</a>
-        <a href="/league/{{ default_league_id }}/matchups" class="{{ 'active' if active == 'matchups' }}">Matchups</a>
-        <a href="/league/{{ default_league_id }}/transactions" class="{{ 'active' if active == 'transactions' }}">Transactions</a>
-        {% if default_league_keeper_slots %}
-        <a href="/keepers-board" class="{{ 'active' if active == 'keepers-board' }}">Keepers</a>
-        {% endif %}
-        <details class="nav-group">
-          <summary class="{{ 'active' if active in draft_tool_ids }}">Draft</summary>
-          <div class="nav-group-panel">
-            {% for tool_id, href, label in draft_tools %}
-            <a href="{{ href }}" class="{{ 'active' if active == tool_id }}">{{ label }}</a>
-            {% endfor %}
-          </div>
-        </details>
+        {# Order follows what is actionable NOW. Before the draft, matchups and
+           transactions have no rows yet, so keepers/mock draft lead; once the
+           draft is done those are spent and the in-season pages lead. Nothing
+           is hidden either way -- the tabs only move. #}
+        {% set pre_draft_nav %}
+          {% if default_league_keeper_slots %}
+          <a href="/keepers-board" class="{{ 'active' if active == 'keepers-board' }}">Keepers</a>
+          {% endif %}
+          <details class="nav-group">
+            <summary class="{{ 'active' if active in draft_tool_ids }}">Draft</summary>
+            <div class="nav-group-panel">
+              {% for tool_id, href, label in draft_tools %}
+              <a href="{{ href }}" class="{{ 'active' if active == tool_id }}">{{ label }}</a>
+              {% endfor %}
+            </div>
+          </details>
+        {% endset %}
+        {% set in_season_nav %}
+          <a href="/league/{{ default_league_id }}/matchups" class="{{ 'active' if active == 'matchups' }}">Matchups</a>
+          <a href="/league/{{ default_league_id }}/transactions" class="{{ 'active' if active == 'transactions' }}">Transactions</a>
+        {% endset %}
+        {% if default_league_has_drafted %}{{ in_season_nav }}{{ pre_draft_nav }}
+        {% else %}{{ pre_draft_nav }}{{ in_season_nav }}{% endif %}
         <details class="nav-group">
           <summary class="{{ 'active' if active == 'standings' }}">History</summary>
           <div class="nav-group-panel">
@@ -300,23 +310,30 @@
         <span class="league-name">{{ league_display_name }}</span>
         {% if league_slug is defined and league_slug %}
         <a href="{{ league_overview_href }}" class="{{ 'active' if league_tool == 'overview' }}">Overview</a>
-        <a href="/league/{{ league_slug }}/matchups" class="{{ 'active' if league_tool == 'matchups' }}">Matchups</a>
-        <a href="/league/{{ league_slug }}/transactions" class="{{ 'active' if league_tool == 'transactions' }}">Transactions</a>
-        {% if league_keeper_slots %}
-        <a href="/league/{{ league_slug }}/keepers" class="{{ 'active' if league_tool == 'keepers' }}">Keepers</a>
-        {% endif %}
-        <details class="nav-group">
-          <summary class="{{ 'active' if league_tool in draft_tool_ids or (league_slug == default_league_id and active in draft_tool_ids) }}">Draft</summary>
-          <div class="nav-group-panel">
-            <a href="/league/{{ league_slug }}/mock-draft" class="{{ 'active' if league_tool == 'mock-draft' }}">Mock draft</a>
-            {% if league_slug == default_league_id %}
-            {# /draft-history always resolves to your default league --
-               only safe to show here when this league IS the default, or the link
-               would silently jump to a different league's data. #}
-            <a href="/draft-history" class="{{ 'active' if active == 'draft-history' }}">Draft history</a>
-            {% endif %}
-          </div>
-        </details>
+        {# Same actionable-first ordering as the default-league branch above. #}
+        {% set pre_draft_nav %}
+          {% if league_keeper_slots %}
+          <a href="/league/{{ league_slug }}/keepers" class="{{ 'active' if league_tool == 'keepers' }}">Keepers</a>
+          {% endif %}
+          <details class="nav-group">
+            <summary class="{{ 'active' if league_tool in draft_tool_ids or (league_slug == default_league_id and active in draft_tool_ids) }}">Draft</summary>
+            <div class="nav-group-panel">
+              <a href="/league/{{ league_slug }}/mock-draft" class="{{ 'active' if league_tool == 'mock-draft' }}">Mock draft</a>
+              {% if league_slug == default_league_id %}
+              {# /draft-history always resolves to your default league --
+                 only safe to show here when this league IS the default, or the link
+                 would silently jump to a different league's data. #}
+              <a href="/draft-history" class="{{ 'active' if active == 'draft-history' }}">Draft history</a>
+              {% endif %}
+            </div>
+          </details>
+        {% endset %}
+        {% set in_season_nav %}
+          <a href="/league/{{ league_slug }}/matchups" class="{{ 'active' if league_tool == 'matchups' }}">Matchups</a>
+          <a href="/league/{{ league_slug }}/transactions" class="{{ 'active' if league_tool == 'transactions' }}">Transactions</a>
+        {% endset %}
+        {% if league_has_drafted %}{{ in_season_nav }}{{ pre_draft_nav }}
+        {% else %}{{ pre_draft_nav }}{{ in_season_nav }}{% endif %}
         {% if league_slug == default_league_id %}
         <details class="nav-group">
           <summary class="{{ 'active' if active == 'standings' }}">History</summary>

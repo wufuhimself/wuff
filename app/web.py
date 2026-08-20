@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, g, redirect, render_template, request, url_for
 from markupsafe import Markup
 from flask_login import current_user, login_required, login_user, logout_user
 
@@ -199,6 +199,35 @@ def _board_state_args(league):
     return league, False
 
 
+def _league_has_drafted(league) -> bool:
+    """Whether `league`'s upcoming draft has already happened, cached per request.
+
+    Feeds the nav ordering (see base.html): pre-draft leagues lead with the
+    tools that are still actionable -- keepers, mock draft -- while a drafted
+    league leads with matchups/transactions, which have no rows before a draft.
+
+    Cached in `g` because _inject_league_context runs on EVERY page render and
+    this costs ~8ms uncached for a league with six seasons of draft history --
+    against a 1.4ms render for a page like /standings, which would have made
+    the nav ordering the single most expensive thing on it.
+    """
+    if league is None:
+        return False
+    cache = getattr(g, '_has_drafted_cache', None)
+    if cache is None:
+        cache = g._has_drafted_cache = {}  # pylint: disable=protected-access
+    key = (league.platform, league.platform_league_id)
+    if key not in cache:
+        try:
+            cache[key] = repository_for(league).has_drafted()
+        except Exception:  # pylint: disable=broad-except
+            # Nav ordering must never 500 a page. An unsynced or broken league
+            # falls back to the pre-draft order, which is the safer default:
+            # it surfaces the tools that work without any draft data.
+            cache[key] = False
+    return cache[key]
+
+
 @app.context_processor
 def _inject_league_context():
     league = _current_default_league()
@@ -227,6 +256,9 @@ def _inject_league_context():
         # are filled in) -- same threshold /league/<slug>/keepers itself
         # already uses to show a "not configured" state instead of a 500.
         'default_league_keeper_slots': league.format.keeper_slots if league is not None else 0,
+        # Drives the nav ordering in base.html -- pre-draft leagues lead with
+        # keepers/mock draft, drafted ones with matchups/transactions.
+        'default_league_has_drafted': _league_has_drafted(league),
         'nav_leagues': nav_leagues,
     }
 
@@ -835,6 +867,7 @@ def _league_page_ctx(league, tool: str) -> dict:
         # Same keeper_slots gate as default_league_keeper_slots in
         # _inject_league_context, for the generic per-league nav branch.
         'league_keeper_slots': league.format.keeper_slots,
+        'league_has_drafted': _league_has_drafted(league),
     }
 
 

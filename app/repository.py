@@ -66,9 +66,18 @@ def _canonical_id(identity) -> Optional[str]:
     return identity.canonical_id if identity else None
 
 
-class LeagueDataRepository:
+class LeagueDataRepository:  # pylint: disable=too-many-public-methods
     """Interface. draft_picks/draft_pick_origins (traded-pick ownership) may
-    legitimately be None for platforms that don't track them."""
+    legitimately be None for platforms that don't track them.
+
+    Deliberately wide (past pylint's 20-method default): this is the one seam
+    four backends serve every kind of league data through, and the typed
+    methods are implemented HERE, once, precisely so a backend cannot drift
+    from the contract by forgetting one (Phase 5, docs/roadmap.md). Splitting
+    it to satisfy the count would mean either duplicating those defaults per
+    backend -- the failure mode the typed layer exists to prevent -- or adding
+    mixins that no call site wants to know about.
+    """
 
     def __init__(self, league: League):
         self.league = league
@@ -219,6 +228,45 @@ class LeagueDataRepository:
         if not upcoming:
             return None
         return min(upcoming, key=lambda s: (s.starts_at is None, s.starts_at or _FAR_FUTURE, s.season))
+
+    def has_drafted(self, season: Optional[int] = None) -> bool:
+        """Whether this league's draft for `season` has happened.
+
+        Answers the nav-ordering question ("is this league still pre-draft?")
+        cheaply enough to run in a context processor on every page: prefers
+        draft_schedules() (~1ms, and the only source that distinguishes
+        'scheduled but undrafted' from 'no draft at all'), else falls back to
+        whether draft_years() has picks for that season (~10ms on the largest
+        league here). Deliberately NOT drafts() -- the typed version resolves
+        every pick against the player registry and costs ~255ms for a league
+        with six seasons of history, which is fine per page and not fine per
+        request.
+
+        `season` defaults to the league's own configured season, or -- when it
+        has none, as the registry's Yahoo league does -- to the season one past
+        its latest drafted one, matching keeper_service._next_draft_season().
+        That fallback matters: answering "has this league ever drafted" instead
+        would call frank-gore drafted on the strength of its 2020-2025 history
+        while its 2026 draft is still ahead, which is exactly backwards for
+        anything ordering by what is still actionable.
+        """
+        years = self.draft_years()
+        if season is None:
+            try:
+                season = int(self.league.season)
+            except (TypeError, ValueError):
+                season = max(years) + 1 if years else None
+        schedules = self.draft_schedules()
+        if schedules:
+            matching = [s for s in schedules if season is None or s.season == season]
+            # No schedule for that season at all means nothing is known about
+            # it, so fall through to the pick check rather than claim it is
+            # undrafted.
+            if matching:
+                return any(s.has_drafted for s in matching)
+        if season is not None:
+            return bool(years.get(season))
+        return bool(years)
 
     def draft(self, season: int) -> List[DraftPick]:
         return self.drafts().get(season, [])

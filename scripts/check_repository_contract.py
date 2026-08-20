@@ -260,6 +260,20 @@ def check_league(league_id, league) -> None:
         print(f'      draft schedules: {len(schedules)} '
               f'({sum(1 for s in schedules if s.has_drafted)} drafted){upcoming}')
 
+    # has_drafted() feeds nav ordering on every page render, so it must agree
+    # with the data it summarizes rather than drift into its own answer.
+    drafted_now = repo.has_drafted()
+    check('has_drafted is a bool', isinstance(drafted_now, bool), type(drafted_now).__name__)
+    if nxt is not None:
+        # An undrafted draft is still ahead for that season, so the league
+        # cannot also report that same season as drafted.
+        check('has_drafted disagrees with an upcoming draft for that season',
+              not repo.has_drafted(nxt.season), f'{nxt.season} both upcoming and drafted')
+    for sched in schedules:
+        check('has_drafted(season) matches that season schedule',
+              repo.has_drafted(sched.season) == sched.has_drafted,
+              f'{sched.season}: schedule says {sched.has_drafted}')
+
     all_players = [p for t in teams for p in t.players]
     resolved = sum(1 for p in all_players if p.canonical_player_id)
     total = len(all_players)
