@@ -38,16 +38,8 @@
         </table>
       </section>
 
-      {% set has_lineup = standings_rows | selectattr('starterSlots') | list | length > 0 %}
       <section class="card">
         <h2>Rosters</h2>
-        <p class="status">
-          {% if has_lineup %}
-          Starters in lineup order, bench grouped by position.
-          {% else %}
-          Grouped by position — this platform's roster snapshot doesn't carry a starting lineup.
-          {% endif %}
-        </p>
         <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); align-items: start; margin-top: 0.75rem;">
           {% for r in standings_rows %}
           <div style="border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: var(--surface-alt); min-width: 0;">
