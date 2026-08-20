@@ -15,6 +15,16 @@ into the prompt -- a real retriever would be solving a corpus-size problem
 this app doesn't have yet. Revisit only if/when a league's log actually gets
 big enough that this stops fitting a context window.
 
+Draft patterns folded in (2026-08-20): the standalone /league/<slug>/draft-patterns
+page (position mix by round, from app/draft_patterns.py's position_mix_by_round())
+is retired -- its data is now part of retrieved_context here instead, so
+Scouting can answer "what does this league draft in round 3" the same way it
+answers outcome-log questions, and there's one fewer static page to maintain.
+Needs a repo, which platform/platform_league_id alone can't produce (repository_for()
+takes a League, not a platform pair) -- ask() takes the wuff league_id slug
+(league.league_id, already in scope at web.py's call site) for exactly this,
+resolved via get_repository() inside retrieve_node.
+
 Checkpointing (2026-08-19, revised same day): PostgresSaver against
 DATABASE_URL when it's set to Postgres (production -- same DB
 app/db.py's SQLAlchemy models already use there), SqliteSaver at
@@ -43,6 +53,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any, Dict, List, TypedDict
 
 from .db import DATABASE_URL, _IS_SQLITE
+from .draft_patterns import position_mix_by_round
 from .outcome_log import load_outcome_history, load_outcomes
 from .paths import PROCESSED_DIR, ensure_parent_dir
 
@@ -74,6 +85,7 @@ def _append_messages(existing: list, new: list) -> list:
 class AgentState(TypedDict):
     platform: str
     platform_league_id: str
+    league_id: str  # wuff registry slug, e.g. 'frank-gore' -- see get_repository()
     user_query: str
     retrieved_context: str
     answer: str
@@ -175,6 +187,37 @@ def _league_log_text(platform: str, platform_league_id: str) -> str:
     return '\n'.join(lines) if lines else '(no forecasts logged for this league yet)'
 
 
+def _draft_patterns_text(league_id: str) -> str:
+    """This league's own position mix by round, rendered as plain text for
+    the prompt -- replaces the retired /league/<slug>/draft-patterns page
+    (see this module's docstring). Same data as that page's one remaining
+    table (position_mix_by_round(); the "when each position comes off the
+    board" / "Nth player" sections were dropped from the page 2026-08-20
+    and never made it here either -- position_timing() stays a mock-draft
+    input only, not a Scouting fact). Empty league_id (no repo context)
+    or a league with no draft history both return the same "no data"
+    line rather than raising -- keeps retrieve_node from needing a
+    try/except for a case that's a normal empty state, not an error."""
+    if not league_id:
+        return '(no draft history available for this league)'
+    from .repository import get_repository  # pylint: disable=import-outside-toplevel
+    try:
+        mix = position_mix_by_round(get_repository(league_id))
+    except Exception:  # pylint: disable=broad-exception-caught
+        return '(no draft history available for this league)'
+    if not mix:
+        return '(no draft history available for this league)'
+
+    lines = []
+    for round_num, data in sorted(mix.items()):
+        shares = ', '.join(
+            f'{position} {round(fraction * 100)}%'
+            for position, fraction in data['mix'].items()
+        )
+        lines.append(f"- Round {round_num} ({data['n']} picks): {shares}")
+    return '\n'.join(lines)
+
+
 def has_resolved_forecasts(platform: str, platform_league_id: str) -> bool:
     """True once this league has at least one resolved forecast (a real
     draft has happened and been matched against what was predicted) --
@@ -196,7 +239,13 @@ def retrieve_node(state: AgentState) -> Dict[str, Any]:
     # back through the reducer as if it were new, double-counting every turn
     # -- caught by testing a real 2-turn conversation and finding 3 history
     # entries instead of 2, not by re-reading the code.
-    return {'retrieved_context': _league_log_text(state['platform'], state['platform_league_id'])}
+    forecast_log = _league_log_text(state['platform'], state['platform_league_id'])
+    draft_patterns = _draft_patterns_text(state.get('league_id', ''))
+    context = (
+        f"Forecast log:\n{forecast_log}\n\n"
+        f"Draft history -- position mix by round:\n{draft_patterns}"
+    )
+    return {'retrieved_context': context}
 
 
 def reason_node(state: AgentState) -> Dict[str, Any]:
@@ -214,19 +263,20 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         prior_turns = 'Earlier in this conversation:\n' + '\n\n'.join(prior_lines) + '\n\n'
 
     prompt = (
-        f"You are answering a question about a fantasy football league's forecast "
-        f"history (keeper picks, draft-slot predictions), tracked by an app that logs "
-        f"every prediction and updates it over time as new data comes in.\n\n"
-        f"Forecast log for this league:\n{state['retrieved_context']}\n\n"
+        f"You are answering a question about a fantasy football league: its forecast "
+        f"history (keeper picks, draft-slot predictions, tracked by an app that logs "
+        f"every prediction and updates it over time) and its own real draft history "
+        f"(what position gets picked in which round).\n\n"
+        f"{state['retrieved_context']}\n\n"
         f"{prior_turns}"
         f"Question: {state['user_query']}\n\n"
         f"Answer in 2-4 plain-English sentences, grounded in the specific numbers "
-        f"above. If the log doesn't contain enough to answer, say so plainly instead "
+        f"above. If neither section contains enough to answer, say so plainly instead "
         f"of guessing. If the question refers back to something from earlier in the "
         f"conversation ('the first one', 'that player'), resolve it against the "
-        f"conversation above, not the forecast log's own ordering. Dates in the log "
-        f"are already formatted mm-dd-yyyy -- keep that exact format in your answer, "
-        f"never expand it back into an ISO timestamp."
+        f"conversation above, not the data above's own ordering. Dates are already "
+        f"formatted mm-dd-yyyy -- keep that exact format in your answer, never expand "
+        f"it back into an ISO timestamp."
     )
     llm = ChatOllama(model='llama3.1:8b', temperature=0)
     response = llm.invoke(prompt)
@@ -287,10 +337,19 @@ def _build_graph(checkpointer):
     return graph.compile(checkpointer=checkpointer)
 
 
-def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -> str:
+def ask(platform: str, platform_league_id: str, question: str, thread_id: str,
+        league_id: str = '') -> str:
     """Single entry point web.py calls. One turn of a possibly-multi-turn
     conversation, threaded by thread_id (see thread_id_for) so a follow-up
     question in the same league re-enters the same checkpointer thread.
+
+    league_id is the wuff registry slug (league.league_id, e.g.
+    'frank-gore') -- separate from platform/platform_league_id because
+    repository_for() needs a League object, not a platform pair. Used to
+    pull this league's own draft history into retrieved_context (see
+    _draft_patterns_text). Defaults to '' for a caller with no league
+    context (e.g. a unit test), which just means the draft-history section
+    reads as empty rather than raising.
 
     Raises AskInProgress instead of running a second overlapping call for
     the same thread_id -- the Ollama call is slow and synchronous, so a
@@ -324,6 +383,7 @@ def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -
             # via reason_node's own return (see _append_messages).
             result = graph.invoke(
                 {'platform': platform, 'platform_league_id': platform_league_id,
+                 'league_id': league_id,
                  'user_query': question, 'retrieved_context': '', 'answer': '', 'messages': []},
                 config=config,
             )

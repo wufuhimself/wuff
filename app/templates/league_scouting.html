@@ -17,8 +17,8 @@
         {% endif %}
         <div class="scouting-scope">
           <strong>Grounded, not guessed.</strong> Answers come only from this league's own
-          recorded forecasts and outcomes — never live data or outside knowledge, and can be
-          wrong or incomplete.
+          recorded forecasts/outcomes and its own real draft history — never live data or
+          outside knowledge, and can be wrong or incomplete.
         </div>
       </section>
 
@@ -53,6 +53,17 @@
             <button type="button" class="scouting-card" data-question="What was the reasoning behind marking a player as a recommended keeper?">What was the reasoning behind marking a player as a recommended keeper?</button>
           </div>
         </div>
+
+        <div class="scouting-group">
+          <div class="scouting-group-head">
+            <h3>Draft patterns</h3>
+            <span class="scouting-tag">what this league drafts, and when</span>
+          </div>
+          <div class="scouting-cards">
+            <button type="button" class="scouting-card" data-question="What position does this league draft most in round 1?">What position does this league draft most in round 1?</button>
+            <button type="button" class="scouting-card" data-question="When do teams in this league usually start drafting defenses?">When do teams in this league usually start drafting defenses?</button>
+          </div>
+        </div>
         {% else %}
         <div class="scouting-group">
           <div class="scouting-group-head">
@@ -74,6 +85,17 @@
           <div class="scouting-cards">
             <button type="button" class="scouting-card" data-question="Which players had their keeper forecast change recently?">Which players had their keeper forecast change recently?</button>
             <button type="button" class="scouting-card" data-question="What was the reasoning behind marking a player as a recommended keeper?">What was the reasoning behind marking a player as a recommended keeper?</button>
+          </div>
+        </div>
+
+        <div class="scouting-group">
+          <div class="scouting-group-head">
+            <h3>Draft patterns</h3>
+            <span class="scouting-tag">what this league drafts, and when</span>
+          </div>
+          <div class="scouting-cards">
+            <button type="button" class="scouting-card" data-question="What position does this league draft most in round 1?">What position does this league draft most in round 1?</button>
+            <button type="button" class="scouting-card" data-question="When do teams in this league usually start drafting defenses?">When do teams in this league usually start drafting defenses?</button>
           </div>
         </div>
         {% endif %}

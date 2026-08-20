@@ -235,8 +235,8 @@ def refresh_nfl_rosters_job() -> None:
 
     Nothing else fetches these -- they were only ever written by the manual
     `fetch-nfl-stats` CLI, so a deployed container had none and
-    fantasy_position_map() returned {} forever. That fails *silently*: the
-    draft-patterns page renders "no draft history", and
+    fantasy_position_map() returned {} forever. That fails *silently*:
+    Scouting's draft-pattern context reads as empty, and
     compute_historical_qb_pick_targets() finds no positions and returns [],
     so the rankings board quietly ships without the QB adjustment.
 

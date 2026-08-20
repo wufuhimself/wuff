@@ -37,7 +37,6 @@ from .draft_analysis import (
     summarize_position_in_round,
 )
 from .draft_history import keeper_slot_picks, live_draft_picks
-from .draft_patterns import position_mix_by_round, resolved_picks
 from .free_rankings import manual_refresh_cooldown_remaining, refresh_free_rankings
 from .domain import BRACKET_TYPES
 from .franchise_store import franchise_id_for_team
@@ -1055,7 +1054,8 @@ def league_scouting(league_id: str):
         question = request.form.get('question', '').strip()
         if question:
             try:
-                ask(league.platform, league.platform_league_id, question, thread_id)
+                ask(league.platform, league.platform_league_id, question, thread_id,
+                    league_id=league.league_id)
             except AskInProgress:
                 return redirect(url_for('league_scouting', league_id=league_id,
                                          message='Still answering your last question — hang tight.'))
@@ -1076,32 +1076,6 @@ def league_scouting(league_id: str):
         questions_per_hour_limit=QUESTIONS_PER_HOUR_LIMIT,
         has_results=has_resolved_forecasts(league.platform, league.platform_league_id),
         **_league_page_ctx(league, 'scouting'),
-    )
-
-
-@app.route('/league/<league_id>/draft-patterns')
-def league_draft_patterns(league_id: str):
-    """What this league actually drafts, and when -- from its own history.
-
-    Distinct from /draft-analysis, which asks whether draft decisions predicted
-    the final standings. This one just describes behaviour: position mix per
-    round. Scaled back 2026-08-20 -- dropped the "when each position comes off
-    the board" and "where the Nth player at a position goes" sections
-    (position_timing()/position_rank_pick_targets() output); those functions
-    stay in draft_patterns.py since mock_draft.py's earliest_rounds_for()
-    still calls position_timing() directly, just no longer rendered here."""
-    league = _member_league(league_id)
-    if league is None:
-        return redirect(url_for('leagues_view'))
-
-    repo = repository_for(league)
-    mix = position_mix_by_round(repo)
-    seasons = sorted({pick['year'] for pick in resolved_picks(repo)})
-
-    return render_template(
-        'league_draft_patterns.html', active='league-draft-patterns',
-        mix=mix, seasons=seasons, sample=sum(entry['n'] for entry in mix.values()),
-        **_league_page_ctx(league, 'draft-patterns'),
     )
 
 

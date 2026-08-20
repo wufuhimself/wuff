@@ -131,8 +131,12 @@ def main() -> int:  # pylint: disable=too-many-statements
     check('GET /keepers-board renders', 200, owner_client.get('/keepers-board').status_code)
     check('GET /mock-draft renders', 200, owner_client.get('/mock-draft').status_code)
     check('GET /standings renders', 200, owner_client.get('/standings').status_code)
-    check('GET /league/<yahoo>/manager-report renders', 200,
-          owner_client.get(f'/league/{yahoo_slug}/manager-report').status_code)
+    # manager-report was pulled from nav 2026-08-20 (messy table, rework later)
+    # and now 302s to the league's own overview instead of rendering -- still
+    # membership-gated first (a non-member gets /leagues, checked below), so
+    # this checks it resolves the OWNER's own league correctly, not /leagues.
+    check('GET /league/<yahoo>/manager-report redirects to the Yahoo overview', '/',
+          location(owner_client.get(f'/league/{yahoo_slug}/manager-report')))
 
     print('\nstranger follows nothing: no league, not the default one')
     check('GET / redirects to /my/leagues', '/my/leagues', location(stranger_client.get('/')))
@@ -152,8 +156,8 @@ def main() -> int:  # pylint: disable=too-many-statements
           location(stranger_client.get(f'/league/{yahoo_slug}/keepers')))
     check("GET the Yahoo league's manager report redirects to /leagues", '/leagues',
           location(stranger_client.get(f'/league/{yahoo_slug}/manager-report')))
-    check("GET the Yahoo league's draft patterns redirects to /leagues", '/leagues',
-          location(stranger_client.get(f'/league/{yahoo_slug}/draft-patterns')))
+    check("GET the Yahoo league's scouting page redirects to /leagues", '/leagues',
+          location(stranger_client.get(f'/league/{yahoo_slug}/scouting')))
     check("GET the Yahoo league's settings redirects to /leagues", '/leagues',
           location(stranger_client.get(f'/league/{yahoo_slug}/settings')))
     check('a stranger sees no leagues on /leagues', False,
