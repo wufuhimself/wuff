@@ -3,7 +3,7 @@
 {% block content %}
       <section class="card">
         <h2>Rankings</h2>
-        <span class="status">PPR ADP from FantasyFootballCalculator, extended with a Sleeper depth tail (Sleeper has no public ADP of its own). Feeds every ranking/rank badge on this page.</span>
+        <span class="status">PPR ADP from FantasyFootballCalculator, extended with a Sleeper depth tail. Feeds every ranking/rank badge on this page.</span>
         <form action="/actions/refresh-rankings" method="post" style="margin-top: 0.75rem;">
           {% if rankings_cooldown %}
           <button class="button" type="submit" disabled title="Refreshed recently — next refresh available in {{ rankings_cooldown }}">Refresh rankings ({{ rankings_cooldown }})</button>
