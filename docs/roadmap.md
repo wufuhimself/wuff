@@ -782,7 +782,8 @@ vault.
   looked correct locally, but `data/processed/` is gitignored and Railway's
   filesystem is ephemeral, so every redeploy silently wiped every user's
   conversation history. Same bug class as the Sleeper/ESPN snapshot fix
-  (`app/snapshot_store.py`) and still open for `outcome_log.json` itself.
+  (`app/snapshot_store.py`); `outcome_log.json` was the last one still open,
+  closed 2026-08-20 (below).
   Caught by the user asking "is this actually persisted?" after using the
   live feature, not by testing. Now `PostgresSaver` against `DATABASE_URL`
   when it points at Postgres (production), `SqliteSaver` at
@@ -803,6 +804,46 @@ vault.
   the real running app: old route 404s, 3 real questions fire exactly 3
   Ollama calls, 4th is rejected server-side (still exactly 3 calls, still
   exactly 3 turns in the transcript).
+- ✅ **Outcome log moved to the database** (2026-08-20): the last unfixed
+  instance of the bug class this file already records twice — the Sleeper/ESPN
+  snapshots (`app/snapshot_store.py`) and the Scouting checkpoints above.
+  `data/processed/outcome_log.json` and `outcome_log_history.json` are
+  gitignored and Railway's filesystem is ephemeral, so every forecast the
+  *deployed* app logged was wiped by the next redeploy, silently — and
+  Scouting reasons over exactly this data, so on production the agent has been
+  reading a log that resets. Worse than the snapshot case: a snapshot re-syncs
+  from the platform's API on the next sweep, a forecast history cannot be
+  re-derived from anything. Now `app/outcome_models.py` +
+  `app/outcome_store.py`; `outcome_log.py`'s four storage functions swapped
+  bodies and every caller (`keeper_service`, `cli`, `agent_reasoning`,
+  `scripts/langgraph_spike`) is untouched. Deliberately **not** a
+  DB-in-production/files-locally split — that leaves two write paths to keep
+  in agreement, and every other piece of user state already lives in the local
+  SQLite database; the JSON files are migration input only
+  (`python3 -m app migrate-outcome-log`, run once per database from a machine
+  that still HAS them — the deployed container never did).
+  Two design points worth keeping: `OutcomeEntry.seq` exists because insertion
+  order cannot be derived from `forecasted_at` (an upsert rewrites it, which
+  would silently reshuffle the list every time a pending forecast changed);
+  and the 4 pre-2026-08-11 entries that predate per-league scoping are
+  normalized to the documented Yahoo default on the way in rather than given
+  nullable columns, verified to keep their exact `decision_id`s.
+  **One real pre-existing bug fell out of the gate**: `log_outcome()`'s upsert
+  path returned early without ever calling `save_outcomes()`, so a call that
+  owned its list and *changed* a forecast appended the history row recording
+  the change and then discarded the change itself. Unreachable in production
+  (every caller batches via `outcomes=` and saves explicitly), which is why it
+  had never surfaced; fixed rather than left as a trap.
+  Gate: `scripts/compare_outcome_backends.py` — throwaway SQLite, the real
+  local 40-entry log as reference, and unlike `compare_yahoo_backends.py` it
+  exercises the **write** paths too (upsert, identical re-log appends nothing,
+  new entry appends last, `resolve_outcomes` in-place rewrite), since those
+  are where the backends can actually diverge. Also smoke-tested through the
+  real Flask app: a `/keepers-board/mark` click that genuinely changes a
+  team's keepers updates the forecast row and appends one history row.
+  `outcome-accuracy` output is byte-identical to the pre-change version.
+  ⚠️ **Deploy step:** run `migrate-outcome-log` once with `DATABASE_URL`
+  pointed at Railway's Postgres, or production starts from an empty log.
 - **Open:** nothing yet reads `accuracy_report()` (Phase 3's outcome log) back
   into Scouting's prompt or reasoning — the agent currently reasons over raw
   forecast/outcome entries, not the aggregated hit-rate numbers. Also open:

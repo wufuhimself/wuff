@@ -17,20 +17,39 @@ sites (app/cli.py's apply-qb-adjustment / keepers-board-export) — those never
 passed a league explicitly and shouldn't change decision_ids for pre-existing
 pending/resolved entries.
 
-Storage: single append-only array at data/processed/outcome_log.json, keyed
-by decision_id (now including platform+platform_league_id) so a later
-forecast for the same (league, decision_type, season, entity) overwrites the
-previous pending one rather than piling up duplicates. Resolved entries are
-left alone — they're historical record.
+Storage: a single list keyed by decision_id (now including
+platform+platform_league_id) so a later forecast for the same (league,
+decision_type, season, entity) overwrites the previous pending one rather
+than piling up duplicates. Resolved entries are left alone — they're
+historical record.
+
+Where that list lives (2026-08-20): the database -- app/outcome_store.py,
+whatever DATABASE_URL points at (Postgres in production, the local SQLite
+file otherwise). It was data/processed/outcome_log.json until then, and
+data/processed/ is gitignored while Railway's filesystem is ephemeral, so
+every forecast the deployed app logged was wiped by the next redeploy: the
+same landmine already fixed for the Sleeper/ESPN snapshots
+(app/snapshot_store.py) and the Scouting agent's checkpoints, and the one
+this file's own 2026-08-19 note below flagged as "not re-solved here."
+Worse here than for the snapshots, because a snapshot re-syncs from the
+platform's API on the next sweep and a forecast history cannot be re-derived
+from anything.
+
+The JSON files are now migration input only: `python3 -m app
+migrate-outcome-log` loads them into whatever DATABASE_URL names. Run it
+once per database that should carry the history (local, then production
+with DATABASE_URL pointed at Railway), from a machine that still HAS the
+files -- the deployed container never had them.
 
 Change history (2026-08-19): the upsert above is destructive by design --
 useful for "don't pile up duplicates," bad for "why did this forecast
 change," which needs the *old* value to still exist somewhere. Before an
 upsert overwrites a pending entry with a genuinely different forecast,
-log_outcome() appends the old forecast to data/processed/outcome_log_history.json
-(same on-disk-JSON, gitignored-processed-dir pattern as outcome_log.json
-itself and app/ranking_history.py -- same ephemeral-disk deploy caveat
-applies, not re-solved here). Gated on the forecast dict actually differing:
+log_outcome() appends the old forecast to a history list (the
+outcome_history_entries table, or data/processed/outcome_log_history.json
+locally -- same backend split as the main log above; app/ranking_history.py
+still has the ephemeral-disk problem this paragraph originally described,
+and is not solved here). Gated on the forecast dict actually differing:
 keeper_service.log_team_keeper_forecast() re-logs a team's forecast on every
 card click, so an unconditional append would flood this file with identical
 re-saves. forecast_history(decision_id) reads it back, oldest first.
@@ -39,6 +58,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from . import outcome_store
 from .draft_history import keeper_slot_picks, live_draft_picks, load_draft_years
 from .league_registry import load_leagues
 from .paths import PROCESSED_DIR, ensure_parent_dir
@@ -82,7 +102,27 @@ def _decision_id(
     return '_'.join(p.replace(' ', '-') for p in parts if p)
 
 
+def _use_db(path=None) -> bool:
+    """The database, unless a caller names an explicit file.
+
+    Not a "DB in production, files locally" split: that would leave two write
+    paths to keep in agreement, and the local SQLite database already holds
+    every other piece of user state (accounts, keeper marks, board
+    adjustments) -- there is no reason the outcome log is the one thing that
+    stays on a gitignored disk. Deliberately not a try-the-DB-fall-back-to-a-
+    file scheme either; falling back to an ephemeral file is exactly how this
+    data was being lost, silently.
+
+    `path=` is the file backend, kept for the one job that still needs it:
+    reading the old JSON files as migration input (`migrate-outcome-log`) and
+    as the reference in scripts/compare_outcome_backends.py.
+    """
+    return path is None
+
+
 def load_outcomes(path=None) -> List[Dict[str, Any]]:
+    if _use_db(path):
+        return outcome_store.load_outcomes()
     path = path or OUTCOME_LOG_FILE
     if not path.exists():
         return []
@@ -90,12 +130,17 @@ def load_outcomes(path=None) -> List[Dict[str, Any]]:
 
 
 def save_outcomes(outcomes: List[Dict[str, Any]], path=None) -> None:
+    if _use_db(path):
+        outcome_store.save_outcomes(outcomes)
+        return
     path = path or OUTCOME_LOG_FILE
     ensure_parent_dir(path)
     path.write_text(json.dumps(outcomes, indent=2))
 
 
 def load_outcome_history(path=None) -> List[Dict[str, Any]]:
+    if _use_db(path):
+        return outcome_store.load_outcome_history()
     path = path or OUTCOME_LOG_HISTORY_FILE
     if not path.exists():
         return []
@@ -103,6 +148,9 @@ def load_outcome_history(path=None) -> List[Dict[str, Any]]:
 
 
 def _append_outcome_history(entry: Dict[str, Any], path=None) -> None:
+    if _use_db(path):
+        outcome_store.append_outcome_history(entry)
+        return
     path = path or OUTCOME_LOG_HISTORY_FILE
     history = load_outcome_history(path)
     history.append(entry)
@@ -171,6 +219,15 @@ def log_outcome(
                         'forecast_method_version': existing['forecast_method_version'],
                     })
                 outcomes[i] = entry
+                # Persist here too, not only on the append path below. Every
+                # caller today batches (passes `outcomes=` and saves itself),
+                # which is why an owns-the-list upsert silently discarding its
+                # own update never surfaced -- but it contradicts what this
+                # function's docstring promises, and the DB backend made it
+                # visible: a changed forecast wrote its history row and then
+                # dropped the change.
+                if owns_list:
+                    save_outcomes(outcomes)
             return outcomes[i]
     outcomes.append(entry)
 

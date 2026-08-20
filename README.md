@@ -164,7 +164,7 @@ make auth-server     # Start local HTTPS server for OAuth flow
 - `data/raw/rankings/` — Multi-source rankings (free FFC ADP + Sleeper search-rank tail)
 - `data/raw/draft_history/` — Historical picks by season
 - `data/processed/keeper_exports/` — CLI keeper export CSVs (timestamped by method)
-- `data/processed/outcome_log.json` — Forecast-vs-actual log (generated locally, gitignored); see `app/outcome_log.py`
+- `data/processed/outcome_log.json` — the forecast-vs-actual log's **old** home. It lives in the database now (`app/outcome_store.py`); these files are migration input for `python3 -m app migrate-outcome-log`. See `app/outcome_log.py`
 - `data/raw/sleeper/` — Synced Sleeper league snapshots (rosters, standings, drafts)
 - `data/raw/espn/` — Synced ESPN league snapshots (beta)
 - `data/wuff.db` — Multi-user state: accounts, league links, sync runs, keeper overrides (gitignored)

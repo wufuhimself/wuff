@@ -411,6 +411,12 @@ def parse_args() -> argparse.Namespace:
                                       help="Platform league id to store rows under (frank-gore's is 9410)")
     migrate_yahoo_parser.add_argument('--yes', action='store_true', help='Skip the confirmation prompt')
 
+    migrate_outcome_parser = subparsers.add_parser(
+        'migrate-outcome-log',
+        help='Load data/processed/outcome_log{,_history}.json into the database (DATABASE_URL decides which)',
+    )
+    migrate_outcome_parser.add_argument('--yes', action='store_true', help='Skip the confirmation prompt')
+
     subparsers.add_parser('leagues', help='List every league wuff observes (from data/config/leagues.json)')
 
     grant_parser = subparsers.add_parser(
@@ -1969,6 +1975,52 @@ def _cmd_migrate_yahoo_data(args) -> None:
     print('Done. Verify with: python3 scripts/compare_yahoo_backends.py')
 
 
+def _cmd_migrate_outcome_log(args) -> None:
+    """One-time load of the old JSON outcome log into the database.
+
+    Run once per database that should carry the history -- local first, then
+    production with DATABASE_URL pointed at Railway -- from a machine that
+    still HAS data/processed/ (gitignored, and the deployed container's copy
+    was wiped by its last redeploy). Same shape as migrate-yahoo-data.
+    """
+    from .db import DATABASE_URL, init_db  # pylint: disable=import-outside-toplevel
+    from . import outcome_store  # pylint: disable=import-outside-toplevel
+    # Aliased: load_outcomes is already imported at module scope (the DB-backed
+    # one every other command uses); these two are the same functions called
+    # with an explicit path, and shadowing the module-level name here would be
+    # a trap for the next reader.
+    from .outcome_log import (  # pylint: disable=import-outside-toplevel
+        OUTCOME_LOG_FILE, OUTCOME_LOG_HISTORY_FILE,
+        load_outcome_history as _load_history_file,
+        load_outcomes as _load_outcomes_file,
+    )
+
+    # Explicit paths, so these read the FILES even though the storage layer now
+    # defaults to the database -- which is what we are migrating into.
+    outcomes = _load_outcomes_file(path=OUTCOME_LOG_FILE)
+    history = _load_history_file(path=OUTCOME_LOG_HISTORY_FILE)
+    if not outcomes and not history:
+        print(f'Nothing to migrate: {OUTCOME_LOG_FILE} and {OUTCOME_LOG_HISTORY_FILE} are empty or absent.')
+        return
+
+    # Local SQLite is a legitimate target -- it is where local dev's outcome
+    # log now lives too, so the history is worth loading there as well.
+    redacted = DATABASE_URL if DATABASE_URL.startswith('sqlite') else DATABASE_URL.split('@')[-1]
+    print(f'Loading {len(outcomes)} outcome(s) and {len(history)} history entr(ies) into {redacted}')
+    print('This REPLACES both tables entirely.')
+    if not args.yes:
+        response = input('Continue? (y/n): ').strip().lower()
+        if response != 'y':
+            print('Aborted.')
+            return
+
+    init_db()
+    outcome_store.replace_all(outcomes, history)
+    print(f'Done. {len(outcome_store.load_outcomes())} outcome(s), '
+          f'{len(outcome_store.load_outcome_history())} history entr(ies) in the database.')
+    print('Verify with: python3 scripts/compare_outcome_backends.py')
+
+
 def _cmd_sleeper_discover(args) -> None:
     sleeper_config = sleeper_discover_leagues(args.username, args.season)
     print(f"Found {len(sleeper_config['leagues'])} league(s) for '{args.username}' ({args.season}):")
@@ -2099,6 +2151,7 @@ _COMMAND_HANDLERS = {
     'grant-league': _cmd_grant_league,
     'leagues-init': _cmd_leagues_init,
     'migrate-yahoo-data': _cmd_migrate_yahoo_data,
+    'migrate-outcome-log': _cmd_migrate_outcome_log,
     'build-player-registry': _cmd_build_player_registry,
     'build-franchises': _cmd_build_franchises,
     'franchise-alias-template': _cmd_franchise_alias_template,

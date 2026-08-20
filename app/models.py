@@ -21,6 +21,10 @@ from .franchise_models import (  # noqa: F401  pylint: disable=unused-import
     FranchiseName,
     FranchiseRecord,
 )
+from .outcome_models import (  # noqa: F401  pylint: disable=unused-import
+    OutcomeEntry,
+    OutcomeHistoryEntry,
+)
 from .player_models import (  # noqa: F401  pylint: disable=unused-import
     PlayerAlias,
     PlayerRecord,
