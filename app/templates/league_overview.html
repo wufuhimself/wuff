@@ -15,6 +15,16 @@
         </p>
       </section>
 
+      {% if draft_note %}
+      <section class="card">
+        <h2>Upcoming draft</h2>
+        <p class="status">{{ draft_note }}</p>
+        {% if upcoming_draft and not upcoming_draft.has_drafted %}
+        <p class="status"><a href="/league/{{ league.league_id }}/keepers">Set your keepers</a> before it starts.</p>
+        {% endif %}
+      </section>
+      {% endif %}
+
       {# error text itself renders once, via base.html's banner #}
 
       {% if not error and not standings_rows %}

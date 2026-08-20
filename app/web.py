@@ -306,9 +306,33 @@ def _league_overview_ctx(league, sync_error: Optional[str] = None, roster_slot_l
     for season, picks in sorted(repo.drafts().items(), reverse=True):
         completed_drafts.append({'season': season, 'picks': sorted(picks, key=lambda p: (p.round, p.pick or 0))})
 
+    # When the next draft is, for leagues whose platform tells us (Sleeper
+    # today). This is the state keeper decisions actually hang off -- once
+    # picks exist it is too late to act -- so it leads the page rather than
+    # sitting under the standings.
+    upcoming_draft = repo.next_draft_schedule()
+    draft_note = None
+    if upcoming_draft is not None:
+        days = upcoming_draft.days_until()
+        if upcoming_draft.starts_at is None:
+            draft_note = 'Draft not scheduled yet.'
+        else:
+            # Formatted here rather than in the template: this codebase has no
+            # Jinja date filters and formats dates in Python everywhere else.
+            when = upcoming_draft.starts_at.strftime('%A, %B %-d at %-I:%M %p UTC')
+            if days is None or days < 0:
+                draft_note = f'Draft was scheduled for {when}.'
+            elif days == 0:
+                draft_note = f'Draft is today — {when}.'
+            elif days == 1:
+                draft_note = f'Draft is tomorrow — {when}.'
+            else:
+                draft_note = f'Draft in {days} days — {when}.'
+
     return {
         'league': league, 'standings_year': standings_year, 'standings_rows': standings_rows,
         'round1_order': round1_order, 'completed_drafts': completed_drafts, 'error': sync_error,
+        'upcoming_draft': upcoming_draft, 'draft_note': draft_note,
     }
 
 

@@ -25,6 +25,7 @@ of the design: it lets a consumer move to the typed API one field at a time
 instead of in one risky rewrite. When nothing reads `.raw` any more, it goes.
 """
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import Any, Mapping, Optional, Tuple
 
@@ -102,6 +103,51 @@ class DraftPick:
         if self.pick is None or not teams:
             return None
         return (self.round - 1) * teams + self.pick
+
+
+@dataclass(frozen=True)
+class DraftSchedule:
+    """When a league's draft is (or was), independent of whether it happened.
+
+    Separate from DraftPick rather than a field on it: a scheduled draft has
+    no picks at all, which is precisely the state worth surfacing -- keeper
+    decisions matter *before* the draft, and by the time picks exist it is too
+    late to act on them. Kept out of repository.draft_years() for the same
+    reason: that dict means "seasons this league has actually drafted," and an
+    empty season in it moves _next_draft_season() forward a year.
+
+    Sleeper-only in practice today. ESPN's snapshot has no draft-date field
+    wrapped, and Yahoo is still blocked on API access -- both correctly return
+    no schedules rather than a guess.
+    """
+    season: int
+    # Sleeper's own values: 'pre_draft', 'drafting', 'in_progress', 'complete',
+    # 'paused'. Not narrowed to an enum -- an unrecognized status should show
+    # through as itself rather than be coerced into a wrong known one.
+    status: Optional[str] = None
+    # Scheduled start, timezone-aware UTC. None when the league has set no
+    # date yet, which is a real and common state for a pre_draft league.
+    starts_at: Optional[datetime] = None
+    draft_type: Optional[str] = None
+    platform_draft_id: Optional[str] = None
+    pick_count: int = 0
+    raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
+
+    @property
+    def has_drafted(self) -> bool:
+        """Whether picks actually exist. Derived from pick_count, not status:
+        the status string is the platform's word for it and this is the thing
+        callers actually branch on."""
+        return self.pick_count > 0
+
+    def days_until(self, now: Optional[datetime] = None) -> Optional[int]:
+        """Whole days from `now` until the draft starts; negative once past,
+        None with no scheduled date. Rounded toward zero, so 'in 0 days'
+        means today rather than 'already happened'."""
+        if self.starts_at is None:
+            return None
+        now = now or datetime.now(timezone.utc)
+        return (self.starts_at - now).days
 
 
 @dataclass(frozen=True)

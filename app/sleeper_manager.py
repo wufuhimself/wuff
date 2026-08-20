@@ -158,14 +158,20 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
     })
     write_snapshot(PLATFORM, league_id, 'rosters', resolved_rosters)
 
-    # Draft results, if a draft exists for this league/season yet.
+    # Every draft this league has, drafted or not. A `pre_draft` draft is
+    # snapshotted too (2026-08-20): it carries the scheduled start_time, which
+    # is the only signal saying a league is ABOUT to draft -- i.e. exactly when
+    # its keeper decisions still matter. Skipping it, as this loop used to,
+    # meant an upcoming draft was invisible and only became visible once it was
+    # too late to act on. Only the pick fetch is conditional now: an undrafted
+    # draft has no picks to fetch, and asking for them is a wasted API call
+    # against the rate budget.
     drafts = sleeper_client.get_league_drafts(league_id)
     draft_summaries = []
     for draft in drafts:
         draft_id = draft['draft_id']
-        if draft.get('status') not in ('complete', 'in_progress'):
-            continue
-        picks = sleeper_client.get_draft_picks(draft_id)
+        drafted = draft.get('status') in ('complete', 'in_progress')
+        picks = sleeper_client.get_draft_picks(draft_id) if drafted else []
         resolved_picks = []
         for pick in picks:
             metadata = pick.get('metadata') or {}
@@ -183,9 +189,17 @@ def sync_league(league_id: str, players_cache: Optional[Dict[str, Any]] = None) 
             'season': draft.get('season'),
             'status': draft.get('status'),
             'type': draft.get('type'),
+            # Sleeper's own scheduled start, epoch MILLIseconds (not seconds --
+            # it is ~1.79e12 today, and reading it as seconds lands in 1970).
+            # None for a draft with no date set yet, which is a real state.
+            'startTime': draft.get('start_time'),
             'picks': resolved_picks,
         }, key=str(draft_id))
-        draft_summaries.append({'draftId': draft_id, 'status': draft.get('status'), 'pickCount': len(resolved_picks)})
+        draft_summaries.append({
+            'draftId': draft_id,
+            'status': draft.get('status'),
+            'pickCount': len(resolved_picks),
+        })
 
     transaction_count = sync_transactions(league_id, players_cache)
     matchup_week_count = sync_matchups(league_id, league)

@@ -22,7 +22,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # pylint: disable=wrong-import-position
-from app.domain import (  # noqa: E402
+from app.domain import (
+    DraftSchedule,  # noqa: E402
     BRACKET_TYPES,
     TRANSACTION_TYPES,
     DraftPick,
@@ -217,6 +218,47 @@ def check_league(league_id, league) -> None:
                   f'm{match.match_id}: both {match.winner_franchise_id}')
     if playoffs:
         print(f'      playoffs: {len(playoffs)} bracket slots, {decided} decided')
+
+    schedules = repo.draft_schedules()
+    drafted_seasons = set(repo.drafts().keys())
+    for sched in schedules:
+        check('draft schedule is DraftSchedule', isinstance(sched, DraftSchedule), type(sched).__name__)
+        check('schedule season is sane', 2000 <= sched.season <= 2100, sched.season)
+        check('pick count is non-negative', sched.pick_count >= 0, sched.pick_count)
+        check('has_drafted agrees with pick_count',
+              sched.has_drafted == (sched.pick_count > 0), f'{sched.status}/{sched.pick_count}')
+        if sched.starts_at is not None:
+            # Timezone-aware, and in a plausible range. A naive datetime or a
+            # 1970 date is the signature of reading Sleeper's epoch
+            # MILLIseconds as seconds -- which renders happily and is wrong.
+            check('starts_at is timezone-aware', sched.starts_at.tzinfo is not None, sched.starts_at)
+            check('starts_at is not the 1970 epoch-units bug',
+                  2000 <= sched.starts_at.year <= 2100, sched.starts_at.isoformat())
+            check('days_until is an int when a date exists',
+                  isinstance(sched.days_until(), int), sched.days_until())
+        else:
+            check('days_until is None without a date', sched.days_until() is None, sched.days_until())
+        # The two views must agree: a season with picks in drafts() must be
+        # reported as drafted here, and an undrafted one must NOT have leaked
+        # an empty season into draft_years() (which would move
+        # _next_draft_season() forward a year -- see repository.draft_years).
+        if sched.has_drafted:
+            check('a drafted schedule has a season in drafts()',
+                  sched.season in drafted_seasons, f'{sched.season} missing from drafts()')
+        else:
+            check('an undrafted schedule leaks no empty season into drafts()',
+                  sched.season not in drafted_seasons, f'{sched.season} present with no picks')
+    nxt = repo.next_draft_schedule()
+    if nxt is not None:
+        check('next_draft_schedule is undrafted', not nxt.has_drafted, nxt.status)
+        check('next_draft_schedule is one of the schedules', nxt in schedules, nxt.season)
+    else:
+        check('no next schedule means none are undrafted',
+              all(s.has_drafted for s in schedules), [s.status for s in schedules])
+    if schedules:
+        upcoming = f', next {nxt.season} in {nxt.days_until()}d' if nxt and nxt.days_until() is not None else ''
+        print(f'      draft schedules: {len(schedules)} '
+              f'({sum(1 for s in schedules if s.has_drafted)} drafted){upcoming}')
 
     all_players = [p for t in teams for p in t.players]
     resolved = sum(1 for p in all_players if p.canonical_player_id)

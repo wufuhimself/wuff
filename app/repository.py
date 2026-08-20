@@ -27,12 +27,14 @@ Dict shapes each backend still serves underneath:
 - rankings(): market rankings [{'playerName','position','team','ranking',...}]
 """
 import json
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import espn_manager, sleeper_manager, yahoo_store
 from .domain import (
     BracketSource,
     DraftPick,
+    DraftSchedule,
     Matchup,
     MatchupSide,
     PlayoffMatch,
@@ -54,6 +56,10 @@ from .player_registry import dedupe_rows_by_name
 from .paths import RANKINGS_COMBINED_FILE, RAW_STANDINGS_DIR, YAHOO_LEAGUE_ROSTERS_JSON
 from .standings import load_standings
 from .strategy import load_yahoo_rankings
+
+# Sorts a dateless upcoming draft after every dated one in
+# next_draft_schedule(), without needing a None-aware comparator.
+_FAR_FUTURE = datetime.max.replace(tzinfo=timezone.utc)
 
 
 def _canonical_id(identity) -> Optional[str]:
@@ -192,6 +198,27 @@ class LeagueDataRepository:
                 raw=row,
             ))
         return teams
+
+    def draft_schedules(self) -> List[DraftSchedule]:
+        """When this league's drafts are/were, newest season first.
+
+        Empty by default: only platforms whose snapshot actually carries a
+        draft date can answer this, and today that is Sleeper alone (ESPN has
+        no draft-date field wrapped, Yahoo is blocked on API access). Returning
+        nothing is the honest answer for those, not a placeholder date.
+        """
+        return []
+
+    def next_draft_schedule(self) -> Optional[DraftSchedule]:
+        """The soonest draft that hasn't happened yet, or None.
+
+        Prefers a scheduled date; a pre-draft league with no date set still
+        counts (it is genuinely upcoming), sorting after the dated ones.
+        """
+        upcoming = [s for s in self.draft_schedules() if not s.has_drafted]
+        if not upcoming:
+            return None
+        return min(upcoming, key=lambda s: (s.starts_at is None, s.starts_at or _FAR_FUTURE, s.season))
 
     def draft(self, season: int) -> List[DraftPick]:
         return self.drafts().get(season, [])
@@ -555,6 +582,31 @@ class SnapshotJsonRepository(LeagueDataRepository):
     def rosters(self) -> List[Dict[str, Any]]:
         return self.snapshots.load_synced_rosters(self._platform_id)
 
+    def draft_schedules(self) -> List[DraftSchedule]:
+        out: List[DraftSchedule] = []
+        for draft in self.snapshots.load_synced_drafts(self._platform_id):
+            try:
+                season = int(draft.get('season'))
+            except (TypeError, ValueError):
+                continue
+            start_ms = draft.get('startTime')
+            starts_at = None
+            if isinstance(start_ms, (int, float)) and start_ms > 0:
+                # Sleeper's start_time is epoch MILLIseconds. Read as seconds
+                # it lands in 1970 -- a wrong date renders happily, so this is
+                # exactly the kind of thing that fails silently.
+                starts_at = datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc)
+            out.append(DraftSchedule(
+                season=season,
+                status=_str(draft.get('status')),
+                starts_at=starts_at,
+                draft_type=_str(draft.get('type')),
+                platform_draft_id=_str(draft.get('draftId')),
+                pick_count=len(draft.get('picks') or []),
+                raw=draft,
+            ))
+        return sorted(out, key=lambda s: s.season, reverse=True)
+
     def draft_years(self) -> Dict[int, List[dict]]:
         team_by_roster_id = {
             roster.get('rosterId'): roster.get('teamName')
@@ -570,6 +622,14 @@ class SnapshotJsonRepository(LeagueDataRepository):
                 {**pick, 'team': team_by_roster_id.get(pick.get('rosterId'))}
                 for pick in draft.get('picks') or []
             ]
+            # A scheduled-but-undrafted draft is snapshotted now (so its
+            # start_time is available -- see drafts_scheduled()), but it has no
+            # picks, and this dict means "seasons this league has actually
+            # drafted." Letting an empty season in here would move
+            # _next_draft_season()'s max(keys)+1 forward a year and feed a
+            # phantom season to the keeper-eligibility walk in strategy.py.
+            if not picks:
+                continue
             years[season] = picks
         return years
 
