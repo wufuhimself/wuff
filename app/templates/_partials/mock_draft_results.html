@@ -9,7 +9,7 @@
       (Picks {{ round_picks[0].pick }}-{{ round_picks[-1].pick }})
       {%- if round_picks | selectattr('isKeeper') | first %} — Keeper Slots{% endif %}</h3>
     <table class="table compact">
-      <thead><tr><th>Pick</th><th>Team</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
+      <thead><tr><th class="number">Pick</th><th>Team</th><th>Player</th><th>Pos</th><th class="number">Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
       <tbody>
         {% for pick in round_picks %}
         <tr{% if pick.isKeeper %} class="my-pick"{% endif %}>
@@ -34,7 +34,7 @@
   <section class="card">
     <h3>{{ team }}</h3>
     <table class="table compact">
-      <thead><tr><th>Round</th><th>Overall Pick</th><th>Player</th><th>Pos</th><th>Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
+      <thead><tr><th class="number">Round</th><th class="number">Overall Pick</th><th>Player</th><th>Pos</th><th class="number">Rank</th><th>NFL Team</th><th>Status</th></tr></thead>
       <tbody>
         {% for pick in team_picks %}
         <tr{% if pick.isKeeper %} class="my-pick"{% endif %}>

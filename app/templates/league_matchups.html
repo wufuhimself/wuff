@@ -21,7 +21,7 @@
         <h3 style="margin-top: 1rem; text-transform: capitalize;">{{ bracket_type }} bracket</h3>
         <div style="overflow-x: auto;">
           <table class="table compact">
-            <thead><tr><th>Round</th><th>Match</th><th>Home</th><th>Away</th><th>Winner</th><th>Decides</th></tr></thead>
+            <thead><tr><th class="number">Round</th><th class="number">Match</th><th>Home</th><th>Away</th><th>Winner</th><th>Decides</th></tr></thead>
             <tbody>
               {% for row in matches %}
               <tr>
@@ -56,7 +56,7 @@
         <h3 style="margin-top: 1rem;">Week {{ week }}</h3>
         <div style="overflow-x: auto;">
           <table class="table compact">
-            <thead><tr><th>Home</th><th>Pts</th><th></th><th>Away</th><th>Pts</th></tr></thead>
+            <thead><tr><th>Home</th><th class="number">Pts</th><th></th><th>Away</th><th class="number">Pts</th></tr></thead>
             <tbody>
               {% for m in matchups %}
               <tr>

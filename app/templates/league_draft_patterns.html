@@ -26,7 +26,7 @@
           treat these as directional.</p>
         <div style="overflow-x: auto; margin-top: 0.75rem;">
           <table class="table compact">
-            <thead><tr><th>Round</th><th>Picks</th><th>Mix</th></tr></thead>
+            <thead><tr><th class="number">Round</th><th class="number">Picks</th><th>Mix</th></tr></thead>
             <tbody>
               {% for round_num, data in mix | dictsort %}
               <tr>
@@ -48,7 +48,7 @@
         <h2>When each position comes off the board</h2>
         <div style="overflow-x: auto;">
           <table class="table compact">
-            <thead><tr><th>Pos</th><th>Picks</th><th>Earliest round</th><th>Median</th><th>Mean</th><th>Latest</th></tr></thead>
+            <thead><tr><th>Pos</th><th class="number">Picks</th><th class="number">Earliest round</th><th class="number">Median</th><th class="number">Mean</th><th class="number">Latest</th></tr></thead>
             <tbody>
               {% for position, data in timing.items() %}
               <tr>
@@ -74,11 +74,11 @@
         <h3 style="margin-top: 1rem;"><span class="pill pos-{{ position | lower }}">{{ position }}</span></h3>
         <div style="overflow-x: auto;">
           <table class="table compact">
-            <thead><tr><th>Slot</th><th>Avg overall pick</th><th>Median</th><th>Seasons</th></tr></thead>
+            <thead><tr><th class="number">Slot</th><th class="number">Avg overall pick</th><th class="number">Median</th><th class="number">Seasons</th></tr></thead>
             <tbody>
               {% for row in rows %}
               <tr>
-                <td>{{ row.positionRank }}</td>
+                <td class="number">{{ row.positionRank }}</td>
                 <td class="number">{{ row.avgOverallPick }}</td>
                 <td class="number">{{ row.medianOverallPick | round(1) }}</td>
                 <td class="number">{{ row.n }}</td>
