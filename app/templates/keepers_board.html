@@ -16,7 +16,10 @@
       {% if per_team %}
       <section class="card">
         <h2>Keeper impact by position</h2>
-        <span class="status">How many elite players will be locked up as keepers ({{ team_names | length }} teams). Check/uncheck a player below to see this update live.</span>
+        <span class="status">Of each position's league-wide elite tier by consensus rank
+          (top 15 QBs, top 16 RBs, top 20 WRs, top 5 TEs), how many are being locked up as
+          keepers ({{ team_names | length }} teams) instead of hitting the draft board.
+          Check/uncheck a player below to see this update live.</span>
 
         <div id="keeper-impact-grid" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); margin-top: 1rem;">
           {% include "_partials/keeper_impact.html" %}
