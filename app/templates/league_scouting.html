@@ -105,9 +105,9 @@
         <h2>Ask a question</h2>
         <p class="status">{{ questions_remaining }} of {{ questions_per_hour_limit }} questions left this hour.</p>
 
-        <form method="post" id="ask-form" style="display: grid; gap: 0.75rem; max-width: 40rem; margin-top: 1rem;">
-          <textarea name="question" id="ask-question" rows="2" placeholder="e.g. Which players had their keeper forecast change recently?" required style="width: 100%; font: inherit; padding: 0.5rem;" {{ 'disabled' if questions_remaining <= 0 }}></textarea>
-          <div><button type="submit" class="button" id="ask-submit" {{ 'disabled' if questions_remaining <= 0 }}>Ask</button></div>
+        <form method="post" id="ask-form" style="display: flex; gap: 0.75rem; align-items: flex-start; max-width: 40rem; margin-top: 1rem;">
+          <textarea name="question" id="ask-question" rows="2" placeholder="e.g. Which players had their keeper forecast change recently?" required style="flex: 1 1 auto;" {{ 'disabled' if questions_remaining <= 0 }}></textarea>
+          <button type="submit" class="button" id="ask-submit" {{ 'disabled' if questions_remaining <= 0 }}>Scout</button>
         </form>
       </section>
 
@@ -141,12 +141,12 @@
   if (!form || !button) return;
   form.addEventListener('submit', function () {
     button.disabled = true;
-    button.textContent = 'Asking…';
+    button.textContent = 'Scouting…';
   });
   window.addEventListener('pageshow', function () {
-    if (button.disabled && button.textContent === 'Asking…') {
+    if (button.disabled && button.textContent === 'Scouting…') {
       button.disabled = false;
-      button.textContent = 'Ask';
+      button.textContent = 'Scout';
     }
   });
 })();
