@@ -4,7 +4,7 @@
       <section class="card">
         <h2>Team draft boards (snake order from {{ standings_year }} standings)</h2>
         <p class="status"><a href="/draft-order/{{ standings_year }}">Back to draft order</a></p>
-        <p class="status">Exact overall pick number per round, joined to the post-keeper board rank at that pick — accounts for traded picks where saved (see <code>picksByRoundOrigins</code> in <code>data/raw/draft_picks/{{ standings_year + 1 }}.json</code>); otherwise assumes standard snake order.</p>
+        <p class="status">Exact overall pick number per round, joined to the {% if default_league_keeper_slots %}post-keeper {% endif %}board rank at that pick — accounts for traded picks where saved (see <code>picksByRoundOrigins</code> in <code>data/raw/draft_picks/{{ standings_year + 1 }}.json</code>); otherwise assumes standard snake order.</p>
       </section>
       {% for team, entries in teams.items() %}
       <section class="card">

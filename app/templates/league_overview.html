@@ -10,7 +10,7 @@
         <p class="status">
           {% if league and league.season %}{{ league.season }}&nbsp;·&nbsp;{% endif %}
           {% if default_league_id and league and league.league_id == default_league_id %}
-          <a href="/draft-history">Draft history</a> · <a href="/keepers-board">Keeper selection</a>
+          <a href="/draft-history">Draft history</a>{% if overview_keeper_slots %} · <a href="/keepers-board">Keeper selection</a>{% endif %}
           {% endif %}
         </p>
       </section>
@@ -19,7 +19,7 @@
       <section class="card">
         <h2>Upcoming draft</h2>
         <p class="status">{{ draft_note }}</p>
-        {% if upcoming_draft and not upcoming_draft.has_drafted %}
+        {% if upcoming_draft and not upcoming_draft.has_drafted and overview_keeper_slots %}
         <p class="status"><a href="/league/{{ league.league_id }}/keepers">Set your keepers</a> before it starts.</p>
         {% endif %}
       </section>

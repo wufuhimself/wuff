@@ -4,7 +4,8 @@
       <section class="card">
         <h2>Mock draft</h2>
         {% if message %}<p class="status">{{ message }}</p>{% endif %}
-        <p class="status">Forecast from live keeper selections, current rankings, position needs,
+        <p class="status">Forecast from {% if default_league_keeper_slots %}live keeper selections,
+          current rankings{% else %}current rankings{% endif %}, position needs,
           this league's own manager tendencies, and TE/DEF strategy.</p>
         <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <form method="POST" action="{{ url_for('refresh_rankings') }}?next=mock-draft" style="display:inline;">
@@ -20,10 +21,10 @@
           {% endif %}
         </div>
         {% if not error and not picks and ran %}
-        <p class="status">No picks generated — check that keeper selections and rankings exist.</p>
+        <p class="status">No picks generated — check that {% if default_league_keeper_slots %}keeper selections and rankings exist{% else %}rankings exist{% endif %}.</p>
         {% elif not error and not picks %}
-        <p class="status">Click "Run mock draft" to simulate the draft against current rankings
-          and whatever keepers are selected on the keeper board right now.</p>
+        <p class="status">Click "Run mock draft" to simulate the draft against current rankings{% if default_league_keeper_slots %}
+          and whatever keepers are selected on the keeper board right now{% endif %}.</p>
         {% endif %}
       </section>
 

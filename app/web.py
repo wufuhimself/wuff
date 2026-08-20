@@ -365,6 +365,13 @@ def _league_overview_ctx(league, sync_error: Optional[str] = None, roster_slot_l
         'league': league, 'standings_year': standings_year, 'standings_rows': standings_rows,
         'round1_order': round1_order, 'completed_drafts': completed_drafts, 'error': sync_error,
         'upcoming_draft': upcoming_draft, 'draft_note': draft_note,
+        # Own key rather than reusing _league_page_ctx's 'league_keeper_slots':
+        # the Sleeper/ESPN routes splat BOTH contexts into render_template, so a
+        # shared name is a duplicate-keyword TypeError. And it cannot be left to
+        # _league_page_ctx alone -- the Yahoo '/' route does not pass that
+        # context at all, so the key would be undefined (falsy) there and would
+        # hide keeper links on the one league that actually has keepers.
+        'overview_keeper_slots': league.format.keeper_slots,
     }
 
 
@@ -424,6 +431,11 @@ def keepers_board_view():
         return _no_league_redirect()
     if not _is_file_backed_yahoo(league):
         return redirect(url_for('league_keepers', league_id=league.league_id))
+    # Same rule as league_keepers above -- a league with no keeper slots has
+    # no keeper board, and settings is where that number lives.
+    if league.format.keeper_slots <= 0:
+        return redirect(url_for('league_settings', league_id=league.league_id,
+                                 message='This league has no keeper slots. Set them here to use the keeper board.'))
 
     state = keeper_board_state(user_id=current_user.id if current_user.is_authenticated else None)
     if state['error']:
@@ -879,23 +891,29 @@ def league_keepers(league_id: str):
     if league.platform == 'yahoo':
         return redirect(url_for('keepers_board_view', league=league.league_id))
 
-    ctx = _league_page_ctx(league, 'keepers')
     if league.format.keeper_slots <= 0:
-        return render_template('league_keepers.html', active='league-keepers', per_team=[],
-                               remaining_board=[], keeper_impact=[], keeper_marks={}, not_configured=True,
-                               error=None, **ctx)
+        # 0 slots means "not a keeper league" (that is literally how the
+        # settings field is labelled), so this page has nothing to say. Sent
+        # to settings rather than shown a keeper-flavoured empty state: league
+        # settings is the one page keepers are allowed to appear on for a
+        # league that keeps nobody, and it is also where the number is
+        # changed if this is simply a league that has not been set up yet.
+        return redirect(url_for('league_settings', league_id=league.league_id,
+                                 message='This league has no keeper slots. Set them here to use the keeper board.'))
+
+    ctx = _league_page_ctx(league, 'keepers')
 
     state = keeper_board_state(league, include_file_prefs=False,
                                user_id=current_user.id if current_user.is_authenticated else None)
     if state['error']:
         return render_template('league_keepers.html', active='league-keepers', per_team=[],
-                               remaining_board=[], keeper_impact=[], keeper_marks={}, not_configured=False,
+                               remaining_board=[], keeper_impact=[], keeper_marks={},
                                error=state['error'], **ctx)
 
     return render_template('league_keepers.html', active='league-keepers', per_team=state['per_team'],
                            remaining_board=state['remaining_board'], keeper_impact=state['keeper_impact'],
                            keeper_count=state['keeper_count'], keeper_marks=state['include_marks'],
-                           not_configured=False, error=None,
+                           error=None,
                            can_adjust=current_user.is_authenticated,
                            has_adjustments=any(row.get('userOffset') for row in state['remaining_board']),
                            message=request.args.get('message', ''), **ctx)
@@ -1260,6 +1278,12 @@ def draft_history_view(year: int):
         )
 
     mode = request.args.get('mode', 'all')
+    # A league with no keeper slots has no keeper/live split -- every pick is a
+    # live draft pick. The mode links are hidden for it, but a stale bookmark
+    # would otherwise land on a filter that means nothing here.
+    default_league = _current_default_league()
+    if default_league is not None and default_league.format.keeper_slots <= 0:
+        mode = 'all'
     if mode == 'live':
         picks = live_draft_picks(year, years)
     elif mode == 'keepers':

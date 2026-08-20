@@ -3,7 +3,8 @@
 {% block content %}
       <section class="card">
         <h2>Mock draft</h2>
-        <p class="status">Forecast from this league's keeper selections, current rankings,
+        <p class="status">Forecast from {% if league_keeper_slots %}this league's keeper selections,
+          current rankings{% else %}current rankings{% endif %},
           position needs, and its own managers' historical draft tendencies. Uses this league's
           real team count, round count and starter slots — not another league's shape.</p>
         <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -17,9 +18,9 @@
           {% endif %}
         </div>
         {% if not error and not picks and ran %}
-        <p class="status">No picks generated. This league needs synced rosters, saved standings
-          (to derive a draft order) and keeper rules set in
-          <a href="/league/{{ league_slug }}/settings">league settings</a>.</p>
+        <p class="status">No picks generated. This league needs synced rosters and saved standings
+          (to derive a draft order){% if league_keeper_slots %}, plus keeper rules set in
+          <a href="/league/{{ league_slug }}/settings">league settings</a>{% endif %}.</p>
         {% elif not error and not picks %}
         <p class="status">Click "Run mock draft" to simulate this league's next draft.</p>
         {% endif %}

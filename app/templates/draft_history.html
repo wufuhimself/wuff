@@ -4,18 +4,25 @@
       <section class="card">
         <h2>{{ year }} draft</h2>
         <div class="year-links">
+          {# The live/keeper split only means something where keeper slots
+             exist -- in a league that keeps nobody, every pick is a live
+             draft pick, so both filters would just restate "All picks". #}
+          {% if default_league_keeper_slots %}
           <a href="/draft-history/{{ year }}?mode=all" class="{{ 'active' if mode == 'all' or not mode }}">All picks</a>
           <a href="/draft-history/{{ year }}?mode=live" class="{{ 'active' if mode == 'live' }}">Live draft only</a>
           <a href="/draft-history/{{ year }}?mode=keepers" class="{{ 'active' if mode == 'keepers' }}">Keeper slots only</a>
           &nbsp;·&nbsp;
+          {% endif %}
           <a href="/draft-picks/{{ year }}">Pick ownership</a>
           &nbsp;·&nbsp;
           <a href="/draft-history">All years</a>
         </div>
+        {% if default_league_keeper_slots %}
         {% if mode == 'live' %}
         <p class="status">Excludes the last-2-rounds keeper slots — this is fresh draft-day demand only.</p>
         {% elif mode == 'keepers' %}
         <p class="status">Only the last-2-rounds keeper-slot picks — players retained from the prior season.</p>
+        {% endif %}
         {% endif %}
       </section>
 
