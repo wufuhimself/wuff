@@ -432,7 +432,7 @@ def keeper_board_state(
     )
     remaining_board = apply_adjustments(remaining_board, adjustments)
     remaining_board = annotate_with_movement(remaining_board)
-    remaining_board = remaining_board[:100]
+    remaining_board = remaining_board[:300]
 
     adp_map = load_adp_map()
     # Name-only lookup -- doesn't cover DEF (rosters use team nickname, e.g.

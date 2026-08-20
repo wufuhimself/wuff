@@ -33,9 +33,7 @@
 
       <section class="card">
         <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | length }}</span></h2>
-        <span class="status">Movement is measured against the previous saved rankings snapshot. ADP is
-          the source data (FFC/Sleeper consensus) — a player's rank can be pinned away from it
-          without losing sight of where the market has them.
+        <span class="status">The draft board, minus keepers.
           {% if not can_adjust %}<a href="/login">Log in</a> to pin players on your own copy of this board.{% endif %}</span>
 
         {% if can_adjust %}
