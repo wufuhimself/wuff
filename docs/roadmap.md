@@ -842,8 +842,11 @@ vault.
   real Flask app: a `/keepers-board/mark` click that genuinely changes a
   team's keepers updates the forecast row and appends one history row.
   `outcome-accuracy` output is byte-identical to the pre-change version.
-  ⚠️ **Deploy step:** run `migrate-outcome-log` once with `DATABASE_URL`
-  pointed at Railway's Postgres, or production starts from an empty log.
+  **Deploy step, optional:** `migrate-outcome-log` with `DATABASE_URL` pointed
+  at Railway's Postgres carries the local log's existing entries over.
+  Deliberately not run (2026-08-20) — nothing is really live yet, so the ~40
+  local forecasts aren't worth preserving; new forecasts persist either way.
+  The command stays for whenever there's history worth moving.
 - **Open:** nothing yet reads `accuracy_report()` (Phase 3's outcome log) back
   into Scouting's prompt or reasoning — the agent currently reasons over raw
   forecast/outcome entries, not the aggregated hit-rate numbers. Also open:
