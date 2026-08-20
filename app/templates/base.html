@@ -245,7 +245,24 @@
         </nav>
       </div>
       {% set draft_tool_ids = ['mock-draft', 'draft-history', 'draft-patterns', 'draft-analysis'] %}
-      {% if active in ['dashboard', 'keepers-board', 'mock-draft', 'draft-history', 'standings'] %}
+      {% set standalone_pages = ['login', 'welcome'] %}
+      {% if league_display_name is not defined and default_league_id and active not in standalone_pages %}
+      {# Fallback for any page that isn't a per-league page (has no
+         league_display_name from _league_page_ctx) and isn't one of the
+         few pages that are genuinely chrome-only (the leagues hub itself,
+         login, welcome). Before this fix (2026-08-20), a page like /leagues
+         -- exactly where a logged-in user with no default league or a
+         mobile user lands -- rendered with NO .league-nav at all, so the
+         hamburger menu showed only the email/profile dropdown and none of
+         the site's pages. Desktop hid this because /leagues' own body
+         links to every league card, so it read as "working"; mobile has no
+         other way to reach site navigation from that page. Also covers the
+         old dashboard-only branch's five pages (dashboard, keepers-board,
+         mock-draft, draft-history, standings) -- none of those set
+         league_display_name either, so folding them in here removed a
+         second copy of this exact nav block. Reuses the default league's
+         own nav since default_league_id/name/platform are already global
+         via _inject_league_context. #}
       {% set draft_tools = [
         ('mock-draft', '/mock-draft', 'Mock draft'),
         ('draft-history', '/draft-history', 'Draft history'),
