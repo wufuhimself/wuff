@@ -1,8 +1,8 @@
 import json
 import logging
 import os
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 from flask import Flask, redirect, render_template, request, url_for
 from markupsafe import Markup
@@ -976,6 +976,17 @@ def league_transactions(league_id: str):
     Team names on TransactionMove/TransactionPickMove already come resolved
     off the repository (attributed by roster_id, not name -- see domain.py),
     so no franchise lookup is needed here, unlike league_matchups().
+
+    Grouped by date, then by team within a date (2026-08-20 fix -- the flat
+    table had no date at all, despite Transaction.processed_at existing on
+    the domain type since Phase 5 step 7; it was just never rendered). A
+    transaction with moves on two teams (a trade) appears under both teams'
+    groups on its date, each showing only that team's own moves plus the
+    other side's name -- a trade is one event but "who did what" reads
+    per-team, not as one shared blob. processed_at is epoch milliseconds,
+    Sleeper's own clock; entries with no processed_at (seen on some waiver
+    rows) fall into an "Undated" group at the end rather than being dropped
+    or mis-sorted into a real day.
     """
     league = _member_league(league_id)
     if league is None:
@@ -988,9 +999,45 @@ def league_transactions(league_id: str):
         reverse=True,
     )
 
+    date_groups = []  # [(date_label, [(team_name, [(transaction, team_moves, other_team_names)])])]
+    groups_by_label: Dict[str, Dict[str, List]] = {}
+    order: List[str] = []
+
+    for t in transactions:
+        if t.processed_at is None:
+            label = 'Undated'
+        else:
+            label = datetime.fromtimestamp(
+                t.processed_at / 1000, tz=timezone.utc
+            ).strftime('%A, %B %-d, %Y')
+        if label not in groups_by_label:
+            groups_by_label[label] = {}
+            order.append(label)
+
+        teams_in_txn = {m.team_name or 'Unknown team' for m in t.moves}
+        teams_in_txn |= {pm.from_team_name or 'Unknown team' for pm in t.pick_moves}
+        teams_in_txn |= {pm.to_team_name or 'Unknown team' for pm in t.pick_moves}
+        if not teams_in_txn:
+            teams_in_txn = {'Unknown team'}
+
+        for team_name in teams_in_txn:
+            team_moves = [m for m in t.moves if (m.team_name or 'Unknown team') == team_name]
+            team_pick_moves = [
+                pm for pm in t.pick_moves
+                if team_name in (pm.from_team_name or 'Unknown team', pm.to_team_name or 'Unknown team')
+            ]
+            other_teams = sorted(teams_in_txn - {team_name})
+            groups_by_label[label].setdefault(team_name, []).append(
+                (t, team_moves, team_pick_moves, other_teams)
+            )
+
+    for label in order:
+        teams = sorted(groups_by_label[label].items(), key=lambda kv: kv[0])
+        date_groups.append((label, teams))
+
     return render_template(
         'league_transactions.html', active='league-transactions',
-        transactions=transactions,
+        date_groups=date_groups,
         **_league_page_ctx(league, 'transactions'),
     )
 
