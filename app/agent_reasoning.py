@@ -140,6 +140,14 @@ _in_flight_lock = threading.Lock()
 _in_flight_threads: Dict[str, bool] = {}
 
 
+def _mmddyyyy(iso_timestamp: str) -> str:
+    """ISO timestamp -> mm-dd-yyyy for anything shown to the model/user --
+    the log stores full ISO (forecasted_at/superseded_at) for exact sort
+    order, but that precision has no value in a chat answer and 'on
+    2026-08-19T15:22:31' reads worse than 'on 08-19-2026'."""
+    return datetime.fromisoformat(iso_timestamp).strftime('%m-%d-%Y')
+
+
 def _league_log_text(platform: str, platform_league_id: str) -> str:
     """Every current + superseded forecast for one league, rendered as plain
     text for the prompt. Mirrors outcome_log.py's own platform/platform_league_id
@@ -163,8 +171,23 @@ def _league_log_text(platform: str, platform_league_id: str) -> str:
             f"[{entry['forecast_method_version']}], status={entry['status']}"
         )
         for past in history_by_id.get(entry['decision_id'], []):
-            lines.append(f"    earlier ({past['superseded_at']}): {past['forecast']}")
+            lines.append(f"    earlier ({_mmddyyyy(past['superseded_at'])}): {past['forecast']}")
     return '\n'.join(lines) if lines else '(no forecasts logged for this league yet)'
+
+
+def has_resolved_forecasts(platform: str, platform_league_id: str) -> bool:
+    """True once this league has at least one resolved forecast (a real
+    draft has happened and been matched against what was predicted) --
+    lets the Scouting page switch from anticipate-the-draft example
+    questions to forecast-vs-actual ones. Same platform/platform_league_id
+    scoping as _league_log_text, so it agrees with what the LLM is
+    actually shown."""
+    return any(
+        o['status'] == 'resolved'
+        for o in load_outcomes()
+        if (o.get('platform') or DEFAULT_PLATFORM) == platform
+        and (o.get('platform_league_id') or DEFAULT_PLATFORM_LEAGUE_ID) == platform_league_id
+    )
 
 
 def retrieve_node(state: AgentState) -> Dict[str, Any]:
@@ -201,7 +224,9 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         f"above. If the log doesn't contain enough to answer, say so plainly instead "
         f"of guessing. If the question refers back to something from earlier in the "
         f"conversation ('the first one', 'that player'), resolve it against the "
-        f"conversation above, not the forecast log's own ordering."
+        f"conversation above, not the forecast log's own ordering. Dates in the log "
+        f"are already formatted mm-dd-yyyy -- keep that exact format in your answer, "
+        f"never expand it back into an ISO timestamp."
     )
     llm = ChatOllama(model='llama3.1:8b', temperature=0)
     response = llm.invoke(prompt)

@@ -15,6 +15,7 @@ from .agent_reasoning import (
     QuestionLimitReached,
     ask,
     conversation_history,
+    has_resolved_forecasts,
     questions_asked_in_last_hour,
     thread_id_for,
 )
@@ -1038,6 +1039,7 @@ def league_scouting(league_id: str):
         message=request.args.get('message', ''),
         questions_remaining=questions_remaining,
         questions_per_hour_limit=QUESTIONS_PER_HOUR_LIMIT,
+        has_results=has_resolved_forecasts(league.platform, league.platform_league_id),
         **_league_page_ctx(league, 'scouting'),
     )
 

@@ -2,21 +2,110 @@
 {% block title %}Scouting — {{ league_display_name }} — WuFF{% endblock %}
 {% block content %}
 
+      <section class="card scouting-hero">
+        <span class="scouting-eyebrow">Scouting</span>
+        {% if has_results %}
+        <h2 class="scouting-title">How did the {{ league_display_name }} draft go?</h2>
+        <p class="status scouting-lede">Ask in plain language and it answers from what this
+          league forecasted and what actually happened — keeper calls, draft-slot predictions,
+          and how close each one landed.</p>
+        {% else %}
+        <h2 class="scouting-title">Anticipate the {{ league_display_name }} draft</h2>
+        <p class="status scouting-lede">Ask in plain language and it answers from this league's
+          own forecast log — who's expected to be kept, and where players are predicted to go
+          once the draft starts.</p>
+        {% endif %}
+        <div class="scouting-scope">
+          <strong>Grounded, not guessed.</strong> Answers come only from this league's own
+          recorded forecasts and outcomes — never live data or outside knowledge, and can be
+          wrong or incomplete.
+        </div>
+      </section>
+
+      {% if message %}
+      <div class="message">{{ message }}</div>
+      {% endif %}
+
       <section class="card">
-        <h2>Scouting</h2>
-        <p class="status">Ask a question about this league's own forecast log (keeper picks,
-          draft-slot predictions). Answers come only from what WuFF has already logged, not live
-          data or outside knowledge, and can be wrong or incomplete. Prototype (WS-6 LangGraph
-          spike): runs on a local model, may be slow, and quality is still rough.</p>
+        <h2>Example questions</h2>
+        <p class="status">Click one to drop it in the box below, or ask anything in your own words.</p>
+
+        {% if has_results %}
+        <div class="scouting-group">
+          <div class="scouting-group-head">
+            <h3>Forecast vs. actual</h3>
+            <span class="scouting-tag">how close the predictions landed</span>
+          </div>
+          <div class="scouting-cards">
+            <button type="button" class="scouting-card" data-question="How close was a keeper forecast to what actually happened?">How close was a keeper forecast to what actually happened?</button>
+            <button type="button" class="scouting-card" data-question="How far off was a draft-slot prediction once the pick was made?">How far off was a draft-slot prediction once the pick was made?</button>
+            <button type="button" class="scouting-card" data-question="Summarize how this league's keeper forecasts have trended.">Summarize how this league's keeper forecasts have trended.</button>
+          </div>
+        </div>
+
+        <div class="scouting-group">
+          <div class="scouting-group-head">
+            <h3>Keeper decisions</h3>
+            <span class="scouting-tag">who was kept, and why</span>
+          </div>
+          <div class="scouting-cards">
+            <button type="button" class="scouting-card" data-question="Which players had their keeper forecast change before the draft?">Which players had their keeper forecast change before the draft?</button>
+            <button type="button" class="scouting-card" data-question="What was the reasoning behind marking a player as a recommended keeper?">What was the reasoning behind marking a player as a recommended keeper?</button>
+          </div>
+        </div>
+        {% else %}
+        <div class="scouting-group">
+          <div class="scouting-group-head">
+            <h3>Anticipate the draft</h3>
+            <span class="scouting-tag">expected picks, by slot and round</span>
+          </div>
+          <div class="scouting-cards">
+            <button type="button" class="scouting-card" data-question="What pick number is George Kittle forecasted to go at?">What pick number is George Kittle forecasted to go at?</button>
+            <button type="button" class="scouting-card" data-question="Which positions were expected to go earliest this draft?">Which positions were expected to go earliest this draft?</button>
+            <button type="button" class="scouting-card" data-question="Which player is forecasted to be drafted with the first overall pick?">Which player is forecasted to be drafted with the first overall pick?</button>
+          </div>
+        </div>
+
+        <div class="scouting-group">
+          <div class="scouting-group-head">
+            <h3>Keeper decisions</h3>
+            <span class="scouting-tag">who to keep, and why</span>
+          </div>
+          <div class="scouting-cards">
+            <button type="button" class="scouting-card" data-question="Which players had their keeper forecast change recently?">Which players had their keeper forecast change recently?</button>
+            <button type="button" class="scouting-card" data-question="What was the reasoning behind marking a player as a recommended keeper?">What was the reasoning behind marking a player as a recommended keeper?</button>
+          </div>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="card" id="ask-box">
+        <h2>Ask a question</h2>
         <p class="status">{{ questions_remaining }} of {{ questions_per_hour_limit }} questions left this hour.</p>
 
         <form method="post" id="ask-form" style="display: grid; gap: 0.75rem; max-width: 40rem; margin-top: 1rem;">
-          <textarea name="question" rows="2" placeholder="e.g. Which players had their keeper forecast change recently?" required style="width: 100%; font: inherit; padding: 0.5rem;" {{ 'disabled' if questions_remaining <= 0 }}></textarea>
+          <textarea name="question" id="ask-question" rows="2" placeholder="e.g. Which players had their keeper forecast change recently?" required style="width: 100%; font: inherit; padding: 0.5rem;" {{ 'disabled' if questions_remaining <= 0 }}></textarea>
           <div><button type="submit" class="button" id="ask-submit" {{ 'disabled' if questions_remaining <= 0 }}>Ask</button></div>
         </form>
       </section>
 
 <script>
+// Example-question cards fill the textarea and focus it -- doesn't
+// auto-submit, so a click is a starting point to edit, not an accidental
+// question fired at the hourly limit.
+(function () {
+  var textarea = document.getElementById('ask-question');
+  if (!textarea) return;
+  document.querySelectorAll('.scouting-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      if (textarea.disabled) return;
+      textarea.value = card.getAttribute('data-question');
+      textarea.focus();
+      document.getElementById('ask-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+})();
+
 // Disable the button once clicked so a double-click or an itchy trigger
 // finger can't fire two overlapping questions -- the real guard is the
 // server-side in-flight lock in app/agent_reasoning.py (AskInProgress),
@@ -50,7 +139,9 @@
         <div style="display: grid; gap: 1.25rem; margin-top: 1rem;">
           {% for turn in history %}
           <div>
-            <p><strong>You:</strong> {{ turn.question }}</p>
+            <p><strong>You:</strong> {{ turn.question }}
+              {% if turn.asked_at %}<span class="status">— {{ turn.asked_at[5:7] }}/{{ turn.asked_at[8:10] }}/{{ turn.asked_at[0:4] }}</span>{% endif %}
+            </p>
             <p class="status" style="white-space: pre-wrap;">{{ turn.answer }}</p>
           </div>
           {% endfor %}
