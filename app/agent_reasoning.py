@@ -218,6 +218,27 @@ def _draft_patterns_text(league_id: str) -> str:
     return '\n'.join(lines)
 
 
+def _league_has_keepers(league_id: str) -> bool:
+    """Whether this league keeps players at all.
+
+    Gates the prompt's description of what the forecast log contains: telling
+    the model a redraft league's log holds "keeper picks" invites it to answer
+    about keepers that cannot exist, which is exactly the ungrounded guessing
+    the page promises it does not do. Resolved through league_service so a
+    league's own saved rules win over the registry default, matching what the
+    keeper board and the nav both key on. Unknown/unresolvable leagues report
+    False -- the narrower prompt is the safe direction.
+    """
+    if not league_id:
+        return False
+    from .league_service import resolve_league  # pylint: disable=import-outside-toplevel
+    try:
+        league = resolve_league(league_id)
+    except Exception:  # pylint: disable=broad-exception-caught
+        return False
+    return bool(league and league.format.keeper_slots)
+
+
 def has_resolved_forecasts(platform: str, platform_league_id: str) -> bool:
     """True once this league has at least one resolved forecast (a real
     draft has happened and been matched against what was predicted) --
@@ -262,9 +283,14 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         prior_lines = [f"Q: {m['question']}\nA: {m['answer']}" for m in state['messages']]
         prior_turns = 'Earlier in this conversation:\n' + '\n\n'.join(prior_lines) + '\n\n'
 
+    # Redraft leagues have no keeper picks in their log at all -- naming them
+    # here would invite an answer about data that cannot exist.
+    forecast_kinds = ('keeper picks, draft-slot predictions'
+                      if _league_has_keepers(state.get('league_id', ''))
+                      else 'draft-slot predictions')
     prompt = (
         f"You are answering a question about a fantasy football league: its forecast "
-        f"history (keeper picks, draft-slot predictions, tracked by an app that logs "
+        f"history ({forecast_kinds}, tracked by an app that logs "
         f"every prediction and updates it over time) and its own real draft history "
         f"(what position gets picked in which round).\n\n"
         f"{state['retrieved_context']}\n\n"

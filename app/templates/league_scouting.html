@@ -7,13 +7,15 @@
         {% if has_results %}
         <h2 class="scouting-title">How did the {{ league_display_name }} draft go?</h2>
         <p class="status scouting-lede">Ask in plain language and it answers from what this
-          league forecasted and what actually happened — keeper calls, draft-slot predictions,
-          and how close each one landed.</p>
+          league forecasted and what actually happened — {% if league_keeper_slots %}keeper calls,
+          draft-slot predictions, and how close each one landed{% else %}draft-slot predictions
+          and how close each one landed{% endif %}.</p>
         {% else %}
         <h2 class="scouting-title">Anticipate the {{ league_display_name }} draft</h2>
         <p class="status scouting-lede">Ask in plain language and it answers from this league's
-          own forecast log — who's expected to be kept, and where players are predicted to go
-          once the draft starts.</p>
+          own forecast log — {% if league_keeper_slots %}who's expected to be kept, and where
+          players are predicted to go once the draft starts{% else %}where players are predicted
+          to go once the draft starts{% endif %}.</p>
         {% endif %}
         <div class="scouting-scope">
           <strong>Grounded, not guessed.</strong> Answers come only from this league's own
@@ -37,12 +39,19 @@
             <span class="scouting-tag">how close the predictions landed</span>
           </div>
           <div class="scouting-cards">
+            {% if league_keeper_slots %}
             <button type="button" class="scouting-card" data-question="How close was a keeper forecast to what actually happened?">How close was a keeper forecast to what actually happened?</button>
+            {% endif %}
             <button type="button" class="scouting-card" data-question="How far off was a draft-slot prediction once the pick was made?">How far off was a draft-slot prediction once the pick was made?</button>
+            {% if league_keeper_slots %}
             <button type="button" class="scouting-card" data-question="Summarize how this league's keeper forecasts have trended.">Summarize how this league's keeper forecasts have trended.</button>
+            {% else %}
+            <button type="button" class="scouting-card" data-question="Summarize how this league's draft forecasts have trended.">Summarize how this league's draft forecasts have trended.</button>
+            {% endif %}
           </div>
         </div>
 
+        {% if league_keeper_slots %}
         <div class="scouting-group">
           <div class="scouting-group-head">
             <h3>Keeper decisions</h3>
@@ -53,6 +62,7 @@
             <button type="button" class="scouting-card" data-question="What was the reasoning behind marking a player as a recommended keeper?">What was the reasoning behind marking a player as a recommended keeper?</button>
           </div>
         </div>
+        {% endif %}
 
         <div class="scouting-group">
           <div class="scouting-group-head">
@@ -77,6 +87,7 @@
           </div>
         </div>
 
+        {% if league_keeper_slots %}
         <div class="scouting-group">
           <div class="scouting-group-head">
             <h3>Keeper decisions</h3>
@@ -87,6 +98,7 @@
             <button type="button" class="scouting-card" data-question="What was the reasoning behind marking a player as a recommended keeper?">What was the reasoning behind marking a player as a recommended keeper?</button>
           </div>
         </div>
+        {% endif %}
 
         <div class="scouting-group">
           <div class="scouting-group-head">
@@ -106,7 +118,7 @@
         <p class="status">{{ questions_remaining }} of {{ questions_per_hour_limit }} questions left this hour.</p>
 
         <form method="post" id="ask-form" style="display: flex; gap: 0.75rem; align-items: flex-start; max-width: 40rem; margin-top: 1rem;">
-          <textarea name="question" id="ask-question" rows="2" placeholder="e.g. Which players had their keeper forecast change recently?" required style="flex: 1 1 auto;" {{ 'disabled' if questions_remaining <= 0 }}></textarea>
+          <textarea name="question" id="ask-question" rows="2" placeholder="{% if league_keeper_slots %}e.g. Which players had their keeper forecast change recently?{% else %}e.g. Which positions were expected to go earliest this draft?{% endif %}" required style="flex: 1 1 auto;" {{ 'disabled' if questions_remaining <= 0 }}></textarea>
           <button type="submit" class="button" id="ask-submit" {{ 'disabled' if questions_remaining <= 0 }}>Scout</button>
         </form>
       </section>
