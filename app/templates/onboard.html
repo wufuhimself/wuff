@@ -8,7 +8,7 @@
         <form method="post" action="/my/onboard">
           <input type="text" name="username" placeholder="Sleeper username" value="{{ username }}" required>
           <input type="text" name="season" value="{{ season }}" size="6" title="Season">
-          <button type="submit">Find leagues</button>
+          <button type="submit" class="button">Find Sleeper leagues</button>
         </form>
         {% if discovered is not none %}
           {% if discovered %}
@@ -26,7 +26,7 @@
               </li>
               {% endfor %}
             </ul>
-            <button type="submit">Import selected</button>
+            <button type="submit" class="button">Import selected</button>
           </form>
           {% else %}
           <p class="status">No leagues found for that username/season.</p>
@@ -49,7 +49,7 @@
             <input type="text" name="espn_s2" placeholder="espn_s2 cookie (private leagues only)" style="flex: 1 1 260px;">
             <input type="text" name="swid" placeholder="SWID cookie, with braces {...}">
           </div>
-          <button type="submit">Import ESPN league</button>
+          <button type="submit" class="button">Import ESPN league</button>
         </form>
         <p class="status">Yahoo import lands when Yahoo grants API access.</p>
       </section>
