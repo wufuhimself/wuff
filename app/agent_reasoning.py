@@ -14,23 +14,43 @@ into the prompt -- a real retriever would be solving a corpus-size problem
 this app doesn't have yet. Revisit only if/when a league's log actually gets
 big enough that this stops fitting a context window.
 
-Checkpointing: SqliteSaver at data/processed/agent_checkpoints.db (same
-gitignored-processed-dir, ephemeral-deploy-disk caveat as outcome_log.json
-itself -- not re-solved here). thread_id is f"{user_id}_{platform}_{platform_league_id}"
-(user + league, per the plan) so each user's conversation with each league's
-agent is its own multi-turn thread and users can't see each other's threads.
+Checkpointing (2026-08-19, revised same day): PostgresSaver against
+DATABASE_URL when it's set to Postgres (production -- same DB
+app/db.py's SQLAlchemy models already use there), SqliteSaver at
+data/processed/agent_checkpoints.db otherwise (local dev, no Postgres
+running). First cut used only SqliteSaver -- looked fine locally but
+data/processed/ is gitignored and Railway's container filesystem is
+ephemeral, so every redeploy silently wiped every user's conversation
+history, the exact bug already fixed once for Sleeper/ESPN sync
+snapshots (see app/snapshot_store.py) and still open for
+outcome_log.json. Caught by the user asking "is this actually
+persisted?" after using the feature live, not by testing -- the local
+sqlite file looked completely correct, which is exactly what made this
+easy to miss: the bug only exists in the gap between "works on my
+machine" and "survives a deploy." thread_id is
+f"{user_id}_{platform}_{platform_league_id}" (user + league, per the
+plan) so each user's conversation with each league's agent is its own
+multi-turn thread and users can't see each other's threads.
 
 LLM: local via Ollama (see scripts/langgraph_spike.py's docstring for why --
 API cost, not a technical constraint). Swap point is the ChatOllama(...) call
 below if that ever changes.
 """
+import contextlib
 import threading
 from typing import Annotated, Any, Dict, List, TypedDict
 
+from .db import DATABASE_URL, _IS_SQLITE
 from .outcome_log import load_outcome_history, load_outcomes
 from .paths import PROCESSED_DIR, ensure_parent_dir
 
 AGENT_CHECKPOINT_FILE = PROCESSED_DIR / 'agent_checkpoints.db'
+
+# PostgresSaver.setup() creates its tables if missing and MUST be called
+# before first use, but is safe/cheap to call more than once -- guarded here
+# purely to avoid a redundant round-trip on every single ask()/
+# conversation_history() call in the common case.
+_postgres_ready = False  # pylint: disable=invalid-name
 
 DEFAULT_PLATFORM = 'yahoo'
 DEFAULT_PLATFORM_LEAGUE_ID = '9410'
@@ -122,10 +142,11 @@ def retrieve_node(state: AgentState) -> Dict[str, Any]:
 
 def reason_node(state: AgentState) -> Dict[str, Any]:
     # Deferred imports throughout this module (not just style, see other
-    # app/*.py import-outside-toplevel disables) -- these packages live in
-    # requirements-langgraph.txt, not requirements.txt, deliberately kept
-    # out of the base install (see that file's header). pylint's fresh venv
-    # won't have them, so import-error is expected here, not a real problem.
+    # app/*.py import-outside-toplevel disables) -- these packages are in
+    # requirements.txt as of 2026-08-19 (this module is a live feature now,
+    # not a spike), so import-outside-toplevel is the only real disable
+    # needed; import-error is kept alongside it defensively in case
+    # pylint's venv ever drifts, harmless either way.
     from langchain_ollama import ChatOllama  # pylint: disable=import-outside-toplevel,import-error
 
     prior_turns = ''
@@ -152,6 +173,42 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
     return {'answer': answer, 'messages': [{'question': state['user_query'], 'answer': answer}]}
 
 
+@contextlib.contextmanager
+def _checkpointer():
+    """The right checkpointer for this environment, as a context manager --
+    PostgresSaver (DATABASE_URL) in production, SqliteSaver (a local file)
+    otherwise. Mirrors app/db.py's own _IS_SQLITE branch rather than
+    inventing a second way to detect the environment.
+
+    Each call opens its own connection (cheap, matches this app's other
+    sqlite-via-context-manager call sites) rather than holding one open for
+    the process lifetime -- avoids a shared-connection-across-requests
+    footgun in a threaded Flask dev server.
+
+    The pylint disable on each nested `with` below: pylint flags them as a
+    possible missing-cleanup risk, but this is the standard safe pattern --
+    contextlib.contextmanager's machinery correctly throws exceptions back
+    into the generator body at the yield point, so the nested `with`'s
+    __exit__ still runs. Verified directly: an exception raised inside a
+    real `with _checkpointer():` block propagates correctly AND the
+    connection can be cleanly reopened right after, with no leaked
+    lock/connection.
+    """
+    global _postgres_ready  # pylint: disable=global-statement
+    if _IS_SQLITE:
+        from langgraph.checkpoint.sqlite import SqliteSaver  # pylint: disable=import-outside-toplevel,import-error
+        ensure_parent_dir(AGENT_CHECKPOINT_FILE)
+        with SqliteSaver.from_conn_string(str(AGENT_CHECKPOINT_FILE)) as checkpointer:
+            yield checkpointer
+    else:
+        from langgraph.checkpoint.postgres import PostgresSaver  # pylint: disable=import-outside-toplevel,import-error
+        with PostgresSaver.from_conn_string(DATABASE_URL) as checkpointer:  # pylint: disable=contextmanager-generator-missing-cleanup
+            if not _postgres_ready:
+                checkpointer.setup()
+                _postgres_ready = True
+            yield checkpointer
+
+
 def _build_graph(checkpointer):
     from langgraph.graph import StateGraph, END  # pylint: disable=import-outside-toplevel,import-error
 
@@ -167,12 +224,7 @@ def _build_graph(checkpointer):
 def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -> str:
     """Single entry point web.py calls. One turn of a possibly-multi-turn
     conversation, threaded by thread_id (see thread_id_for) so a follow-up
-    question in the same league re-enters the same SqliteSaver thread.
-
-    Each call opens its own sqlite connection (cheap, matches this app's
-    other sqlite-via-context-manager call sites) rather than holding one open
-    for the process lifetime -- avoids a shared-connection-across-requests
-    footgun in a threaded Flask dev server.
+    question in the same league re-enters the same checkpointer thread.
 
     Raises AskInProgress instead of running a second overlapping call for
     the same thread_id -- the Ollama call is slow and synchronous, so a
@@ -187,10 +239,7 @@ def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -
         _in_flight_threads[thread_id] = True
 
     try:
-        from langgraph.checkpoint.sqlite import SqliteSaver  # pylint: disable=import-outside-toplevel,import-error
-
-        ensure_parent_dir(AGENT_CHECKPOINT_FILE)
-        with SqliteSaver.from_conn_string(str(AGENT_CHECKPOINT_FILE)) as checkpointer:
+        with _checkpointer() as checkpointer:
             graph = _build_graph(checkpointer)
             config = {'configurable': {'thread_id': thread_id}}
             # messages: [] here is the per-invoke contribution the reducer
@@ -210,8 +259,9 @@ def ask(platform: str, platform_league_id: str, question: str, thread_id: str) -
 
 def conversation_history(thread_id: str) -> List[Dict[str, str]]:
     """Past question/answer turns for this thread, oldest first -- for
-    rendering the /ask page's transcript. Empty list for a fresh thread or
-    when the checkpoint file doesn't exist yet (first-ever question).
+    rendering the /ask page's transcript. Empty list for a fresh thread
+    (nothing asked yet, or -- sqlite only -- the checkpoint file doesn't
+    exist yet).
 
     Reads the `messages` field off the latest checkpoint rather than
     reconstructing history from raw per-super-step snapshots: LangGraph
@@ -220,12 +270,10 @@ def conversation_history(thread_id: str) -> List[Dict[str, str]]:
     misordered turns in testing -- `messages`, accumulated via a reducer, is
     the one field that's already exactly "one entry per turn" by
     construction."""
-    from langgraph.checkpoint.sqlite import SqliteSaver  # pylint: disable=import-outside-toplevel,import-error
-
-    if not AGENT_CHECKPOINT_FILE.exists():
+    if _IS_SQLITE and not AGENT_CHECKPOINT_FILE.exists():
         return []
 
-    with SqliteSaver.from_conn_string(str(AGENT_CHECKPOINT_FILE)) as checkpointer:
+    with _checkpointer() as checkpointer:
         config = {'configurable': {'thread_id': thread_id}}
         latest = checkpointer.get(config)
         if not latest:

@@ -17,8 +17,11 @@ gated on this spike proving useful first.
 LLM: local via Ollama (free), not the Anthropic API -- switched 2026-08-19
 when the API's per-call cost turned out to matter for a spike script run
 repeatedly during development. Requires `brew install ollama`,
-`brew services start ollama`, `ollama pull llama3.1:8b` (one-time, ~4.9GB),
-and `pip install -r requirements-langgraph.txt`.
+`brew services start ollama`, `ollama pull llama3.1:8b` (one-time, ~4.9GB).
+Deps live in requirements.txt now (promoted from a separate
+requirements-langgraph.txt the same day this module's reasoning graph went
+live in the web app, see app/agent_reasoning.py) -- `pip install -r
+requirements.txt` covers this script too.
 
 Usage:
     python3 scripts/langgraph_spike.py                    # picks a decision with history

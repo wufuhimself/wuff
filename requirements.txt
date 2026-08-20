@@ -12,3 +12,13 @@ cryptography
 nflreadpy
 pdfplumber
 httpx
+# LangGraph reasoning layer (app/agent_reasoning.py, /league/<slug>/ask) --
+# promoted here from the former requirements-langgraph.txt 2026-08-19 once
+# the feature was live with a real user and a Postgres checkpointer (not a
+# spike anymore). LLM binding is local via Ollama (langchain-ollama), not a
+# paid API -- see app/agent_reasoning.py's module docstring.
+langgraph
+langgraph-checkpoint-sqlite
+langgraph-checkpoint-postgres
+langchain
+langchain-ollama
