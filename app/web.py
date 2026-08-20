@@ -30,12 +30,6 @@ from .auth import (
 from .board_service import bump_adjustment, clear_adjustment, clear_all_adjustments
 from .crypto import encrypt_value
 from .db import SessionLocal, init_db
-from .draft_analysis import (
-    draft_slot_vs_final_rank,
-    position_in_round_vs_final_rank,
-    summarize_draft_slot_correlation,
-    summarize_position_in_round,
-)
 from .draft_history import keeper_slot_picks, live_draft_picks
 from .free_rankings import manual_refresh_cooldown_remaining, refresh_free_rankings
 from .domain import BRACKET_TYPES
@@ -848,34 +842,6 @@ def league_keepers(league_id: str):
                            can_adjust=current_user.is_authenticated,
                            has_adjustments=any(row.get('userOffset') for row in state['remaining_board']),
                            message=request.args.get('message', ''), **ctx)
-
-
-@app.route('/league/<league_id>/draft-analysis')
-def league_draft_analysis(league_id: str):
-    """Did draft slot predict finish, and which positions in round N did?
-    (Phase 3 port -- runs on any registered league via its own repository.)
-
-    Both analyses correlate against final standings, so a league only has
-    something to show once it has at least one season with BOTH draft results
-    and saved standings; that's an empty state, not an error."""
-    league = _member_league(league_id)
-    if league is None:
-        return redirect(url_for('leagues_view'))
-
-    repo = repository_for(league)
-    round_number = request.args.get('round', default=1, type=int)
-
-    slot_outcomes = draft_slot_vs_final_rank(repo=repo)
-    slot_summary = summarize_draft_slot_correlation(slot_outcomes) if slot_outcomes else {}
-    position_outcomes = position_in_round_vs_final_rank(round_number, repo=repo)
-    position_summary = summarize_position_in_round(position_outcomes) if position_outcomes else {}
-
-    return render_template(
-        'league_draft_analysis.html', active='league-draft-analysis',
-        slot_summary=slot_summary, position_summary=position_summary,
-        round_number=round_number, has_data=bool(slot_outcomes or position_outcomes),
-        **_league_page_ctx(league, 'draft-analysis'),
-    )
 
 
 @app.route('/league/<league_id>/manager-report')

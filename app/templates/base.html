@@ -245,7 +245,7 @@
           {% endif %}
         </nav>
       </div>
-      {% set draft_tool_ids = ['mock-draft', 'draft-history', 'draft-analysis'] %}
+      {% set draft_tool_ids = ['mock-draft', 'draft-history'] %}
       {% set standalone_pages = ['login', 'welcome'] %}
       {% if league_display_name is not defined and default_league_id and active not in standalone_pages %}
       {# Fallback for any page that isn't a per-league page (has no
@@ -267,7 +267,6 @@
       {% set draft_tools = [
         ('mock-draft', '/mock-draft', 'Mock draft'),
         ('draft-history', '/draft-history', 'Draft history'),
-        ('draft-analysis', '/league/' + default_league_id + '/draft-analysis', 'Draft analysis'),
       ] %}
       <nav class="league-nav">
         <span class="platform-tag">{{ default_league_platform }}</span>
@@ -316,7 +315,6 @@
                would silently jump to a different league's data. #}
             <a href="/draft-history" class="{{ 'active' if active == 'draft-history' }}">Draft history</a>
             {% endif %}
-            <a href="/league/{{ league_slug }}/draft-analysis" class="{{ 'active' if league_tool == 'draft-analysis' }}">Draft analysis</a>
           </div>
         </details>
         {% if league_slug == default_league_id %}

@@ -315,7 +315,11 @@ so it can't gate the second platform.
   for the rest of the CLI analysis commands. Web: `/league/<slug>/draft-analysis`
   + per-league subnav entry, with an empty state for leagues that don't yet
   have a season with BOTH draft results and final standings (that's the real
-  gate on this analysis, not platform).
+  gate on this analysis, not platform). **Web page removed 2026-08-20** ("not
+  great") — route, template, and both nav links deleted. `draft_analysis.py`
+  itself stays: `manager_report.py` is built on `draft_slot_vs_final_rank()`/
+  `summarize_draft_slot_correlation()`, and the CLI commands
+  (`draft-slot-outcomes`/`position-round-outcomes --league`) are untouched.
 - ✅ **Mock draft per league** (2026-08-11): `run_mock_draft(repo=, league_format=)`;
   team count, round count, keeper-slot rounds, starter slots and position
   limits all come from `LeagueFormat` (which gained `draft_rounds` +
