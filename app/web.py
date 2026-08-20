@@ -57,7 +57,6 @@ from .keeper_service import (
 from .league_context import load_league_format
 from .league_service import resolve_league, save_league_rules
 from .mailer import send_magic_link
-from .manager_report import manager_report_card
 from .membership import (
     default_league_for_user,
     followed_league_rows,
@@ -887,25 +886,19 @@ def league_draft_analysis(league_id: str):
 
 @app.route('/league/<league_id>/manager-report')
 def league_manager_report(league_id: str):
-    """Per-manager draft performance: did each manager's actual finish beat
-    what their own draft slots would predict, using this league's own
-    slot-to-rank baseline (see app/manager_report.py).
-
-    Same empty-state gate as draft-analysis (needs a season with both draft
-    results and saved standings). Also see that module's identity-resolution
-    caveat, surfaced on the page itself -- rows are "team-name lineages," not
-    verified people, when Yahoo's rename note never linked two names."""
+    """Pulled from nav 2026-08-20 -- the table itself is real (per-manager
+    draft-slot-vs-finish, see app/manager_report.py) but the page rendering
+    it reads as a messy, ugly table, not a shippable feature. Rather than
+    delete the underlying logic (manager_report_card(), the CLI
+    `manager-report --league` command, and the identity-resolution work in
+    Phase 5 step 3 all stay useful), this route just 302s away so no stale
+    link/bookmark hits the bad page. Re-link + rework the template before
+    end of season, not before.
+    """
     league = _member_league(league_id)
     if league is None:
         return redirect(url_for('leagues_view'))
-
-    repo = repository_for(league)
-    rows = manager_report_card(repo=repo)
-
-    return render_template(
-        'league_manager_report.html', active='league-manager-report',
-        rows=rows, **_league_page_ctx(league, 'manager-report'),
-    )
+    return redirect(_league_href(league.platform, league.platform_league_id))
 
 
 @app.route('/league/<league_id>/matchups')
