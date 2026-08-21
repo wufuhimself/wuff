@@ -6,11 +6,11 @@
    from ranking_history. #}
 {% for row in remaining_board %}
 <tr class="{% if row.isKeeper %}keeper-row{% elif row.isMyPick %}my-pick{% endif %}">
-  <td class="number">
-    {%- if row.isKeeper %}<span class="pill" title="Kept by {{ row.keptBy }} — off the board, holds no pick">kept</span>
-    {%- else %}{{ row.draftOrder }}{% endif %}
-  </td>
-  <td class="playerName">{{ row.playerName }}{% if row.isKeeper %} <span class="status">{{ row.keptBy }}</span>{% endif %}</td>
+  {# A kept player holds no pick, so the number cell is simply empty -- the
+     dimmed row and the keeping team beside the name already say what they
+     are, and a badge here only crowded the column. #}
+  <td class="number">{{ row.draftOrder if not row.isKeeper else '' }}</td>
+  <td class="playerName">{{ row.playerName }}{% if row.isKeeper %} <span class="status" title="Kept by {{ row.keptBy }} — off the board, holds no pick">— {{ row.keptBy }}</span>{% endif %}</td>
   <td><span class="pill pos-{{ (row.position or '').lower() }}">{{ row.position }}</span></td>
   <td>{{ row.team or '' }}</td>
   <td class="number">{{ '%.1f'|format(row.adp) if row.adp is not none else '—' }}</td>

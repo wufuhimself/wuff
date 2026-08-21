@@ -119,6 +119,12 @@ def main() -> int:  # pylint: disable=too-many-statements
     # <style> block carries every class on every page (the trap
     # check_league_scoping.py documents).
     check('keeper rows rendered', True, 'class="keeper-row"' in body)
+    # A kept row shows "Player — Team" beside the name and leaves the pick
+    # column empty; there is no badge in the number cell any more.
+    first_keeper = keepers[0]
+    check('kept rows name the keeping team beside the player', True,
+          f'— {first_keeper["keptBy"]}' in body)
+    check('no kept badge in the pick column', False, '>kept</span>' in body)
     check('keepers hidden by default', True, 'class="table compact keepers-hidden"' in body)
     check('show/hide toggle rendered', True, 'id="keeper-visibility-toggle"' in body)
     check('customize-board toggle gone', False, 'id="board-edit-toggle"' in body)
