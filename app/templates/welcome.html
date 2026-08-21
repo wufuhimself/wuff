@@ -74,7 +74,14 @@
             </div>
           </div>
         </div>
-        <div class="grid" style="margin-top: 1rem;">
+        {# Three cards, three columns -- the landing page names the tools
+           worth showing a stranger, not every page in the app. Manager
+           report card was already pulled from the nav (see web.py), and
+           matchups/standings/draft history are table views that do not sell
+           anything on their own. A fixed 3-up grid rather than the shared
+           .grid auto-fit, which would reflow three cards to 2+1 at some
+           widths; this collapses straight to one column on narrow screens. #}
+        <div class="grid grid-3" style="margin-top: 1rem;">
           <div class="team-card">
             <h3 style="margin-top: 0;">Mock draft</h3>
             <p class="status">Simulates your league's draft from current keepers and market rankings, with
@@ -85,19 +92,17 @@
             <p class="status">What this league actually drafts and when, straight from its own draft
               history — and whether draft position has predicted final standings.</p>
           </div>
+          {# The honest caveat matters: this section is headed "What's live
+             today", and the deployed app runs no inference host, so every
+             Scouting question currently renders the offline state (see
+             agent_reasoning.llm_available). Saying so beats a visitor
+             clicking through and finding it dark. #}
           <div class="team-card">
-            <h3 style="margin-top: 0;">Manager report card</h3>
-            <p class="status">Grades each manager's draft performance against this league's own baseline —
-              did they finish better or worse than their draft slot predicted.</p>
-          </div>
-          <div class="team-card">
-            <h3 style="margin-top: 0;">Matchups &amp; playoffs</h3>
-            <p class="status">Weekly head-to-head scores and the live playoff bracket, updated as games
-              are played.</p>
-          </div>
-          <div class="team-card">
-            <h3 style="margin-top: 0;">Standings &amp; draft history</h3>
-            <p class="status">Full season standings and every past draft, in one place per league.</p>
+            <h3 style="margin-top: 0;">Scouting</h3>
+            <p class="status">Ask questions about your league in plain English — who's keeping whom, how a
+              position dried up, what a manager tends to do — answered from your league's own data.
+              <span style="color: var(--muted);">Built and running locally; the hosted version is waiting on
+              an inference host, so it currently shows as offline here.</span></p>
           </div>
         </div>
       </section>
