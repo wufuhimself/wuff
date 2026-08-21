@@ -847,12 +847,32 @@ vault.
   Deliberately not run (2026-08-20) — nothing is really live yet, so the ~40
   local forecasts aren't worth preserving; new forecasts persist either way.
   The command stays for whenever there's history worth moving.
+- ✅ **Gated on LLM reachability** (2026-08-21): the local-Ollama decision had
+  quietly made Scouting a dev-only feature — production runs no Ollama and set
+  no base URL, so every question asked on the live app died inside
+  `ChatOllama.invoke()` with a connection error, a 500 on a feature still
+  linked in the nav as if it worked. `agent_reasoning.llm_available()` probes
+  `{OLLAMA_BASE_URL}/api/tags` and checks `LLM_MODEL` is in the returned list
+  — not merely that the host answers, since a running Ollama that never pulled
+  `llama3.1:8b` fails at `invoke()` exactly like an absent one and would still
+  hand the user a 500 after they'd typed a question. Cached 30s (called on
+  every page render); new `OLLAMA_BASE_URL` env var is passed to `ChatOllama`
+  too, so probe and call can't disagree about which server they mean. The page
+  drops the question form **and** the example-question cards (which exist only
+  to fill that form) rather than rendering them disabled; hero and past
+  conversation still render. `ask()` raises `LLMUnavailable` ahead of the rate
+  limit — a refused call must not spend one of the hour's 3 questions, and
+  doesn't. Gate: `scripts/check_scouting_gate.py`, whose reachable-model half
+  skips rather than fails when no local Ollama is running.
+  **This is a gate, not the fix** — see the open item below.
 - **Open:** nothing yet reads `accuracy_report()` (Phase 3's outcome log) back
   into Scouting's prompt or reasoning — the agent currently reasons over raw
-  forecast/outcome entries, not the aggregated hit-rate numbers. Also open:
-  Ollama is a local/dev dependency — no plan yet for what serves inference in
-  production (self-hosted, or swap to a hosted model once cost is worth
-  revisiting).
+  forecast/outcome entries, not the aggregated hit-rate numbers. Also open, and
+  now the bigger of the two: **what serves inference in production.** Ollama is
+  still a local/dev dependency, so the live app renders the offline state on
+  every league — honest, but the feature is dark there until this is answered
+  (self-host an Ollama the deploy can reach via `OLLAMA_BASE_URL`, or swap the
+  single `ChatOllama(...)` call for a hosted model and accept per-call cost).
 
 ## Explicitly out of scope
 
