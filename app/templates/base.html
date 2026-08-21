@@ -34,14 +34,21 @@
       header { background: linear-gradient(135deg, var(--purple-dark), var(--bg)); color: var(--text); padding: 0.9rem 1rem 0; box-shadow: 0 2px 12px rgba(0,0,0,.35); }
       .brand-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 1rem; max-width: 1200px; margin: 0 auto; }
       .brand-row h1 { margin: 0; font-size: clamp(1.3rem, 5vw, 1.7rem); font-weight: 800; letter-spacing: -0.02em; }
-      .brand-row h1 a { color: var(--text); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+      .brand-row h1 a { color: var(--text); text-decoration: none; }
       /* The mark sits INSIDE the h1's anchor, so it is one home link and one
          tab stop, not a second one beside the wordmark. alt="" + aria-hidden
          because the adjacent "WuFF" text already names the link -- a real alt
          here would make screen readers read the brand twice. Scales with the
          wordmark (both clamp off viewport width) so the header holds its
-         proportions on a phone. */
-      .brand-mark { width: clamp(1.6rem, 6vw, 2.1rem); height: auto; flex: 0 0 auto; display: block; }
+         proportions on a phone.
+
+         ⚠️ The anchor is deliberately NOT a flex container. .brand-row aligns
+         its children on the TEXT BASELINE, and a flex anchor exposes its own
+         box baseline instead of the wordmark's -- which dropped the tagline
+         out of line with "WuFF" by the height the logo overhangs. Keeping the
+         anchor inline and nudging the image with vertical-align leaves the
+         wordmark's baseline as the h1's, so the tagline lines up again. */
+      .brand-mark { width: clamp(1.6rem, 6vw, 2.1rem); height: auto; vertical-align: -0.22em; margin-right: 0.45rem; }
       .tagline { margin: 0; color: var(--pink); font-size: clamp(0.75rem, 2vw, 0.9rem); flex: 1 1 auto; }
       nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
       nav a { color: var(--pink); text-decoration: none; font-size: clamp(0.75rem, 2.5vw, 0.95rem); font-weight: 600; padding: 0.5rem 0.7rem; border-radius: 6px; transition: background .15s, color .15s; }
@@ -266,9 +273,9 @@
     <header>
       <input type="checkbox" id="nav-toggle" class="nav-toggle">
       <div class="brand-row">
-        <h1><a href="{{ '/leagues' if current_user.is_authenticated else '/' }}">
-          <img class="brand-mark" src="{{ url_for('static', filename='brand/wuff-wolf.svg') }}"
-               alt="" width="34" height="34" aria-hidden="true">WuFF</a></h1>
+        <h1><a href="{{ '/leagues' if current_user.is_authenticated else '/' }}"><img
+          class="brand-mark" src="{{ url_for('static', filename='brand/wuff-wolf.svg') }}"
+          alt="" width="34" height="34" aria-hidden="true">WuFF</a></h1>
         <p class="tagline">Wufu's Fantasy Football Assistant GM</p>
         <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle menu"><span></span></label>
         <nav>
