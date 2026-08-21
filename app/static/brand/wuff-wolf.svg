@@ -1,0 +1,62 @@
+<svg width="420" height="480" viewBox="0 0 420 480" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wuff iron-wolf mark">
+  <defs>
+    <rect id="frame" x="34" y="34" width="352" height="404" rx="56"/>
+    <linearGradient id="fur" x1="210" y1="70" x2="210" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EAE4F7"/>
+      <stop offset="1" stop-color="#B79FE2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded-rectangle frame: dark field with electric purple border -->
+  <use href="#frame" fill="#1b1622" stroke="#2a1b48" stroke-width="34"/>
+  <use href="#frame" fill="none" stroke="#b285ff" stroke-width="16"/>
+  <use href="#frame" fill="none" stroke="#6b3fd4" stroke-width="6"/>
+
+  <!-- WOLF (scaled up to fill the frame) -->
+  <g transform="translate(210 236) scale(1.2) translate(-210 -188)">
+    <g stroke="#2a1b48" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+      <!-- Ears (enlarged ~2x) -->
+      <path d="M150 152 L98 40 L206 98 Z" fill="url(#fur)"/>
+      <path d="M270 152 L322 40 L214 98 Z" fill="url(#fur)"/>
+      <!-- Pink inner-ear triangles (smaller) -->
+      <path d="M152 134 L130 84 L176 108 Z" fill="#ff5ca8" stroke-width="0" opacity="0.85"/>
+      <path d="M268 134 L290 84 L244 108 Z" fill="#ff5ca8" stroke-width="0" opacity="0.85"/>
+
+      <!-- Head: zig-zag fur, back half wider than the front for perspective (variant C) -->
+      <path d="M210 90
+               L160 128 L104 156 L140 190 L128 236 L162 262 L184 302
+               L210 320
+               L236 302 L258 262 L292 236 L280 190 L316 156 L260 128 Z" fill="url(#fur)"/>
+
+      <!-- Muzzle -->
+      <path d="M210 208 L172 262 L210 322 L248 262 Z" fill="#F4F0FB"/>
+    </g>
+
+    <!-- Eyebrows -->
+    <path d="M150 168 Q172 158 190 170" stroke="#2a1b48" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M270 168 Q248 158 230 170" stroke="#2a1b48" stroke-width="8" stroke-linecap="round" fill="none"/>
+
+    <!-- Eyes -->
+    <g stroke="#2a1b48" stroke-width="5">
+      <ellipse cx="168" cy="196" rx="20" ry="17" fill="#FFFFFF"/>
+      <ellipse cx="252" cy="196" rx="20" ry="17" fill="#FFFFFF"/>
+    </g>
+    <circle cx="172" cy="199" r="10" fill="#2a1b48"/>
+    <circle cx="248" cy="199" r="10" fill="#2a1b48"/>
+    <circle cx="168" cy="193" r="4" fill="#FFFFFF"/>
+    <circle cx="244" cy="193" r="4" fill="#FFFFFF"/>
+
+    <!-- Nose (compact, clearly separate from the mouth) -->
+    <path d="M197 236 Q210 230 223 236 Q219 252 210 256 Q201 252 197 236 Z" fill="#2a1b48"/>
+
+    <!-- Open mouth (dark); top edge arches up so it meets the muzzle cleanly -->
+    <path d="M182 286 Q210 280 238 286 Q238 316 210 322 Q182 316 182 286 Z" fill="#2a1b48"/>
+    <!-- Tongue at the bottom of the opening -->
+    <path d="M200 306 Q210 303 220 306 Q220 318 210 322 Q200 318 200 306 Z" fill="#ff5ca8" stroke="#2a1b48" stroke-width="3"/>
+    <!-- Two small fangs at the top corners of the mouth -->
+    <g fill="#FFFFFF">
+      <path d="M189 289 L198 289 L193 304 Z"/>
+      <path d="M222 289 L231 289 L227 304 Z"/>
+    </g>
+  </g>
+</svg>
