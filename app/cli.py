@@ -20,6 +20,7 @@ from .paths import (
     YAHOO_RANKINGS_FILE,
     YAHOO_ROSTER_FILE,
     YAHOO_TOKEN_FILE,
+    ensure_dir,
     ensure_parent_dir,
 )
 from .rankings_csv import load_rankings_csv
@@ -1692,7 +1693,10 @@ def _cmd_keepers_board_export(args) -> None:
     remaining_board = available_only(board)
 
     output_dir = Path(args.output_dir)
-    ensure_parent_dir(output_dir)
+    # ensure_dir, not ensure_parent_dir: output_dir is the directory the two
+    # CSVs go in, so the parent-of variant would create its parent and leave
+    # this one missing, failing on the first write.
+    ensure_dir(output_dir)
 
     from datetime import datetime
     timestamp = datetime.now().strftime('%Y%m%d_%H%M')

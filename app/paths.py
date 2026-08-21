@@ -55,4 +55,19 @@ YAHOO_LEAGUE_ROSTERS_CSV = PROCESSED_ROSTERS_DIR / 'yahoo_league_rosters.csv'
 
 
 def ensure_parent_dir(path: Path) -> None:
+    """Make the directory a FILE will be written into.
+
+    Takes the path of the file itself, not its directory -- pass a directory
+    and this creates its parent and leaves the directory itself missing, so
+    the write fails with FileNotFoundError. Use ensure_dir() for that case.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def ensure_dir(path: Path) -> None:
+    """Make a directory that several files will be written into.
+
+    The counterpart to ensure_parent_dir: that one takes a file path and makes
+    the directory above it, this one takes the directory path itself.
+    """
+    path.mkdir(parents=True, exist_ok=True)
