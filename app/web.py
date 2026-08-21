@@ -11,11 +11,13 @@ from flask_login import current_user, login_required, login_user, logout_user
 from . import espn_manager, sleeper_client
 from .agent_reasoning import (
     AskInProgress,
+    LLMUnavailable,
     QUESTIONS_PER_HOUR_LIMIT,
     QuestionLimitReached,
     ask,
     conversation_history,
     has_resolved_forecasts,
+    llm_available,
     questions_asked_in_last_hour,
     thread_id_for,
 )
@@ -1070,6 +1072,12 @@ def league_transactions(league_id: str):
     )
 
 
+SCOUTING_OFFLINE_MESSAGE = (
+    'Our scouts have their phones in airplane mode — Scouting is offline right now. '
+    'Sorry for the inconvenience; try again later.'
+)
+
+
 @app.route('/league/<league_id>/scouting', methods=['GET', 'POST'])
 def league_scouting(league_id: str):
     """Natural-language Q&A over this league's outcome log (WS-6 LangGraph
@@ -1105,6 +1113,11 @@ def league_scouting(league_id: str):
                     f"You've hit the {QUESTIONS_PER_HOUR_LIMIT}-question hourly limit — "
                     f"try again in {_format_cooldown(exc.retry_after)}."
                 )))
+            except LLMUnavailable:
+                # The GET already hides the form when the model is
+                # unreachable; this covers it going away in between.
+                return redirect(url_for('league_scouting', league_id=league_id,
+                                         message=SCOUTING_OFFLINE_MESSAGE))
         return redirect(url_for('league_scouting', league_id=league_id))
 
     recent = questions_asked_in_last_hour(thread_id)
@@ -1116,6 +1129,12 @@ def league_scouting(league_id: str):
         questions_remaining=questions_remaining,
         questions_per_hour_limit=QUESTIONS_PER_HOUR_LIMIT,
         has_results=has_resolved_forecasts(league.platform, league.platform_league_id),
+        # False in production today (no Ollama there) -- the template drops
+        # the question form and the example-question cards, which only exist
+        # to fill that form, and shows the offline notice instead. Past
+        # answers stay readable either way.
+        llm_ready=llm_available(),
+        offline_message=SCOUTING_OFFLINE_MESSAGE,
         **_league_page_ctx(league, 'scouting'),
     )
 

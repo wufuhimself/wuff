@@ -46,8 +46,20 @@ multi-turn thread and users can't see each other's threads.
 LLM: local via Ollama (see scripts/langgraph_spike.py's docstring for why --
 API cost, not a technical constraint). Swap point is the ChatOllama(...) call
 below if that ever changes.
+
+Availability gate (2026-08-21): that local-Ollama decision made Scouting a
+dev-only feature in practice -- production (Railway) runs no Ollama and sets
+no OLLAMA_BASE_URL, so every question asked on the live app died inside
+ChatOllama.invoke() with a connection error while the page advertised itself
+in the nav as a working feature. llm_available() probes for a reachable
+server that has LLM_MODEL pulled; web.py renders an offline state instead of
+the question form when it's False, and ask() raises LLMUnavailable for the
+race where it disappears in between. This is a gate, not a fix -- the actual
+production-inference question (self-host vs. hosted model) is still open, see
+docs/roadmap.md Phase 6.
 """
 import contextlib
+import os
 import threading
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any, Dict, List, TypedDict
@@ -67,6 +79,23 @@ _postgres_ready = False  # pylint: disable=invalid-name
 
 DEFAULT_PLATFORM = 'yahoo'
 DEFAULT_PLATFORM_LEAGUE_ID = '9410'
+
+LLM_MODEL = 'llama3.1:8b'
+# Ollama runs on the same machine in dev, so localhost is the right default;
+# OLLAMA_BASE_URL exists so a deployment can point at a host that actually
+# has one. Production (Railway) sets nothing and runs no Ollama, which is
+# precisely why llm_available() below exists -- before it, every Scouting
+# question on the live app raised a connection error inside reason_node's
+# ChatOllama call and 500'd the page, with the feature still linked in the
+# nav as if it worked.
+OLLAMA_BASE_URL = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434').rstrip('/')
+
+# llm_available() is called on every Scouting page render, so its probe is
+# cached briefly. One TTL for both answers, deliberately short: too long and
+# starting Ollama locally leaves the page insisting it's offline, too short
+# and an unreachable remote host pays its timeout on every render.
+_AVAILABILITY_TTL_SECONDS = 30
+_availability_cache: Dict[str, Any] = {'checked_at': None, 'available': False}
 
 
 def _append_messages(existing: list, new: list) -> list:
@@ -97,6 +126,49 @@ class AgentState(TypedDict):
 
 def thread_id_for(user_id: int, platform: str, platform_league_id: str) -> str:
     return f'{user_id}_{platform}_{platform_league_id}'
+
+
+class LLMUnavailable(Exception):
+    """Raised by ask() when no Ollama server carrying LLM_MODEL can be
+    reached. A missing model is an environment fact, not a user error --
+    web.py gates the whole Scouting form on llm_available() so the page says
+    so up front, and this exception covers the narrower race where the model
+    goes away between rendering the form and submitting it."""
+
+
+def llm_available(force: bool = False) -> bool:
+    """Whether an Ollama server carrying LLM_MODEL is actually reachable.
+
+    Checks the model is *present*, not merely that something answers on the
+    port: a running Ollama that never pulled llama3.1:8b fails at invoke()
+    exactly like an absent one does, so "the host responded" alone would
+    still hand the user a 500 after they'd typed a question.
+
+    Cached for _AVAILABILITY_TTL_SECONDS (see the constant) -- pass
+    force=True to skip the cache.
+    """
+    import requests  # pylint: disable=import-outside-toplevel
+
+    now = datetime.now(timezone.utc)
+    checked_at = _availability_cache['checked_at']
+    if not force and checked_at is not None:
+        if (now - checked_at).total_seconds() < _AVAILABILITY_TTL_SECONDS:
+            return bool(_availability_cache['available'])
+
+    available = False
+    try:
+        response = requests.get(f'{OLLAMA_BASE_URL}/api/tags', timeout=2)
+        response.raise_for_status()
+        names = [m.get('name', '') for m in response.json().get('models', [])]
+        available = LLM_MODEL in names
+    except (requests.RequestException, ValueError):
+        # Unreachable host, non-200, or a body that isn't the JSON we expect
+        # all mean the same thing to a caller: don't send a question at this.
+        available = False
+
+    _availability_cache['checked_at'] = now
+    _availability_cache['available'] = available
+    return available
 
 
 class AskInProgress(Exception):
@@ -304,7 +376,7 @@ def reason_node(state: AgentState) -> Dict[str, Any]:
         f"formatted mm-dd-yyyy -- keep that exact format in your answer, never expand "
         f"it back into an ISO timestamp."
     )
-    llm = ChatOllama(model='llama3.1:8b', temperature=0)
+    llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
     response = llm.invoke(prompt)
     answer = response.content
     # asked_at powers the hourly question cap (QUESTIONS_PER_HOUR_LIMIT
@@ -387,7 +459,17 @@ def ask(platform: str, platform_league_id: str, question: str, thread_id: str,
     Raises QuestionLimitReached if this thread has already asked
     QUESTIONS_PER_HOUR_LIMIT questions in the last hour -- checked before
     the in-flight lock so a rate-limited call never even contends for it.
+
+    Raises LLMUnavailable if no Ollama server carrying LLM_MODEL is
+    reachable. Checked first, ahead of the rate limit: an unreachable model
+    is the more fundamental state, and a failed call must not consume one of
+    the hour's questions (it doesn't -- the limit counts checkpointed
+    messages, which only get appended on a successful turn).
     """
+    if not llm_available():
+        raise LLMUnavailable('No Ollama server carrying '
+                             f'{LLM_MODEL} at {OLLAMA_BASE_URL}.')
+
     recent = questions_asked_in_last_hour(thread_id)
     if len(recent) >= QUESTIONS_PER_HOUR_LIMIT:
         oldest = datetime.fromisoformat(min(recent))

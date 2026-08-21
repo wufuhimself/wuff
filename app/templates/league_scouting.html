@@ -28,6 +28,17 @@
       <div class="message">{{ message }}</div>
       {% endif %}
 
+      {% if not llm_ready %}
+      {# No reachable model (production today -- see web.py's llm_ready). The
+         question form and the example-question cards that feed it are both
+         dropped rather than rendered disabled: a form you cannot submit is
+         worse than an honest empty state. The conversation below still
+         renders, so past answers stay readable. #}
+      <section class="card">
+        <h2>Scouting is offline</h2>
+        <p class="status">{{ offline_message }}</p>
+      </section>
+      {% else %}
       <section class="card">
         <h2>Example questions</h2>
         <p class="status">Click one to drop it in the box below, or ask anything in your own words.</p>
@@ -163,6 +174,7 @@
   });
 })();
 </script>
+      {% endif %}
 
       <section class="card" style="margin-top: 1.5rem;">
         {% if not history %}
