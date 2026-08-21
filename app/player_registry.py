@@ -2,7 +2,7 @@
 
 Phase 5 step 1 of docs/roadmap.md. Until now a "player" was a name string,
 normalized by ten slightly-different functions across strategy.py,
-board_service.py, adp_manager.py, ranking_history.py, outcome_log.py,
+adp_manager.py, ranking_history.py, outcome_log.py,
 keeper_history.py, rankings_aggregator.py, draft_history.py and
 rankings_manager.py. Nothing mapped Sleeper's opaque numeric ids to Yahoo's,
 ESPN's, or nflverse's, so nothing could join a roster to a stat line, an

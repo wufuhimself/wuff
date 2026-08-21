@@ -172,37 +172,6 @@ class KeeperMark(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
-class BoardAdjustment(Base):
-    """One user's manual nudge for one player on one league's draft board.
-
-    `offset` is a signed number of ranking spots relative to whatever the
-    data-derived board says: -3 means "three better than the board has him".
-    Deliberately an offset, not a pinned rank -- the base board is regenerated
-    daily, so a stored absolute position would decay into a frozen opinion
-    that silently stops reflecting new information. See
-    app/ranking_history.py for the movement this rides on top of.
-
-    Per-USER (unlike KeeperMark, which is per-league and shared): this is an
-    opinion, so two managers in one league each keep their own. Clearing a
-    player's adjustment means deleting the row, so "no row" always reads as
-    "trust the board".
-    """
-    __tablename__ = 'board_adjustments'
-    __table_args__ = (
-        UniqueConstraint('user_id', 'platform', 'platform_league_id', 'player_name',
-                         name='uq_board_adjustment'),
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False, index=True)
-    platform: Mapped[str] = mapped_column(String(16), nullable=False)
-    platform_league_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    player_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    offset: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
-
-
 class UserLeague(Base):
     __tablename__ = 'user_leagues'
     __table_args__ = (UniqueConstraint('user_id', 'league_id', name='uq_user_league'),)

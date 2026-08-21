@@ -9,7 +9,6 @@ out of sync; see that function's docstring for the shape it returns.
 import re
 from typing import List, Optional
 
-from .board_service import apply_adjustments, load_adjustments
 from .db import SessionLocal
 from .franchise_store import get_registry as franchise_registry_for
 from .league_context import load_league_format
@@ -369,15 +368,12 @@ def forecast_keeper_decisions(per_team, adp_map, league_format=None):
 
 def keeper_board_state(
     league=None, *, keeper_count: Optional[int] = None, draft_years=None,
-    include_file_prefs: bool = True, user_id: Optional[int] = None,
+    include_file_prefs: bool = True,
 ) -> dict:
     """Compute the full keeper-board state for either the default Yahoo league
     (league=None) or a resolved League. Used by keepers_board_view(),
     league_keepers(), and keeper_mark() so the AJAX response and the full-page
     render can never drift out of sync.
-
-    user_id: applies that user's manual board offsets (app/board_service.py).
-    None (anonymous) shows the unmodified data-derived board.
 
     Returns {'error': str} if rosters/rankings aren't available yet, otherwise
     {'repo', 'league_format', 'per_team', 'remaining_board', 'keeper_forecasts',
@@ -424,15 +420,15 @@ def keeper_board_state(
         draft_years=resolved_draft_years, include_file_prefs=include_file_prefs,
     )
 
-    # Manual per-user offsets, then week-over-week movement -- both BEFORE the
-    # top-N truncation, so a player who's been nudged up 60 spots can actually
-    # reach the visible board.
-    adjustments = (
-        load_adjustments(user_id, platform, platform_league_id) if user_id else {}
-    )
-    remaining_board = apply_adjustments(remaining_board, adjustments)
     remaining_board = annotate_with_movement(remaining_board)
-    remaining_board = remaining_board[:300]
+    # Truncate by DRAFT SLOT, not list length: the board now carries the kept
+    # players too (dimmed, behind the page's Show/Hide keepers toggle), and
+    # counting rows would quietly shrink the draftable board by however many
+    # keepers happen to rank inside the cut.
+    remaining_board = [
+        row for row in remaining_board
+        if row.get('isKeeper') or (row.get('draftOrder') or 0) <= 300
+    ]
 
     adp_map = load_adp_map()
     # Name-only lookup -- doesn't cover DEF (rosters use team nickname, e.g.

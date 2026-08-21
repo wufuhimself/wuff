@@ -381,28 +381,36 @@ so it can't gate the second platform.
   weight-adjustment step stays unbuilt until that changes, not because it's
   hard to code but because it can't be validated on no data.
 
-- ✅ **Personal draft board** (2026-08-11): the data-derived board stays the
-  base; each user layers their own opinion on top with ▲/▼ arrows per row
-  (`app/board_service.py`, `BoardAdjustment`). Stored as a signed offset, not
-  a pinned rank, so adjustments survive the daily refresh instead of freezing
-  a stale board. Per-player reset and reset-all. Alongside it,
-  `app/ranking_history.py` snapshots the board daily so rows show
-  week-over-week movement — that data cannot be backfilled, which is why it
-  shipped before the UI that consumes it.
-  **Still open on this thread:** export a user's board, and saved/named
-  versions they can compare. Also worth noting this is the first feature where
-  a user has *personal work* to lose, which raises the stakes on replacing
-  Phase 1's dev login stub.
-- ✅ **Board adjustment UI rework** (2026-08-11): the ▲/▼ arrows previously
-  showed unconditionally for any logged-in user; now gated behind a
-  "Customize my board" toggle (`board-collapsed` CSS class on
-  `#draft-board-table`, state kept in `localStorage` per league — a display
-  preference, not user data) so the default view reads as data, not an edit
-  surface. Added an always-visible ADP column to `draft_board_rows.html` (the
-  raw market source, `row.adp`, was already computed but only surfaced via
-  the Trend column's delta) so a pinned player still shows the number it was
-  pinned away from. Closes the "not sure I like the feel" pause noted the same
-  day — see the memory file, not restated here.
+- ⛔️ **Personal draft board** (built 2026-08-11, **removed 2026-08-21**): per-user
+  ▲/▼/↺ offsets layered on the post-keeper board (`app/board_service.py`,
+  `BoardAdjustment`, `/board/adjust`, `/board/reset`, the "Customize my board"
+  toggle). Removed as a *scoping* decision, not a design one — the offset-not-
+  pinned-rank approach was right and is carried forward; it was simply on the
+  wrong page. The keeper board's job is now exactly three things: show
+  keeper-eligible players per team, toggle who each team keeps, and show the
+  resulting post-keeper board. Ranking customization gets its own **custom
+  rankings table**, where it can grow the things that never fit as one table
+  column: player tagging, age/injury concern flags, rookie status, new-team,
+  depth chart. Planned, not built — see
+  `WS-4-draft/Custom_Rankings_Table_2026-08-21.md` in the Obsidian vault, which
+  carries the design constraints worth keeping (signed offsets, apply-before-
+  truncation, the offset-direction sort tiebreak that was already a bug once).
+  What survived the removal: `app/ranking_history.py`'s daily board snapshots
+  and the Trend column they feed, plus the always-visible ADP column.
+- ✅ **Show/hide keepers on the post-keeper board** (2026-08-21): kept players
+  stay *in* `remaining_board` at their ranking position, flagged `isKeeper`
+  with `keptBy`, and are **skipped when numbering `draftOrder`** — so they hold
+  no pick and every other player's number is exactly what it would be if they
+  were absent. A "Show keepers"/"Hide keepers" button flips a `keepers-hidden`
+  class on the table (client-side only, no request, `localStorage` per league);
+  kept rows render dimmed and muted so they read as context, never as
+  inventory. Consumers that want the strict draftable board — the CSV exports,
+  the draft-order board's slot lookup, opponent forecasting — go through
+  `strategy.available_only()`. ⚠️ Truncation counts **draft slots, not rows**:
+  counting rows silently shrinks the draftable board by however many keepers
+  rank inside the cut. Verify with
+  `python3 scripts/check_keeper_board_focus.py`, which caught a real
+  `draftOrder=None` crash in the Yahoo route's round math.
 
 ### Feature backlog (folded in from the earlier single-league roadmap)
 
@@ -459,7 +467,7 @@ in this file is that shape. Only one domain dataclass exists in the whole
 codebase (`RosterPlayer`); `LeagueFormat` is config, not a model.
 
 **Two keys rot everything.** Player is a name string (ten independent
-`normalize_name` implementations across strategy, board_service,
+`normalize_name` implementations across strategy,
 adp_manager, ranking_history, outcome_log, keeper_history,
 rankings_aggregator, draft_history, rankings_manager). Franchise is a
 display-name string (`KeeperMark.team_name`, standings `'team'`, draft-pick

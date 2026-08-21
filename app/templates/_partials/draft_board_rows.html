@@ -1,15 +1,16 @@
-{# Draft board rows. `can_adjust` gates the per-user arrows (login required);
-   trend/userOffset come from ranking_history + board_service. The ADP cell is
-   the source-data reference for whatever rank the user pins -- e.g. Josh
-   Allen shows "ADP 4.4" even after a user pins him to #1 for their superflex
-   league, so the override and the market data it overrides stay both visible. #}
+{# Draft board rows. The board carries the kept players too (isKeeper), sitting
+   at their ranking position but holding no draft slot -- the page's Show/Hide
+   keepers toggle flips `.keepers-hidden` on the table to show or hide them, so
+   a manager can see where the players coming off the board would have gone
+   without those players ever shifting anyone else's pick number. Trend comes
+   from ranking_history. #}
 {% for row in remaining_board %}
-<tr{% if row.userOffset %} class="my-pick"{% endif %}>
+<tr class="{% if row.isKeeper %}keeper-row{% elif row.isMyPick %}my-pick{% endif %}">
   <td class="number">
-    {{ row.draftOrder }}
-    {%- if row.userOffset %}<span class="pill" title="You moved this player {{ row.userOffset|abs }} spot(s) {{ 'up' if row.userOffset > 0 else 'down' }} from the board's {{ row.baseOrder }}">{{ '%+d'|format(row.userOffset) }}</span>{% endif %}
+    {%- if row.isKeeper %}<span class="pill" title="Kept by {{ row.keptBy }} — off the board, holds no pick">kept</span>
+    {%- else %}{{ row.draftOrder }}{% endif %}
   </td>
-  <td class="playerName">{{ row.playerName }}</td>
+  <td class="playerName">{{ row.playerName }}{% if row.isKeeper %} <span class="status">{{ row.keptBy }}</span>{% endif %}</td>
   <td><span class="pill pos-{{ (row.position or '').lower() }}">{{ row.position }}</span></td>
   <td>{{ row.team or '' }}</td>
   <td class="number">{{ '%.1f'|format(row.adp) if row.adp is not none else '—' }}</td>
@@ -22,17 +23,5 @@
     {%- endif %}
     {%- if row.adpDelta %}<span class="status" title="ADP {{ row.prevAdp }} → {{ row.adp }}"> ({{ '%+.1f'|format(row.adpDelta) }} ADP)</span>{% endif %}
   </td>
-  {% if can_adjust %}
-  <td class="number adjust-col">
-    <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="up"
-            data-league-slug="{{ league_slug or '' }}" title="Move up one spot on your board">▲</button>
-    <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="down"
-            data-league-slug="{{ league_slug or '' }}" title="Move down one spot on your board">▼</button>
-    {%- if row.userOffset %}
-    <button class="button js-board-adjust" data-player="{{ row.playerName }}" data-direction="reset"
-            data-league-slug="{{ league_slug or '' }}" title="Reset this player to the board's ranking">↺</button>
-    {%- endif %}
-  </td>
-  {% endif %}
 </tr>
 {% endfor %}

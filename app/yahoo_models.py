@@ -10,7 +10,7 @@ no upstream to re-fetch from: Yahoo API access is still blocked, and every
 row was entered by hand over months. The database is the only place it
 survives a deploy.
 
-Scoped by platform + platform_league_id (the KeeperMark/BoardAdjustment
+Scoped by platform + platform_league_id (the KeeperMark
 convention) rather than hardcoded to Yahoo, so a second manually-curated
 league needs no schema change.
 

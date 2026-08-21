@@ -33,25 +33,19 @@
       </section>
 
       <section class="card">
-        <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | length }}</span></h2>
-        <span class="status">The draft board, minus keepers.
-          {% if not can_adjust %}<a href="/login">Log in</a> to pin players on your own copy of this board.{% endif %}</span>
+        <h2>Post-keeper draft board <span class="pill">top {{ remaining_board | rejectattr('isKeeper') | list | length }}</span></h2>
+        <span class="status">The draft board with every kept player taken off it. Pick numbers are
+          post-keeper: kept players hold no slot, so what you see is the board the draft
+          actually starts from.</span>
 
-        {% if can_adjust %}
-        <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-          <button type="button" class="button" id="board-edit-toggle" data-league-key="default">Customize my board</button>
-          {% if has_adjustments %}
-          <form method="POST" action="{{ url_for('board_reset') }}">
-            <button class="button" type="submit">Reset all my adjustments</button>
-          </form>
-          {% endif %}
+        <div style="margin-top: 0.75rem;">
+          <button type="button" class="button button-secondary" id="keeper-visibility-toggle"
+                  data-league-key="default">Show keepers</button>
         </div>
-        {% endif %}
 
-        <table class="table compact board-collapsed" id="draft-board-table" style="margin-top: 0.75rem;">
+        <table class="table compact keepers-hidden" id="draft-board-table" style="margin-top: 0.75rem;">
           <thead><tr>
             <th class="number">#</th><th>Player</th><th>Pos</th><th>NFL</th><th class="number" title="Average draft position — FFC/Sleeper consensus, the source data behind the Rank column">ADP</th><th class="number">Rank</th><th class="number">Trend</th>
-            {% if can_adjust %}<th class="adjust-col">Mine</th>{% endif %}
           </tr></thead>
           <tbody id="draft-board-body">
             {% include "_partials/draft_board_rows.html" %}
@@ -60,25 +54,26 @@
       </section>
       {% endif %}
 <script>
-// Board edit-mode toggle: the ▲/▼/↺ column stays hidden until the user opts
-// in, so the default view reads as data, not an edit surface. State is
-// per-browser (localStorage), not per-user, since it's just a display
-// preference -- unlike the adjustments themselves, which are real per-user
-// data in board_service.py.
+// Show/Hide keepers on the post-keeper board. The kept rows are always in the
+// DOM (the server sends them flagged, sitting at their ranking position and
+// holding no pick number) -- this only flips a class, so toggling never
+// re-numbers anything or costs a request. Hidden by default: the page's job is
+// the post-keeper board, and the keepers are context you opt into. State is
+// per-browser (localStorage), a display preference and nothing more.
 (function () {
   var table = document.getElementById('draft-board-table');
-  var toggle = document.getElementById('board-edit-toggle');
+  var toggle = document.getElementById('keeper-visibility-toggle');
   if (!table || !toggle) return;
-  var key = 'wuff-board-edit-' + (toggle.dataset.leagueKey || 'default');
-  function applyState(editing) {
-    table.classList.toggle('board-collapsed', !editing);
-    toggle.textContent = editing ? 'Done customizing' : 'Customize my board';
+  var key = 'wuff-board-keepers-' + (toggle.dataset.leagueKey || 'default');
+  function applyState(showing) {
+    table.classList.toggle('keepers-hidden', !showing);
+    toggle.textContent = showing ? 'Hide keepers' : 'Show keepers';
   }
   applyState(localStorage.getItem(key) === '1');
   toggle.addEventListener('click', function () {
-    var editing = table.classList.contains('board-collapsed');
-    applyState(editing);
-    localStorage.setItem(key, editing ? '1' : '0');
+    var showing = table.classList.contains('keepers-hidden');
+    applyState(showing);
+    localStorage.setItem(key, showing ? '1' : '0');
   });
 })();
 </script>
@@ -130,37 +125,5 @@ document.addEventListener('click', function (event) {
   });
 });
 
-// Per-user board nudges (▲/▼/↺). Separate endpoint from keeper marks: these
-// are one user's own opinion, not shared league state.
-document.addEventListener('click', function (event) {
-  var btn = event.target.closest && event.target.closest('.js-board-adjust');
-  if (!btn) return;
-  var body = new URLSearchParams({
-    player: btn.dataset.player,
-    direction: btn.dataset.direction,
-    league_slug: btn.dataset.leagueSlug || '',
-  });
-  btn.disabled = true;
-  fetch('/board/adjust', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-    body: body.toString(),
-  }).then(function (resp) {
-    var ct = resp.headers.get('content-type') || '';
-    if (ct.indexOf('application/json') === -1) { window.location.reload(); return null; }
-    return resp.json().then(function (data) { return { ok: resp.ok, data: data }; });
-  }).then(function (result) {
-    if (!result) return;
-    if (!result.ok) {
-      alert(result.data && result.data.error ? result.data.error : 'That board change was rejected.');
-      btn.disabled = false;
-      return;
-    }
-    var board = document.getElementById('draft-board-body');
-    if (board && result.data.boardRowsHtml !== undefined) board.innerHTML = result.data.boardRowsHtml;
-  }).catch(function () {
-    window.location.reload();
-  });
-});
 </script>
 {% endblock %}

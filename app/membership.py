@@ -11,7 +11,7 @@ Membership is a `user_leagues` row, created by onboarding (Sleeper/ESPN) or
 by `python3 -m app grant-league` (the registry leagues in
 data/config/leagues.json, which nobody "imported" and which therefore have no
 follower until granted one). Matching is on (platform, platform_league_id),
-the same key KeeperMark/BoardAdjustment use -- not the wuff slug, so a league
+the same key KeeperMark uses -- not the wuff slug, so a league
 that exists in both the registry and the DB can't read as two leagues.
 
 There is deliberately no fallback to the registry default: a user who follows
@@ -108,7 +108,7 @@ def unfollow_league(user_id: int, slug: str) -> bool:
     must not be usable to touch anyone else's membership.
 
     Deliberately unfollow-only, not a real delete: KeeperMark/SyncRun/
-    BoardAdjustment/EspnCredential are keyed on (platform,
+    EspnCredential are keyed on (platform,
     platform_league_id) strings, not a DbLeague foreign key, so they are
     not cleanly cascadable, and a league other users still follow must not
     lose its data because one member left. The DbLeague row and every

@@ -41,6 +41,7 @@ from .adp_manager import import_and_save_adp
 from .free_rankings import refresh_free_rankings
 from .strategy import (
     forecast_opponent_keepers,
+    available_only,
     league_keeper_board,
     load_yahoo_rankings,
     roster_keeper_insight,
@@ -1215,7 +1216,8 @@ def _cmd_keepers_board(args) -> None:
     if args.teams != league_format.teams:
         league_format.teams = args.teams
 
-    per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=args.count)
+    per_team, board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=args.count)
+    remaining_board = available_only(board)
     for entry in per_team:
         picks = ', '.join(f"{c['playerName']} ({c.get('ranking')})" for c in entry['chosen'])
         print(f"{entry['team']}: {picks}")
@@ -1686,7 +1688,8 @@ def _cmd_keepers_board_export(args) -> None:
     if args.teams != league_format.teams:
         league_format.teams = args.teams
 
-    per_team, remaining_board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=args.count)
+    per_team, board = league_keeper_board(league_rosters, rankings, league_format, keeper_count=args.count)
+    remaining_board = available_only(board)
 
     output_dir = Path(args.output_dir)
     ensure_parent_dir(output_dir)

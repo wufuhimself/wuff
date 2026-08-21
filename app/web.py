@@ -29,7 +29,6 @@ from .auth import (
     login_send_allowed,
     verify_login_token,
 )
-from .board_service import bump_adjustment, clear_adjustment, clear_all_adjustments
 from .crypto import encrypt_value
 from .db import SessionLocal, init_db
 from .draft_history import keeper_slot_picks, live_draft_picks
@@ -61,7 +60,7 @@ from .repository import repository_for
 from .sleeper_manager import load_sleeper_leagues_config, load_synced_league
 from .standings import current_team_names, draft_order_from_standings, snake_draft_order
 from .player_registry import normalize_name
-from .strategy import league_keeper_board
+from .strategy import available_only, league_keeper_board
 from .sync_scheduler import ensure_scheduler_started, manual_sync_cooldown_remaining, queue_league_sync
 
 # The root logger defaults to WARNING, which hides the background jobs'
@@ -439,7 +438,7 @@ def keepers_board_view():
         return redirect(url_for('league_settings', league_id=league.league_id,
                                  message='This league has no keeper slots. Set them here to use the keeper board.'))
 
-    state = keeper_board_state(user_id=current_user.id if current_user.is_authenticated else None)
+    state = keeper_board_state()
     if state['error']:
         return render_template('keepers_board.html', active='keepers-board', per_team=[], remaining_board=[],
                              error=state['error'], message=request.args.get('message', ''))
@@ -479,8 +478,11 @@ def keepers_board_view():
         my_picks = set()
 
     for row in remaining_board:
-        row['isMyPick'] = row.get('draftOrder') in my_picks
-        row['round'] = ((row.get('draftOrder', 1) - 1) // teams) + 1
+        # Kept players sit on the board with no draftOrder at all -- they hold
+        # no pick, so they have neither an owning pick nor a round.
+        slot = row.get('draftOrder')
+        row['isMyPick'] = slot is not None and slot in my_picks
+        row['round'] = ((slot - 1) // teams) + 1 if slot is not None else None
 
     return render_template(
         'keepers_board.html', active='keepers-board', per_team=per_team,
@@ -494,8 +496,6 @@ def keepers_board_view():
         keeper_forecasts=state['keeper_forecasts'], keeper_impact=state['keeper_impact'],
         my_team=my_team, team_names=team_names, error=None,
         keeper_marks=include_marks, message=request.args.get('message', ''),
-        can_adjust=current_user.is_authenticated,
-        has_adjustments=any(row.get('userOffset') for row in remaining_board),
         rankings_cooldown=_rankings_cooldown_label(),
     )
 
@@ -542,8 +542,7 @@ def keeper_mark():
             'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_before['keeper_impact']),
             'boardRowsHtml': render_template('_partials/draft_board_rows.html',
                                             remaining_board=state_before['remaining_board'],
-                                            league_slug=league_slug,
-                                            can_adjust=current_user.is_authenticated),
+                                            league_slug=league_slug),
             'candidateCardsHtml': render_template(
                 '_partials/keeper_candidate_cards.html', per_team=state_before['per_team'],
                 league_slug=league_slug, keeper_count=state_before['keeper_count'],
@@ -573,73 +572,12 @@ def keeper_mark():
         'impactHtml': render_template('_partials/keeper_impact.html', keeper_impact=state_after['keeper_impact']),
         'boardRowsHtml': render_template('_partials/draft_board_rows.html',
                                         remaining_board=state_after['remaining_board'],
-                                        league_slug=league_slug,
-                                        can_adjust=current_user.is_authenticated),
+                                        league_slug=league_slug),
         'candidateCardsHtml': render_template(
             '_partials/keeper_candidate_cards.html', per_team=state_after['per_team'],
             league_slug=league_slug, keeper_count=state_after['keeper_count'],
         ),
     }
-
-
-@app.route('/board/adjust', methods=['POST'])
-def board_adjust():
-    """Nudge one player up/down on the caller's own board, or reset them.
-
-    Per-user, so it needs a login -- unlike keeper marks, which are shared
-    per-league. `direction` is 'up'/'down' (by `spots`, default 1) or 'reset'.
-    Returns the re-rendered board rows so the client can patch in place."""
-    if not current_user.is_authenticated:
-        return {'error': 'Log in to keep your own board adjustments.'}, 401
-
-    player = request.form.get('player', '').strip()
-    direction = request.form.get('direction', '').strip()
-    league_slug = request.form.get('league_slug', '').strip()
-    try:
-        spots = max(1, min(50, int(request.form.get('spots', 1))))
-    except (TypeError, ValueError):
-        spots = 1
-
-    if not player or direction not in ('up', 'down', 'reset'):
-        return {'error': 'Missing player or direction.'}, 400
-
-    league = _member_league(league_slug) if league_slug else _current_default_league()
-    if league is None:
-        return {'error': 'Unknown league.'}, 404
-
-    platform, platform_league_id = league.platform, league.platform_league_id
-    board_league, include_file_prefs = _board_state_args(league)
-
-    if direction == 'reset':
-        clear_adjustment(current_user.id, platform, platform_league_id, player)
-    else:
-        bump_adjustment(current_user.id, platform, platform_league_id, player,
-                        spots if direction == 'up' else -spots)
-
-    state = keeper_board_state(board_league, include_file_prefs=include_file_prefs, user_id=current_user.id)
-    if state['error']:
-        return {'error': state['error']}, 409
-    return {
-        'boardRowsHtml': render_template('_partials/draft_board_rows.html',
-                                         remaining_board=state['remaining_board'],
-                                         league_slug=league_slug, can_adjust=True),
-    }
-
-
-@app.route('/board/reset', methods=['POST'])
-def board_reset():
-    """Drop every manual adjustment this user has on a league's board."""
-    if not current_user.is_authenticated:
-        return redirect(url_for('login'))
-    league_slug = request.form.get('league_slug', '').strip()
-    league = _member_league(league_slug) if league_slug else _current_default_league()
-    if league is None:
-        return _no_league_redirect()
-    removed = clear_all_adjustments(current_user.id, league.platform, league.platform_league_id)
-    message = f'Reset {removed} board adjustment(s).' if removed else 'No board adjustments to reset.'
-    if _is_file_backed_yahoo(league):
-        return redirect(url_for('keepers_board_view', league=league.league_id, message=message))
-    return redirect(url_for('league_keepers', league_id=league.league_id, message=message))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -905,8 +843,7 @@ def league_keepers(league_id: str):
 
     ctx = _league_page_ctx(league, 'keepers')
 
-    state = keeper_board_state(league, include_file_prefs=False,
-                               user_id=current_user.id if current_user.is_authenticated else None)
+    state = keeper_board_state(league, include_file_prefs=False)
     if state['error']:
         return render_template('league_keepers.html', active='league-keepers', per_team=[],
                                remaining_board=[], keeper_impact=[], keeper_marks={},
@@ -916,8 +853,6 @@ def league_keepers(league_id: str):
                            remaining_board=state['remaining_board'], keeper_impact=state['keeper_impact'],
                            keeper_count=state['keeper_count'], keeper_marks=state['include_marks'],
                            error=None,
-                           can_adjust=current_user.is_authenticated,
-                           has_adjustments=any(row.get('userOffset') for row in state['remaining_board']),
                            message=request.args.get('message', ''), **ctx)
 
 
@@ -1409,7 +1344,7 @@ def draft_order_board_view(standings_year: int):
         league_rosters, rankings, league_format, keeper_count=league_format.keeper_slots,
         keeper_prefs_override=include_marks, keeper_excludes_override=exclude_marks,
     )
-    board_by_rank = {row.get('draftOrder'): row for row in remaining_board}
+    board_by_rank = {row.get('draftOrder'): row for row in available_only(remaining_board)}
 
     draft_year = request.args.get('picks_year', type=int) or standings_year + 1
     origins_by_team = repo.draft_pick_origins(draft_year)

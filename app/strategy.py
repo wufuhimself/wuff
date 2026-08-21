@@ -540,8 +540,16 @@ def league_keeper_board(
 
     Returns (per_team, remaining_board):
       per_team: one entry per team with its chosen keepers and alternates.
-      remaining_board: rankings with every chosen keeper removed, sorted by ranking, with a
-        gap-free 'draftOrder' field added (the CSV `keepers-board` writes is exactly this).
+      remaining_board: the ranking board sorted by ranking, with a gap-free 'draftOrder'
+        field added (the CSV `keepers-board` writes is exactly this).
+
+        Kept players are NOT dropped from this list -- they stay in it at their ranking
+        position, carrying `isKeeper=True` and `keptBy` (the team keeping them), and are
+        skipped when numbering 'draftOrder' (so they hold no draft slot and every other
+        player's pick number is exactly what it would be if they were absent). Consumers
+        that want the strict post-keeper board filter on `isKeeper`; the UI instead shows
+        them dimmed behind a Show/Hide keepers toggle, so a manager can see where the
+        players coming off the board would have gone.
     """
     def normalize(name: str) -> str:
         return ' '.join(name.strip().lower().split())
@@ -556,7 +564,9 @@ def league_keeper_board(
             keeper_prefs = json.load(f)
 
     per_team = []
-    chosen_names: set = set()
+    # {normalized player name: team keeping them} -- drives the isKeeper/keptBy
+    # flags and the draft-slot skip below.
+    kept_by: Dict[str, str] = {}
     for team in league_rosters:
         team_name = str(team.get('teamName', '')).rsplit(' - ', maxsplit=1)[-1]
         players = [
@@ -614,12 +624,12 @@ def league_keeper_board(
         per_team.append({
             'team': team_name, 'chosen': chosen, 'alternates': alternates, 'eligiblePool': eligible_pool,
         })
-        chosen_names.update(normalize(c['playerName']) for c in chosen)
+        for keeper in chosen:
+            kept_by[normalize(str(keeper.get('playerName', '')))] = team_name
 
-    remaining = sorted(
-        (r for r in rankings if normalize(str(r.get('playerName', ''))) not in chosen_names),
-        key=lambda r: r.get('ranking') or 9999,
-    )
+    # Everyone, keepers included -- kept players keep their board position and
+    # are skipped over when draft slots are numbered below.
+    remaining = sorted(rankings, key=lambda r: r.get('ranking') or 9999)
 
     position_ranks = _build_position_ranks(rankings)
 
@@ -637,9 +647,19 @@ def league_keeper_board(
                     player['posRank'] = f'{position}{position_rank}'
 
     remaining_board = []
-    for i, r in enumerate(remaining, start=1):
+    next_slot = 1
+    for r in remaining:
         row = dict(r)
-        row['draftOrder'] = i
+        keeper_team = kept_by.get(normalize(str(r.get('playerName', ''))))
+        row['isKeeper'] = keeper_team is not None
+        row['keptBy'] = keeper_team
+        if keeper_team is None:
+            # Only players actually available in the draft consume a pick
+            # number, so slot math is identical to the keepers-removed board.
+            row['draftOrder'] = next_slot
+            next_slot += 1
+        else:
+            row['draftOrder'] = None
         player_name = str(r.get('playerName', ''))
         position = _normalize_position(str(r.get('position', 'UNK')))
         position_rank_info = _lookup_position_rank(position_ranks, player_name)
@@ -649,6 +669,17 @@ def league_keeper_board(
         remaining_board.append(row)
 
     return per_team, remaining_board
+
+
+def available_only(remaining_board: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The strict post-keeper board: drop the kept players league_keeper_board
+    leaves in place for the UI's Show/Hide keepers toggle.
+
+    Every consumer that treats the board as "what is actually draftable" (CSV
+    exports, the draft-order board's slot lookup, opponent forecasting) goes
+    through this; the keeper page is the only caller that wants the kept rows.
+    """
+    return [row for row in remaining_board if not row.get('isKeeper')]
 
 
 def forecast_opponent_keepers(
@@ -699,4 +730,4 @@ def forecast_opponent_keepers(
             row['team'] = entry['team']
             likely_keepers.append(row)
 
-    return likely_keepers, remaining_board[:consider_top]
+    return likely_keepers, available_only(remaining_board)[:consider_top]

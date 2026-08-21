@@ -88,7 +88,6 @@
       .table td.playerName { white-space: normal; min-width: 100px; max-width: 140px; }
       .table td.positive { color: var(--green); font-weight: 600; }
       .table td.negative { color: var(--red); font-weight: 600; }
-      .table.board-collapsed .adjust-col { display: none; }
       .table tr.my-pick { background: rgba(255,92,168,.12); }
       .table tr.my-pick td { font-weight: 600; }
       .table tr.my-pick:hover { background: rgba(255,92,168,.18); }
@@ -96,6 +95,15 @@
       .table tbody tr:nth-child(odd) { background: var(--surface); }
       .table tbody tr:nth-child(even) { background: var(--surface-alt); }
       .table tbody tr:hover { background: rgba(178,133,255,.1); }
+      /* Kept players stay on the post-keeper board so a manager can see where
+         they would have gone, but they are context, not draftable inventory --
+         dimmed and de-emphasised so they never compete with a real pick.
+         Declared after the zebra-stripe rules on purpose: equal specificity,
+         so source order is what keeps the row muted. */
+      .table tbody tr.keeper-row, .table tbody tr.keeper-row:hover { background: transparent; }
+      .table tbody tr.keeper-row td { color: var(--muted); opacity: 0.55; font-weight: 400; }
+      .table tbody tr.keeper-row .pill { opacity: 0.7; }
+      .table.keepers-hidden tbody tr.keeper-row { display: none; }
       .pill.pos-qb { background: rgba(178,133,255,.22); color: var(--purple-light); }
       .pill.pos-rb { background: rgba(57,255,143,.18); color: var(--green); }
       .pill.pos-wr { background: rgba(255,92,168,.2); color: var(--pink); }
