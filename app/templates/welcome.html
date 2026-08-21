@@ -26,8 +26,42 @@
         <div class="team-card" style="margin-top: 1rem;">
           <h3 style="margin-top: 0;">Keeper board — click, and watch the draft board move</h3>
           <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;">
-            <img src="/static/img/keeper-board-demo.gif" alt="Clicking a keeper card on the keepers board, showing the draft board update live"
-                 style="max-width: 100%; width: 460px; border-radius: 10px; border: 1px solid var(--border); flex: 1 1 360px;">
+            {# Looping mock of the real keeper interaction, built from the
+               app's own styles instead of a screen recording -- see .kdemo in
+               base.html. Decorative: the prose beside it carries the meaning,
+               so the whole figure is hidden from assistive tech. The numbers
+               are this league's real board -- dropping Javonte Williams puts
+               him back at pick 31 and pushes everyone below him down one,
+               while keeping Bhayshul Tuten takes him off it at 39. #}
+            <div class="kdemo" style="flex: 1 1 380px; min-width: 0;" aria-hidden="true">
+              <div class="kdemo-panel" style="position: relative;">
+                <p class="kdemo-head">Keepers — your waterbroke girl</p>
+                <span class="kdemo-cursor"></span>
+                <div class="kdemo-card">
+                  <span class="pill pos-wr">WR14</span><span class="kdemo-name">Garrett Wilson</span><span class="kdemo-rank">#29</span>
+                </div>
+                <div class="kdemo-card kdemo-drop">
+                  <span class="pill pos-rb">RB18</span><span class="kdemo-name">Javonte Williams</span><span class="kdemo-rank">#44</span>
+                </div>
+                <div class="kdemo-card kdemo-add" style="margin-bottom: 0;">
+                  <span class="pill pos-rb">RB23</span><span class="kdemo-name">Bhayshul Tuten</span><span class="kdemo-rank">#59</span>
+                </div>
+              </div>
+
+              <div class="kdemo-panel" style="margin-top: 0.5rem;">
+                <p class="kdemo-head">Draft board</p>
+                <div class="kdemo-rows">
+                  <div class="kdemo-row"><span class="kdemo-pick">30</span><span class="kdemo-name">Tee Higgins</span></div>
+                  <div class="kdemo-row kdemo-row-moved kdemo-row-in"><span class="kdemo-pick">31</span><span class="kdemo-name">Javonte Williams</span></div>
+                  <div class="kdemo-row"><span class="kdemo-pick kdemo-pick-shift"><span class="kdemo-pick-was">31</span><span class="kdemo-pick-now">32</span></span><span class="kdemo-name">Ladd McConkey</span></div>
+                  <div class="kdemo-row"><span class="kdemo-pick kdemo-pick-shift"><span class="kdemo-pick-was">32</span><span class="kdemo-pick-now">33</span></span><span class="kdemo-name">Matthew Stafford</span></div>
+                  <div class="kdemo-row"><span class="kdemo-pick kdemo-pick-shift"><span class="kdemo-pick-was">33</span><span class="kdemo-pick-now">34</span></span><span class="kdemo-name">Bucky Irving</span></div>
+                  <div class="kdemo-row"><span class="kdemo-pick kdemo-pick-shift"><span class="kdemo-pick-was">34</span><span class="kdemo-pick-now">35</span></span><span class="kdemo-name">D'Andre Swift</span></div>
+                  <div class="kdemo-row kdemo-row-moved kdemo-row-out"><span class="kdemo-pick">39</span><span class="kdemo-name">Bhayshul Tuten</span></div>
+                </div>
+              </div>
+              <p class="kdemo-caption">Drop a keeper and he returns to the board at his rank — everyone below him shifts a pick later.</p>
+            </div>
             <div style="flex: 1 1 280px;">
               <p class="status">Every keeper-eligible player, scored and ranked by this league's own rules —
                 round restrictions, consecutive-season caps. Click a card to mark a keeper or drop one; the

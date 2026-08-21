@@ -143,6 +143,100 @@
       .keeper-card-kept:hover:not(:disabled) { border-color: var(--purple-light); background: rgba(107,63,212,.24); }
       .team-card { border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: var(--surface); min-width: 0; transition: border-color .1s; }
       .team-card-full { border: 3px solid var(--purple); padding: 0.55rem; }
+      /* ---- Welcome-page keeper demo -------------------------------------
+         A looping mock of the real interaction: deselect one keeper, select
+         another, and watch the draft board renumber underneath. Built from
+         the app's own card/table styles rather than a recorded GIF -- a GIF
+         of a live board goes stale the moment the board does, and this stays
+         legible at any width. Purely decorative, so the whole figure is
+         aria-hidden and the prose beside it carries the meaning.
+
+         Every row is always in the DOM at a fixed height; the animation only
+         changes opacity/height/text-visibility, never layout of the panel
+         itself. An earlier cut cross-faded two absolutely-positioned copies
+         of the board and the second one collapsed to zero height -- the board
+         silently never moved. Animating in place is both simpler and visibly
+         correct. Timeline (12s): 0-25% as-is, 25-50% Javonte dropped and back
+         on the board, 50-100% Tuten kept and off it. */
+      .kdemo { --kdemo-cycle: 12s; font-size: 0.78rem; }
+      .kdemo-panel { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 0.6rem 0.7rem; }
+      .kdemo-head { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 0.45rem; font-weight: 700; }
+      .kdemo-card { display: flex; align-items: center; gap: 0.45rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-alt); padding: 0.34rem 0.45rem; margin-bottom: 0.3rem; }
+      .kdemo-card .pill { margin: 0; font-size: 0.68rem; padding: 0.14rem 0.4rem; }
+      .kdemo-name { font-weight: 600; color: var(--text); }
+      .kdemo-rank { color: var(--muted); margin-left: auto; }
+      /* The two cards that change, between the app's real kept (thick purple)
+         and unkept (thin) treatments. */
+      .kdemo-drop { animation: kdemo-drop var(--kdemo-cycle) infinite; }
+      .kdemo-add { animation: kdemo-add var(--kdemo-cycle) infinite; }
+      @keyframes kdemo-drop {
+        0%, 20%   { border-color: var(--purple); background: rgba(107,63,212,.20); box-shadow: inset 0 0 0 1px var(--purple); }
+        25%, 100% { border-color: var(--border); background: var(--surface-alt); box-shadow: none; }
+      }
+      @keyframes kdemo-add {
+        0%, 45%   { border-color: var(--border); background: var(--surface-alt); box-shadow: none; }
+        50%, 100% { border-color: var(--purple); background: rgba(107,63,212,.20); box-shadow: inset 0 0 0 1px var(--purple); }
+      }
+      /* The pointer that "clicks" each card in turn. Positioned against the
+         keeper panel, which is position:relative. */
+      .kdemo-cursor { position: absolute; left: 7.5rem; top: 2.05rem; width: 12px; height: 12px; border-radius: 50%; background: var(--purple-light); box-shadow: 0 0 0 3px rgba(178,133,255,.3); opacity: 0; animation: kdemo-cursor var(--kdemo-cycle) infinite; pointer-events: none; }
+      @keyframes kdemo-cursor {
+        0%, 12%   { opacity: 0; transform: translateY(0) scale(1); }
+        16%, 21%  { opacity: 1; transform: translateY(0) scale(1); }
+        24%       { opacity: 1; transform: translateY(0) scale(.55); }
+        27%, 37%  { opacity: 1; transform: translateY(0) scale(1); }
+        41%, 46%  { opacity: 1; transform: translateY(1.5rem) scale(1); }
+        49%       { opacity: 1; transform: translateY(1.5rem) scale(.55); }
+        52%, 66%  { opacity: 1; transform: translateY(1.5rem) scale(1); }
+        74%, 100% { opacity: 0; transform: translateY(1.5rem) scale(1); }
+      }
+      /* Board rows. Both changing rows keep their slot in the layout and just
+         fade/collapse, so the panel never jumps. */
+      .kdemo-rows { display: grid; gap: 0.18rem; }
+      .kdemo-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0.4rem; border-radius: 4px; height: 1.35rem; box-sizing: border-box; }
+      .kdemo-row .kdemo-pick { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 1.5rem; }
+      .kdemo-row-moved { background: rgba(107,63,212,.18); }
+      .kdemo-row-moved .kdemo-pick, .kdemo-row-moved .kdemo-name { color: var(--purple-light); }
+      /* Javonte's row: absent while he is kept, appears at pick 31 once he
+         is dropped. */
+      .kdemo-row-in { overflow: hidden; animation: kdemo-row-in var(--kdemo-cycle) infinite; }
+      @keyframes kdemo-row-in {
+        0%, 22%   { height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+        28%, 100% { height: 1.35rem; opacity: 1; }
+      }
+      /* Tuten's row: on the board until he is kept at the halfway mark. */
+      .kdemo-row-out { overflow: hidden; animation: kdemo-row-out var(--kdemo-cycle) infinite; }
+      @keyframes kdemo-row-out {
+        0%, 47%   { height: 1.35rem; opacity: 1; }
+        53%, 100% { height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+      }
+      /* The pick numbers that go up by one when Javonte rejoins the board.
+         Both numbers sit in the same grid cell and cross-fade -- no geometry
+         to get wrong, unlike sliding a stacked pair inside a clipped box
+         (tried first; the offset never matched the line box and the number
+         simply never changed). */
+      .kdemo-pick-shift { display: grid; }
+      .kdemo-pick-shift > span { grid-area: 1 / 1; }
+      .kdemo-pick-shift > .kdemo-pick-was { animation: kdemo-pick-was var(--kdemo-cycle) infinite; }
+      .kdemo-pick-shift > .kdemo-pick-now { animation: kdemo-pick-now var(--kdemo-cycle) infinite; }
+      /* Stepped, not faded: a pick number is either the old one or the new
+         one, never a blend of the two stacked on top of each other. */
+      @keyframes kdemo-pick-was { 0%, 24.9% { opacity: 1; } 25%, 100% { opacity: 0; } }
+      @keyframes kdemo-pick-now { 0%, 24.9% { opacity: 0; } 25%, 100% { opacity: 1; } }
+      .kdemo-caption { color: var(--muted); font-size: 0.72rem; margin: 0.5rem 0 0; }
+      @media (prefers-reduced-motion: reduce) {
+        /* Hold the end state -- the point is the two boards, and a reader who
+           asked for no motion still sees the "after". */
+        .kdemo-drop, .kdemo-add, .kdemo-cursor, .kdemo-row-in, .kdemo-row-out, .kdemo-pick-shift > span { animation: none; }
+        .kdemo-cursor { display: none; }
+        .kdemo-drop { border-color: var(--border); background: var(--surface-alt); }
+        .kdemo-add { border-color: var(--purple); background: rgba(107,63,212,.20); box-shadow: inset 0 0 0 1px var(--purple); }
+        .kdemo-row-out { display: none; }
+        /* display, not opacity: both numbers share one grid cell, so an
+           opacity-0 "was" still occupies it and the cell renders both
+           stacked. Removing it from layout is what actually leaves one. */
+        .kdemo-pick-shift > .kdemo-pick-was { display: none; }
+      }
       .team-list { list-style: none; padding: 0; margin: 0; }
       .team-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: clamp(0.9rem, 2vw, 1rem); }
       .team-list li:last-child { border-bottom: none; }
