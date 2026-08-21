@@ -45,7 +45,9 @@
 
         <table class="table compact keepers-hidden" id="draft-board-table" style="margin-top: 0.75rem;">
           <thead><tr>
-            <th class="number">#</th><th>Player</th><th>Pos</th><th>NFL</th><th class="number" title="Average draft position — FFC/Sleeper consensus, the source data behind the Rank column">ADP</th><th class="number">Rank</th><th class="number">Trend</th>
+            {# Same swap as the cells below: the header says which numbering
+               is currently on screen, so "#" is never ambiguous. #}
+            <th class="number"><span class="board-order" title="Board position, counting kept players">#</span><span class="draft-order" title="Pick number in the post-keeper draft">Pick</span></th><th>Player</th><th>Pos</th><th>NFL</th><th class="number" title="Average draft position — FFC/Sleeper consensus, the source data behind the Rank column">ADP</th><th class="number">Rank</th><th class="number">Trend</th>
           </tr></thead>
           <tbody id="draft-board-body">
             {% include "_partials/draft_board_rows.html" %}

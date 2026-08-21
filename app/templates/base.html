@@ -110,6 +110,13 @@
       .table tbody tr.keeper-row td { color: var(--muted); opacity: 0.55; font-weight: 400; }
       .table tbody tr.keeper-row .pill { opacity: 0.7; }
       .table.keepers-hidden tbody tr.keeper-row { display: none; }
+      /* The pick column swaps which number it shows with the keeper toggle:
+         with keepers visible the numbering has to count them, or it would
+         skip; with them hidden it becomes the real post-keeper pick number.
+         Both are rendered, so the swap costs no request. */
+      #draft-board-table .draft-order { display: none; }
+      #draft-board-table.keepers-hidden .board-order { display: none; }
+      #draft-board-table.keepers-hidden .draft-order { display: inline; }
       .pill.pos-qb { background: rgba(178,133,255,.22); color: var(--purple-light); }
       .pill.pos-rb { background: rgba(57,255,143,.18); color: var(--green); }
       .pill.pos-wr { background: rgba(255,92,168,.2); color: var(--pink); }

@@ -6,10 +6,15 @@
    from ranking_history. #}
 {% for row in remaining_board %}
 <tr class="{% if row.isKeeper %}keeper-row{% elif row.isMyPick %}my-pick{% endif %}">
-  {# A kept player holds no pick, so the number cell is simply empty -- the
-     dimmed row and the keeping team beside the name already say what they
-     are, and a badge here only crowded the column. #}
-  <td class="number">{{ row.draftOrder if not row.isKeeper else '' }}</td>
+  {# Both numberings ship in the row and CSS shows one: boardOrder while
+     keepers are visible (continuous over everyone), draftOrder once they are
+     hidden (the real pick numbers). Doing it this way keeps the toggle a
+     class flip -- no request, and the two can never disagree because the
+     server computed both from the same list. A kept player has no pick
+     number at all, so that span is simply empty for them. #}
+  <td class="number">
+    <span class="board-order">{{ row.boardOrder }}</span><span class="draft-order">{{ row.draftOrder if not row.isKeeper else '' }}</span>
+  </td>
   <td class="playerName">{{ row.playerName }}{% if row.isKeeper %} <span class="status" title="Kept by {{ row.keptBy }} — off the board, holds no pick">— {{ row.keptBy }}</span>{% endif %}</td>
   <td><span class="pill pos-{{ (row.position or '').lower() }}">{{ row.position }}</span></td>
   <td>{{ row.team or '' }}</td>

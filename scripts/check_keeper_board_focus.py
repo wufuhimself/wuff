@@ -107,6 +107,17 @@ def main() -> int:  # pylint: disable=too-many-statements
     check('300 draftable players survive truncation', 300, len(available))
     check('the board carries keepers too (this is a keeper league)', True, len(keepers) > 0)
 
+    print('\nboth numberings, so the toggle can swap between them')
+    # boardOrder counts EVERY player (what shows while keepers are visible);
+    # draftOrder skips keepers (the real pick numbers, shown once hidden).
+    # 'ranking' is neither -- it comes from the source board and goes sparse
+    # the moment anything is filtered out.
+    check('boardOrder is dense over every row', list(range(1, len(board) + 1)),
+          [row.get('boardOrder') for row in board])
+    check('boardOrder counts keepers, draftOrder does not',
+          True, any(row['boardOrder'] != row['draftOrder']
+                    for row in available if row.get('draftOrder')))
+
     print('\nkeepers sit at their ranking position, interleaved')
     ranks = [row.get('ranking') or 9999 for row in board]
     check('whole board still sorted by ranking', sorted(ranks), ranks)
@@ -127,6 +138,10 @@ def main() -> int:  # pylint: disable=too-many-statements
     check('no kept badge in the pick column', False, '>kept</span>' in body)
     check('keepers hidden by default', True, 'class="table compact keepers-hidden"' in body)
     check('show/hide toggle rendered', True, 'id="keeper-visibility-toggle"' in body)
+    # Both numbers ship in every row; CSS shows one. If either span went
+    # missing the toggle would silently start showing the wrong numbering.
+    check('rows carry the board-order number', True, 'class="board-order"' in body)
+    check('rows carry the draft-order number', True, 'class="draft-order"' in body)
     check('customize-board toggle gone', False, 'id="board-edit-toggle"' in body)
     check('per-player nudge arrows gone', False, 'js-board-adjust' in body)
     check('the Mine column gone', False, 'adjust-col' in body)

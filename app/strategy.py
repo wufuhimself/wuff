@@ -550,6 +550,12 @@ def league_keeper_board(
         that want the strict post-keeper board filter on `isKeeper`; the UI instead shows
         them dimmed behind a Show/Hide keepers toggle, so a manager can see where the
         players coming off the board would have gone.
+
+        Every row also carries 'boardOrder': its position counting EVERY player, keepers
+        included. That is what the page shows while keepers are visible, swapping to
+        'draftOrder' when they are hidden, so the numbers stay continuous either way.
+        It is not the same as 'ranking' -- that comes from the source board and is sparse
+        as soon as anything is filtered out of it.
     """
     def normalize(name: str) -> str:
         return ' '.join(name.strip().lower().split())
@@ -648,11 +654,19 @@ def league_keeper_board(
 
     remaining_board = []
     next_slot = 1
-    for r in remaining:
+    for board_position, r in enumerate(remaining, start=1):
         row = dict(r)
         keeper_team = kept_by.get(normalize(str(r.get('playerName', ''))))
         row['isKeeper'] = keeper_team is not None
         row['keptBy'] = keeper_team
+        # Two numberings, both needed, because the UI shows one or the other
+        # depending on whether keepers are visible:
+        #   boardOrder  -- position over EVERY player, keepers counted. Dense
+        #                  1..N, unlike 'ranking', which comes from the source
+        #                  board and is sparse once anything is filtered.
+        #   draftOrder  -- pick number, keepers skipped, so it matches the
+        #                  draft that will actually happen.
+        row['boardOrder'] = board_position
         if keeper_team is None:
             # Only players actually available in the draft consume a pick
             # number, so slot math is identical to the keepers-removed board.
