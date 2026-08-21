@@ -171,7 +171,13 @@ class LeagueDataRepository:  # pylint: disable=too-many-public-methods
         identity = self._resolve_identity(players, name, nfl_team, position)
         # A team defense has no bye of its own to look up, and byes is keyed
         # by NFL team code anyway -- this reads the same map either way.
-        bye = byes.get((identity.team if identity else nfl_team) or '')
+        # The resolved identity's team is preferred (it is normalized -- the
+        # registry resolves the Rams to LAR where a roster may say LA), but
+        # it FALLS BACK to the roster's own team rather than replacing it: a
+        # veteran free agent resolves to a real identity carrying team=None,
+        # and choosing that over the roster's team silently dropped the bye
+        # for every such player (12 across the real leagues when found).
+        bye = byes.get((identity.team if identity else None) or nfl_team or '')
         return RosterEntry(
             name=name,
             position=position,

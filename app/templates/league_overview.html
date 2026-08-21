@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_partials/roster_row.html" import roster_row %}
 {% block title %}{{ league.name if league else 'Overview' }} — WuFF{% endblock %}
 {% block content %}
       {% if message %}
@@ -59,30 +60,16 @@
             {% else %}
             <table class="table compact" style="background: var(--surface-alt); table-layout: fixed; width: 100%;">
               <colgroup>
-                <col style="width: 2.6rem"><col style="width: 3.1rem"><col><col style="width: 2.8rem">
+                <col style="width: 2.6rem"><col style="width: 3.1rem"><col><col style="width: 4.4rem">
               </colgroup>
               <tbody>
                 {% if r.starterSlots %}
                 <tr class="round-divider"><td colspan="4">Starters</td></tr>
-                {% for slot, p in r.starterSlots %}
-                <tr>
-                  <td style="color: var(--muted); font-size: 0.65rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis;" title="{{ slot }}">{{ slot }}</td>
-                  <td><span class="pill pos-{{ (p.position or '').lower() }}" style="margin-right: 0;">{{ p.position or '?' }}</span></td>
-                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.name }}">{{ p.name }}</td>
-                  <td style="color: var(--muted); text-align: right;">{{ p.nfl_team or '' }}</td>
-                </tr>
-                {% endfor %}
+                {% for slot, p in r.starterSlots %}{{ roster_row(p, slot) }}{% endfor %}
                 {% endif %}
                 {% if r.bench %}
                 <tr class="round-divider"><td colspan="4">{{ 'Bench' if r.starterSlots else 'Roster' }}</td></tr>
-                {% for p in r.bench %}
-                <tr>
-                  <td></td>
-                  <td><span class="pill pos-{{ (p.position or '').lower() }}" style="margin-right: 0;">{{ p.position or '?' }}</span></td>
-                  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.name }}">{{ p.name }}</td>
-                  <td style="color: var(--muted); text-align: right;">{{ p.nfl_team or '' }}</td>
-                </tr>
-                {% endfor %}
+                {% for p in r.bench %}{{ roster_row(p) }}{% endfor %}
                 {% endif %}
               </tbody>
             </table>

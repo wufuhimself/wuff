@@ -1,0 +1,20 @@
+{# One roster player row, shared by the starters and bench tables on the
+   overview page -- they were two byte-identical copies, which is how a
+   column added to one silently misses the other.
+
+   `slot` is the lineup slot label (FLEX/SUPER_FLEX/...) when the platform
+   reports a lineup, empty for bench rows and for Yahoo's flat rosters. #}
+{% macro roster_row(p, slot='') %}
+<tr>
+  <td style="color: var(--muted); font-size: 0.65rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis;" title="{{ slot }}">{{ slot }}</td>
+  <td><span class="pill pos-{{ (p.position or '').lower() }}" style="margin-right: 0;">{{ p.position or '?' }}</span></td>
+  <td style="overflow: hidden; text-overflow: ellipsis;" title="{{ p.name }}{% if p.injury_status %} ({{ p.injury_status }}){% endif %}">
+    {{ p.name }}
+    {%- if p.injury_severity %} <span class="pill inj inj-{{ p.injury_severity }}" title="{{ p.status or '' }}{% if p.status and p.injury_status %} — {% endif %}{{ p.injury_status or '' }}">{{ p.injury_status }}</span>{% endif %}
+  </td>
+  <td style="color: var(--muted); text-align: right; white-space: nowrap;">
+    {{ p.nfl_team or '' }}
+    {%- if p.bye_week %} <span class="bye" title="Bye week {{ p.bye_week }}">B{{ p.bye_week }}</span>{% endif %}
+  </td>
+</tr>
+{% endmacro %}

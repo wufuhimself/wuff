@@ -65,6 +65,28 @@ class RosterEntry:
     draft_slot: Optional[int] = None
     raw: Mapping[str, Any] = field(default=_NO_RAW, repr=False, compare=False)
 
+    # Designations that mean the player is not available to play, as opposed
+    # to 'Questionable', which means they might be. Kept as a set of the
+    # strings the platforms actually emit (checked against every real league:
+    # Questionable, PUP, IR, Sus, DNR) rather than a guess -- an unrecognized
+    # designation falls to the milder bucket, which understates rather than
+    # invents a problem.
+    _OUT_DESIGNATIONS = frozenset({'IR', 'PUP', 'SUS', 'DNR', 'OUT', 'NA'})
+    _OUT_STATUSES = frozenset({'INACTIVE', 'INJURED RESERVE'})
+
+    @property
+    def injury_severity(self) -> Optional[str]:
+        """'out' | 'questionable' | None -- the display bucket for
+        injury_status, so templates don't re-derive it (and drift) per page.
+        None when the player carries no designation at all, which is the
+        common case and must render as nothing, not as 'healthy'."""
+        if not self.injury_status:
+            return None
+        if (self.injury_status.strip().upper() in self._OUT_DESIGNATIONS
+                or (self.status or '').strip().upper() in self._OUT_STATUSES):
+            return 'out'
+        return 'questionable'
+
 
 @dataclass(frozen=True)
 class RosterTeam:
