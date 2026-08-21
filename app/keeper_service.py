@@ -221,7 +221,14 @@ def calculate_keeper_impact(keeper_forecasts, league_format=None):
             'pct_kept': pct_kept,
         })
 
-    return sorted(impact, key=lambda x: x['pct_kept'], reverse=True)
+    # Pinned display order (WR, RB, QB, TE), not sorted by pct_kept -- the
+    # rows are a fixed set of positions the user reads column-by-column, and
+    # re-sorting on every keeper click made them jump around. Any position
+    # outside the pinned list (a league that starts K/DST, say) keeps its
+    # elite_tiers order after the pinned ones.
+    pinned = ('WR', 'RB', 'QB', 'TE')
+    order = {position: index for index, position in enumerate(pinned)}
+    return sorted(impact, key=lambda x: order.get(x['position'], len(pinned)))
 
 
 def _elite_tier_confidence(position, pos_rank_num, elite_tiers):
