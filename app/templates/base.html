@@ -267,12 +267,12 @@
       .demo-swap, .demo-pair { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-top: 1rem; }
       @media (min-width: 760px) {
         .demo-swap { grid-template-columns: 1fr 1fr; }
-        .demo-pair { grid-template-columns: minmax(0, 3fr) minmax(0, 5fr); align-items: start; }
+        .demo-pair { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: start; }
         /* The keeper card is much taller than the board excerpt, which left a
            large empty block beside it. Capping its height keeps the two
            columns roughly level; the fade says the list continues rather than
            implying the team has exactly this many players. */
-        .demo-clip { max-height: 34rem; overflow: hidden; position: relative; }
+        .demo-clip { max-height: 21rem; overflow: hidden; position: relative; }
         .demo-clip::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5rem; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none; }
       }
       .demo-label { margin: 0 0 0.35rem; color: var(--muted); font-size: clamp(0.7rem, 1.8vw, 0.8rem); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }

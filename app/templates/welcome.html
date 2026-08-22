@@ -61,47 +61,38 @@
 
       {# Real screenshots of the keeper board, captured from the running app
          against the real league (see the visual-check skill's harness), not
-         mockups. The before/after pair is one actual swap on one team --
-         Stafford dropped, Pitts kept -- so the QB and TE numbers really do
-         move. Regenerate them the same way if the board's look changes. #}
+         mockups. Team names are anonymized in the capture -- this page is
+         public. Regenerate them the same way if the board's look changes. #}
       <section class="card">
         <h2>What it looks like</h2>
         <p class="status">The keeper board, on a real league. Click a player to keep or drop them —
           position scarcity and the draft board update immediately.</p>
-
-        <div class="demo-swap">
-          <div>
-            <p class="demo-label">Keeping Matthew Stafford</p>
-            <img src="{{ url_for('static', filename='demo/impact_before.png') }}"
-                 alt="Keeper impact by position: QB 3 of top 24 kept, 12.5% locked. TE 2 of top 12 kept, 16.7% locked."
-                 class="demo-img">
-          </div>
-          <div>
-            <p class="demo-label">Swapped to Kyle Pitts Sr.</p>
-            <img src="{{ url_for('static', filename='demo/impact_after.png') }}"
-                 alt="The same panel after the swap: QB drops to 2 of top 24 kept, 8.3% locked. TE rises to 3 of top 12, 25.0% locked."
-                 class="demo-img">
-          </div>
-        </div>
-        <p class="status" style="margin-top: 0.5rem;">One swap on one team: QB drops to 8.3% locked, TE climbs to
-          25.0%. Every team's board reflects it.</p>
 
         <div class="demo-pair">
           <div>
             <p class="demo-label">Keeper selection</p>
             <div class="demo-clip">
               <img src="{{ url_for('static', filename='demo/team_card.png') }}"
-                   alt="A team's keeper-eligible players; DeVonta Smith and Kyle Pitts Sr. are marked as kept."
+                   alt="A team's keeper-eligible players, ranked; two are marked as kept."
                    class="demo-img">
             </div>
           </div>
           <div>
-            <p class="demo-label">Post-keeper draft board</p>
-            <img src="{{ url_for('static', filename='demo/board.png') }}"
-                 alt="The draft board with kept players removed, renumbered from pick 1."
+            <p class="demo-label">Keepers by position</p>
+            <img src="{{ url_for('static', filename='demo/impact_after.png') }}"
+                 alt="Keeper impact by position: WR 11 of top 36 kept, RB 7 of top 24, QB 2 of top 24, TE 3 of top 12."
                  class="demo-img">
+            <p class="status" style="margin-top: 0.6rem;">How much of each position the league has locked
+              up. Every keeper change moves these numbers as you click.</p>
           </div>
         </div>
+
+        <p class="demo-label" style="margin-top: 1.25rem;">Post-keeper draft board</p>
+        <img src="{{ url_for('static', filename='demo/board.png') }}"
+             alt="The draft board with keepers shown in place, dimmed, so you can see which picks are gone."
+             class="demo-img">
+        <p class="status" style="margin-top: 0.5rem;">The board you actually draft from. Kept players stay
+          visible but dimmed, at the spot they would have gone — so you can see what is off the table.</p>
       </section>
 
       <section class="card">
